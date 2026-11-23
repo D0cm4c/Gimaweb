@@ -1,0 +1,19 @@
+{
+  "name": "gimaweb",
+  "version": "0.1.0",
+  "description": "Serveur Gimaweb — gestion membres, formations et inscriptions de l'Atelier du web (base SQLite unique, HTTP LAN)",
+  "type": "module",
+  "main": "server/serveur.js",
+  "scripts": {
+    "start": "node server/serveur.js",
+    "check": "node --check server/serveur.js",
+    "test": "node tests/m0.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0",
+    "express": "^4.21.2"
+  }
+}
