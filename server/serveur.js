@@ -8,6 +8,8 @@ import { creerApiMembres } from './api-membres.js';
 import { creerApiVisites } from './api-visites.js';
 import { creerApiFormations } from './api-formations.js';
 import { creerApiSalles } from './api-salles.js';
+import { creerApiNotifications } from './api-notifications.js';
+import { creerApiBookings } from './api-bookings.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -107,6 +109,14 @@ const notifier = (type, message, severite = 'info', details = null) => {
 };
 
 const salles = creerApiSalles(db, { sessionValide, notifier });
+const prochainNumero = () => {
+    const utilises = new Set(db.prepare('SELECT member_no FROM members WHERE member_no IS NOT NULL').all().map((r) => r.member_no));
+    let n = 1000;
+    while (utilises.has(n)) n += 1;
+    return n <= 9999 ? n : null;
+};
+app.use('/api', creerApiNotifications(db));
+app.use('/api', creerApiBookings(db, { notifier, prochainNumero }));
 app.use('/api', salles.api);
 app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees }));
 app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M2+).' }));
