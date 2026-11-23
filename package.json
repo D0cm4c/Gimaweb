@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server/serveur.js",
     "check": "node --check server/serveur.js",
-    "test": "node tests/m0.js && node tests/m1-membres.js"
+    "test": "node tests/m0.js && node tests/m1-membres.js && node tests/m1b-visites.js"
   },
   "engines": {
     "node": ">=22"
