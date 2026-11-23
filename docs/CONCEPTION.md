@@ -1,7 +1,7 @@
 # Gimaweb — document de conception (pré-production)
 
 > Rédigé selon le skill **pre-production** (conception avant code — leçon n° 20 généralisée).
-> ⚠️ Les décisions marquées « À VALIDER » ne sont pas encore figées : aucun code ne les implémente avant le « go » de l'utilisateur.
+> ✅ Phase de conception **validée le 23 nov. 2026** : les 4 questions ouvertes sont tranchées (§5) — le code démarre (M0).
 
 ## 1. Le besoin (3 phrases)
 
@@ -33,16 +33,16 @@ L'Atelier du Web (EPN de Saint-Gilles, 25 ordis + 2 salles de formation) remplac
 5. **RGPD/sécurité** : zéro secret committé ; données statuts sociaux sensibles ; endpoint purge + remplacement de base derrière la garde admin (mot de passe admin de la maquette → session côté serveur, à valider point 6).
 6. **Pointage, matching, notifications** : la logique métier de la maquette (hiérarchie de matching, journal des actions automatiques) est **reprise telle quelle**, déplacée serveur.
 
-## 5. ⚠️ À VALIDER avant le code
+## 5. Décisions tranchées par le porteur (23 nov. 2026) — FIGÉES
 
-| # | Question | Options |
+| # | Question | Décision |
 |---|---|---|
-| 1 | **Auth serveur** : la maquette a un mot de passe admin local (garde anti-erreur). En LAN, qui ouvre l'app ? | (a) Mot de passe unique partagé + cookie de session (simple, fidèle à la maquette) · (b) Comptes animateurs + rôles · (c) Aucune auth (LAN de confiance) |
-| 2 | **Sauvegarde** : cron `sqlite3 .backup` + chiffrement AES-GCM (openssl ou script Node) vers Nextcloud WebDAV — fréquence ? | (a) nocturne à heure fixe · (b) horaire |
-| 3 | **Frontend ici** : copier les pages maquette dans `public/` du même dépôt (monolithe simple) ou sous-module/registry séparé ? | (a) monolithe recommandé — le serveur est le produit · (b) séparé |
-| 4 | **Port/URL** : port 3000 sur IP LAN (recommandé BACKEND.md) ou reverse-proxy avec nom local ? | (a) :3000 direct · (b) reverse proxy |
+| 1 | **Auth serveur** | ✅ **Mot de passe unique partagé** + cookie de session (fidèle à auth.js de la maquette) — garde les endpoints sensibles (purge RGPD, remplacement de base, réglages) ; premiers POST d'auth comparés au hash SHA-256 du mot de passe dans `.env` |
+| 2 | **Sauvegarde** | ✅ **Chaque nuit** : cron `sqlite … VACUUM INTO`/`.backup` → chiffrement AES-GCM → upload Nextcloud WebDAV (M4) |
+| 3 | **Frontend ici** | ✅ **Monolithe** : copie des pages maquette dans `public/` de ce dépôt — le serveur est le produit |
+| 4 | **Port/URL** | ✅ **Port 3000 direct** : `http://192.168.x.x:3000` (recommandation BACKEND.md reprise) |
 
-**Le code ne commence qu'après le « go » sur ces points** (le squelette Express + schema.sql livrés dans cette PR ne sont pas encore du code métier).
+Verrou : le mot de passe et l'URL WebDAV vivent dans `.env` (jamais committé).
 
 ## 6. Plan de livraison (phases démontrables)
 

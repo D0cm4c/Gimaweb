@@ -20,14 +20,14 @@
 - Zéro secret committé (`.env` gitignoré) ; RGPD : purge + remplacement de base derrière garde admin.
 - Toute action automatique = notifiée + journalisée ; matching hiérarchique (n° membre > email > nom/prénom > création), les cas incertains passent par l'écran de validation humaine.
 
-## ⚠️ En attente de décision utilisateur (voir docs/CONCEPTION.md §5)
+## ✅ Décisions tranchées par le porteur (23 nov. 2026) — FIGÉES
 
-1. Auth LAN (mot de passe partagé / comptes / aucune)
-2. Sauvegarde nocturne : fréquence
-3. Frontend monolithe dans ce dépôt : oui (recommandé) / non
-4. Port 3000 direct / reverse-proxy
+1. **Auth** : mot de passe unique partagé + cookie de session (garde des endpoints sensibles ; hash SHA-256 dans `.env`)
+2. **Sauvegarde** : nocturne — `sqlite3 .backup` → chiffrement AES-GCM → WebDAV Nextcloud (M4)
+3. **Frontend** : monolithe — copie des pages maquette dans `public/` de ce dépôt
+4. **Service** : port 3000 direct en LAN (`http://192.168.x.x:3000`)
 
-**Aucun code métier avant le « go » sur ces 4 points.**
+Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 ## 📦 État actuel
 

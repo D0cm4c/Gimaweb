@@ -7,7 +7,7 @@
 
 1. Lire `CONTEXT.md`, `docs/CONCEPTION.md`, `docs/CONTRAT-API.md`.
 2. Vérifier `git status`, `git log`, les PRs et les issues ouvertes (ce dépôt + les issues `pour-serveur` du dépôt app).
-3. **Aucun code métier tant que les décisions marquées ⚠️ dans CONCEPTION.md §5 ne sont pas figées** (skill pre-production : conception avant code).
+3. **Les 4 décisions de CONCEPTION.md §5 sont figées (23 nov. 2026) — le code démarre (M0→M5). Rester dans le plan de phases, une fonctionnalité par PR: conception avant code).
 4. Livraison : branche `vibe/<slug>`, commits en français préfixés (`feat:`, `fix:`, `docs:`, `perf:`), PR draft puis ready. La fusion est faite par le propriétaire (« go »).
 5. `CONTEXT.md` mis à jour dans la même PR que le travail livré (état, historique, leçons).
 
