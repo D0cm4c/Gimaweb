@@ -15,3 +15,4 @@ jobs:
       - run: npm ci
       - run: node --check server/serveur.js
       - run: node tests/m0.js
+      - run: node tests/m1-membres.js
