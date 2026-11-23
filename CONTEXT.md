@@ -86,3 +86,18 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
   - `PUT /bookings/:id/traitement {action: linked|created|ignored, member_id?}` — validation humaine : linked (inscription + notif), created (membre créé n° auto, données du booking + inscription + notif), ignored (silencieux). 409 si déjà traité, 404 id inconnu, formation inconnue → ignored + notif awaiting_validation.
 - Test 32/32 (`tests/m3-bookings.js`) : garde secret (401/400/503), hiérarchie complète du matching, auto-traitement, validation humaine (candidats, création #1003), miroir (annulation → désinscription notifiée + non-résurrection), file sans annulées, cycle complet notifications.
 - ⚠️ Leçon (bug attrapé par le test) : **`db.prepare('UPDATE…')` sans `.run()` s'exécute JAMAIS en better-sqlite3** (statement préparé ≠ requête jouée) — toujours `.run()`/`.get()`/`.all()`, et tester le RÉSULTAT pas le code HTTP (204 renvoyé alors que rien n'avait changé en base).
+
+## 📦 État — M4 : tickets/suggestions/équipe + sauvegarde chiffrée + restauration (PR #9)
+
+- **API tickets/suggestions/équipe** (`server/api-tickets.js`) : tickets CRUD (valeurs consacrées, resolved_at posé, DELETE derrière session admin, commentaires en cascade), suggestions (statuts open|done|discarded), équipe (suppression 409 si tickets assignés au nom), **purge RGPD derrière session admin** (périmètre maquette : visites, impressions, inscriptions, membres, bookings, suggestions, attentes, journal paiements — salles/formations conservées, notifiée).
+- **Sauvegarde chiffrée** (`server/sauvegarde.js`) : snapshot cohérent via l'API `.backup` de better-sqlite3 → AES-256-GCM (clé scrypt depuis `BACKUP_PASSPHRASE`) → export WebDAV Nextcloud. `POST /api/base/sauvegarde` (session admin) + CLI dédiée. Test avec mock WebDAV : déchiffrement + mauvaise phrase → échec + fichier non-SQLite en clair.
+- **Remplacement de base (restauration)** : `POST /api/base/remplacement {fichier_base64}` (session admin) — base candidate déposée **après** integrity_check, `redémarrage_requis`, adoptée au démarrage suivant si saine, jamais écrasée à chaud.
+- `docs/ADMINISTRATION.md` : installation Node 22, systemd service + **timer 02:30** pour la nocturne (décision figée n° 2), pull deployment (GitHub → git pull → restart), restauration.
+- Test 32/32 (`tests/m4-tickets-sauvegarde.js`) avec arrêt/redémarrage réel du serveur pour la restauration.
+
+## 🧠 Leçons M4
+
+1. **Piège WAL au remplacement** : écraser le `.db` sans purger `-wal`/`-shm` laisse l'ancienne base rejouer ses transactions PAR-DESSUS la restaurée — toujours supprimer les 3 fichiers ensemble. 16h30 sur ce chantier.
+2. **Trap CLI endsWith** : ne JAMAIS détecter l'exécution CLI avec `argv[1].endsWith(nomModule)` — le test `m4-tickets-sauvegarde.js` finit pareil, l'import déclenchait une fausse CLI qui tuait le test (exit 1). Comparer `path.resolve(argv[1]) === fileURLToPath(import.meta.url)`.
+3. **Serveurs fantômes en test** : un test qui crash sans tuer son serveur spawné laisse un processus sur son port → le run suivant parle à la base obsolète du fantôme (symptômes absurdes : UNIQUE 500 sur des insertions fraîches). Toujours `finally { kill }` + vérifier `ps` quand les résultats "ne collent pas".
+4. Les sessions sont en mémoire : après redémarrage, re-login dans les tests (et dans la vraie vie — 30 min max).

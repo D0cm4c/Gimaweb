@@ -144,8 +144,8 @@ try {
     dbN.close();
     verifie('base notifications vide après purge des lues', restantes === 0, restantes);
 
-    const nonLivree = await fetchApi('/api/tickets');
-    verifie('endpoint non livré → 501', nonLivree.status === 501);
+    const nonLivree = await fetchApi('/api/inconnu');
+    verifie('endpoint inconnu → 501', nonLivree.status === 501);
 } catch (e) {
     console.log('❌ échec du test :', e.message);
 }

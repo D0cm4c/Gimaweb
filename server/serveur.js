@@ -10,6 +10,8 @@ import { creerApiFormations } from './api-formations.js';
 import { creerApiSalles } from './api-salles.js';
 import { creerApiNotifications } from './api-notifications.js';
 import { creerApiBookings } from './api-bookings.js';
+import { creerApiTickets } from './api-tickets.js';
+import { creerApiSauvegarde, adopterRemplacementAuDemarrage } from './sauvegarde.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -28,7 +30,9 @@ if (!MOT_DE_PASSE_HASH) {
 }
 
 // ---- Base SQLite unique (WAL multi-postes) ----
+// Restauration en attente ? (POST /api/base/remplacement — validation integrity_check, jamais de base cassée)
 fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+adopterRemplacementAuDemarrage(DB_PATH);
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.exec(fs.readFileSync(path.join(RACINE, 'server', 'schema.sql'), 'utf8'));
@@ -117,6 +121,8 @@ const prochainNumero = () => {
 };
 app.use('/api', creerApiNotifications(db));
 app.use('/api', creerApiBookings(db, { notifier, prochainNumero }));
+app.use('/api', creerApiTickets(db, { sessionValide, notifier }));
+app.use('/api', creerApiSauvegarde({ sessionValide, notifier, dbPath: DB_PATH }));
 app.use('/api', salles.api);
 app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees }));
 app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M2+).' }));
