@@ -143,8 +143,8 @@ try {
     verifie('attente orpheline → générique sur son titre', generique && generique.formation_title === 'Formation', generique);
     verifie('migration notifiée (journal)', notifSync === 1, notifSync);
 
-    const nonLivree = await fetchApi('/api/tickets');
-    verifie('endpoint non livré → 501', nonLivree.status === 501);
+    const nonLivree = await fetchApi('/api/inconnu');
+    verifie('endpoint inconnu → 501', nonLivree.status === 501);
 } catch (e) {
     console.log('❌ échec du test :', e.message);
 }

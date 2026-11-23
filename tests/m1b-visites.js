@@ -78,8 +78,8 @@ try {
     const suppr = await fetchApi(`/api/membres/${sansAbo.body.id}/impressions`, { method: 'DELETE' });
     verifie('DELETE solde impressions → 1 supprimée', suppr.status === 200 && suppr.body.supprimees === 1, suppr.body);
 
-    const nonLivree = await fetchApi('/api/tickets');
-    verifie('endpoint non livré → 501', nonLivree.status === 501);
+    const nonLivree = await fetchApi('/api/inconnu');
+    verifie('endpoint inconnu → 501', nonLivree.status === 501);
 } catch (e) {
     console.log('❌ échec du test :', e.message);
 }
