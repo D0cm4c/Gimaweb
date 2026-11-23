@@ -27,8 +27,13 @@
         }
 
         function render() {
-            var all = [];
-            try { all = window.ADWDatabase.listSuggestions(); } catch (e) { all = []; }
+            window.ADWDatabase.listSuggestions().then(function (all) {
+                all = all || [];
+                _render(all);
+            }).catch(function () { _render([]); });
+        }
+
+        function _render(all) {
             var items = status === 'all' ? all : all.filter(function (s) { return s.status === status; });
             loading.hidden = true;
             countEl.textContent = items.length + ' suggestion' + (items.length > 1 ? 's' : '');
@@ -67,8 +72,7 @@
             if (!done && !discard && !reopen) return;
             var id = (done || discard || reopen).getAttribute('data-id');
             var action = done ? 'done' : (discard ? 'discarded' : 'open');
-            window.ADWDatabase.setSuggestionStatus(id, action);
-            render();
+            window.ADWDatabase.setSuggestionStatus(id, action).then(render).catch(function (err) { alert('Erreur : ' + err.message); });
         });
 
         document.querySelectorAll('[data-status]').forEach(function (btn) {

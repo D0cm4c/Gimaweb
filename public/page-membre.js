@@ -40,19 +40,15 @@
             var today = new Date();
             var todayStr = today.toISOString().slice(0, 10);
             var monthStr = todayStr.slice(0, 7);
-            var visitsMonth = 0;
-            try {
-                visitsMonth = (window.ADWDatabase.queryAll(
-                    'SELECT COUNT(*) c FROM visits WHERE member_id = ? AND strftime(\'%Y-%m\', visit_date) = ?',
-                    [member.id, monthStr])[0] || {}).c || 0;
-            } catch (e) { visitsMonth = 0; }
+            var visitsMonth = (visits || []).filter(function (v) {
+                return (v.visit_date || '').slice(0, 7) === monthStr;
+            }).length;
 
             // Dernière visite en délai humain
             var lastVisit = null;
-            try {
-                lastVisit = (window.ADWDatabase.queryAll(
-                    'SELECT MAX(visit_date) d FROM visits WHERE member_id = ?', [member.id])[0] || {}).d || null;
-            } catch (e) { lastVisit = null; }
+            (visits || []).slice().sort(function (a, b) {
+                return String(b.visit_date || '').localeCompare(String(a.visit_date || ''));
+            }).some(function (v) { lastVisit = v.visit_date; return true; });
             var lastVisitLabel;
             if (!lastVisit) lastVisitLabel = 'jamais';
             else {
@@ -118,11 +114,28 @@
             return '<div class="care-notes">' + notes.join('') + '</div>';
         }
 
+        var membreCourant = null;
+
         function render(member) {
-            var visits = ADWDatabase.queryAll(
-                'SELECT * FROM visits WHERE member_id = ? ORDER BY visit_date DESC, created_at DESC LIMIT 30', [member.id]);
-            var formations = [];
-            try { formations = ADWDatabase.getMemberFormations(member.id) || []; } catch (e) { formations = []; }
+            if (member) membreCourant = member;
+            member = member || membreCourant;
+            if (!member) return;
+            Promise.all([
+                ADWDatabase.listerVisitesMembre(member.id).catch(function () { return []; }),
+                ADWDatabase.getMemberFormations(member.id).catch(function () { return []; }),
+                ADWDatabase.getMemberWaitlist(member.id).catch(function () { return []; })
+            ]).then(function (sources) {
+                var visits = sources[0].slice(0, 30);
+                var formations = sources[1] || [];
+                _renderInterne(member, visits, formations, sources[2] || []);
+            }).catch(function (err) {
+                loading.hidden = true;
+                notFound.hidden = false;
+                notFound.querySelector('p').textContent = 'Erreur : ' + err.message;
+            });
+        }
+
+        function _renderInterne(member, visits, formations, interestsData) {
 
             pageTitle.textContent = member.first_name + ' ' + member.last_name;
             document.title = member.first_name + ' ' + member.last_name + ' — Atelier du Web';
@@ -220,8 +233,7 @@
             html += '</div>'; // fin carte
 
             // ===== Int\u00e9r\u00eats / listes d'attente (oct. 2026) =====
-            var interests = [];
-            try { interests = ADWDatabase.getMemberWaitlist(member.id) || []; } catch (e) { interests = []; }
+            var interests = interestsData || [];
             html += '<div class="m-card">' +
                 '<div class="detail-visits">' +
                 '<h4>\u23f1\ufe0f Int\u00e9r\u00eats / liste d\u2019attente <span class="members-count">' + interests.length + '</span></h4>' +
@@ -317,22 +329,14 @@
             // Pointer une visite du jour (garde déjà-pointé, même règle que membres.html)
             var checkinBtn = document.getElementById('checkinBtn');
             if (checkinBtn) checkinBtn.addEventListener('click', function () {
-                var today = new Date().toISOString().slice(0, 10);
-                var already = window.ADWDatabase.queryAll(
-                    'SELECT id FROM visits WHERE member_id = ? AND visit_date = ?', [member.id, today]);
-                if (already.length) {
-                    alert('⚠️ Visite déjà pointée aujourd\'hui pour ce membre.');
-                    return;
-                }
-                var amount = member.subscription === 'none' ? 1 : 0;
-                var visitId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-                window.ADWDatabase.run('INSERT INTO visits (id, member_id, visit_date, amount) VALUES (?, ?, ?, ?)',
-                    [visitId, member.id, today, amount]).then(function () {
-                    if (window.ADWNotifications) window.ADWNotifications.push('checkin', '✅ Visite de ' + member.first_name + ' pointée' + (amount ? ' (1 €)' : ' (incluse abonnement)'), 'success', { member_id: member.id });
-                    render();
+                window.ADWDatabase.pointerVisite(member.id).then(function (visite) {
+                    if (window.ADWNotifications) window.ADWNotifications.push('checkin', '✅ Visite de ' + member.first_name + ' pointée' + (visite.amount ? ' (' + visite.amount + ' €)' : ' (incluse abonnement)'), 'success', { member_id: member.id });
+                    render(member);
+                }).catch(function (err) {
+                    alert(err.status === 409
+                        ? '⚠️ Visite déjà pointée aujourd’hui pour ce membre.'
+                        : 'Erreur : ' + err.message);
                 });
-            });
-
             // ===== Int\u00e9r\u00eats / listes d'attente : ajout (dropdown ou libre) et retrait =====
             content.addEventListener('click', function (e) {
                 var rm = e.target.closest('.wl-remove');
@@ -372,22 +376,18 @@
                 var today = new Date().toISOString().slice(0, 10);
                 if (action === 'bw' || action === 'color') {
                     var amount = action === 'bw' ? 0.10 : 0.50;
-                    var printId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-                    window.ADWDatabase.run('INSERT INTO prints (id, member_id, print_date, type, amount, paid) VALUES (?, ?, ?, ?, ?, 0)',
-                        [printId, member.id, today, action, amount]).then(function () {
+                    window.ADWDatabase.ajouterImpression(member.id, action, amount).then(function () {
                         if (window.ADWNotifications) window.ADWNotifications.push('print', '🖨️ Impression ' + (action === 'bw' ? 'N&B' : 'couleur') + ' ajoutée (' + amount.toFixed(2).replace('.', ',') + ' €)', 'success', { member_id: member.id });
                         render();
                     });
                 } else if (action === 'pay') {
-                    window.ADWDatabase.run('UPDATE prints SET paid = 1, paid_date = date(\'now\') WHERE member_id = ? AND paid = 0',
-                        [member.id]).then(function () {
+                    window.ADWDatabase.solderImpressions(member.id).then(function () {
                         if (window.ADWNotifications) window.ADWNotifications.push('print', '💰 Impressions soldées', 'success');
                         render();
                     });
                 } else if (action === 'delete') {
                     if (confirm('Supprimer le solde d\'impressions de ' + member.first_name + ' ? (en cas d\'erreur de saisie)')) {
-                        window.ADWDatabase.run('DELETE FROM prints WHERE member_id = ? AND paid = 0',
-                            [member.id]).then(function () {
+                        window.ADWDatabase.effacerSoldeImpressions(member.id).then(function () {
                             if (window.ADWNotifications) window.ADWNotifications.push('print', '🗑️ Solde d\'impressions supprimé', 'success');
                             render();
                         });
@@ -395,16 +395,21 @@
                 }
             });
 
+            // Renouvellement : le serveur calcule et renvoie la nouvelle fin de cycle
+            var renewBtn = content.querySelector('#renewSubBtn');
+            if (renewBtn) renewBtn.addEventListener('click', function () {
+                window.ADWDatabase.renewSubscription(member.id).then(function (r) {
+                    var newEnd = r && r.nouvelle_fin;
+                    if (!newEnd) return;
+                    if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé jusqu\u2019au ' + newEnd, 'success', { member_id: member.id });
+                    alert('Abonnement renouvelé jusqu\u2019au ' + newEnd + '.');
+                    render();
+                }).catch(function (err) { alert('Erreur : ' + err.message); });
+            });
+
+            // Suppression (garde admin, session serveur) — cascade RGPD côté serveur
             var deleteBtn = document.getElementById('deleteMemberBtn');
             if (deleteBtn) deleteBtn.addEventListener('click', function () {
-var renewBtn = content.querySelector('#renewSubBtn');
-            if (renewBtn) renewBtn.addEventListener('click', function () {
-                var newEnd = window.ADWDatabase.renewSubscription(member.id);
-                if (!newEnd) return;
-                if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé jusqu\u2019au ' + newEnd, 'success', { member_id: member.id });
-                alert('Abonnement renouvelé jusqu\u2019au ' + newEnd + '.');
-                render();
-            });
                 ADWAuth.ensureUnlocked('Supprimer un membre — action réservée à l\u2019équipe.').then(function (ok) {
                     if (!ok) return;
                     if (confirm('Supprimer le membre "' + member.first_name + ' ' + member.last_name + '" ?\n\nSes visites, impressions et inscriptions aux formations seront aussi supprimées.')) {
@@ -413,6 +418,7 @@ var renewBtn = content.querySelector('#renewSubBtn');
                         });
                     }
                 });
+            });
             });
         }
 
@@ -427,17 +433,14 @@ var renewBtn = content.querySelector('#renewSubBtn');
                 notFound.querySelector('p').textContent = 'Aucun membre spécifié dans l\'URL.';
                 return;
             }
-            var rows = ADWDatabase.queryAll(
-                'SELECT m.*, ' +
-                '(SELECT COUNT(*) FROM visits v WHERE v.member_id = m.id) AS visit_count, ' +
-                '(SELECT COALESCE(SUM(amount), 0) FROM prints p WHERE p.member_id = m.id AND paid = 0) AS print_balance ' +
-                'FROM members m WHERE m.id = ?', [id]);
-            if (!rows.length) {
-                loading.hidden = true;
-                notFound.hidden = false;
-                return;
-            }
-            render(rows[0]);
+            ADWDatabase.getMembre(id).then(function (m) {
+                if (!m) {
+                    loading.hidden = true;
+                    notFound.hidden = false;
+                    return;
+                }
+                render(m);
+            });
         }).catch(function (err) {
             loading.hidden = true;
             notFound.hidden = false;
