@@ -4,6 +4,7 @@
 import express from 'express';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import { creerApiMembres } from './api-membres.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -92,8 +93,9 @@ app.get('/api/sante', (req, res) => {
     });
 });
 app.use('/api/auth', auth);
-// Endpoints métier : livrés par phases (docs/CONCEPTION.md §6) — M1 : membres
-app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M1+).' }));
+// Endpoints métier par phase (docs/CONCEPTION.md §6) — M1a : membres
+app.use('/api', creerApiMembres(db, { sessionValide }));
+app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M2+).' }));
 
 // Rôle A : fichiers statiques du frontend (public/ — livré en M5)
 app.use(express.static(path.join(RACINE, 'public')));
