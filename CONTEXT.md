@@ -74,3 +74,15 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Listes d'attente** : `POST /api/listes-attente` (anti-doublon event_id OU intitulé), `GET /api/listes-attente?event_id|titre`, `top?limite=`, `GET /api/membres/:id/listes-attente`, `DELETE`, `PUT …/contacte`, `GET /api/formations/:id/liste-attente/match` (garde critique : titre normalisé < 4 caractères = event_id seul), **option C** : `POST /api/listes-attente/migrer` — les attentes des sessions passées/disparues deviennent génériques (le sujet), anti-doublon, **notifiées** (type sync). La migration est **branchée sur chaque sync** (`apresSync` — option C maquette).
 - Test 29/29 (`tests/m2b-salles.js`, mock WP + seeds manuels en base).
 - Leçon : `LIKE '%…%'` sur titre normalisé ne matche pas les espacements multiples du titre stocké — le matching normalise pour la comparaison en SQL LOWER, l'anti-doublon POST utilise l'égalité exacte (LOWER) : pour les tests, titres à espacement simple.
+
+## 📦 État — M3 : notifications + réservations du site (PR #8)
+
+- **API notifications** (`server/api-notifications.js`) : `GET /api/notifications?limite=`, `GET /avant-premiere?limite=` (non-lues d'abord, complétées des récentes — en SQL), `GET /non-lues`, `POST` (usage programme), `PUT /:id/lu`, `PUT /luses` (tout marquer lu), `DELETE /luses` (purge des lues), `DELETE /notifications` (tout). Le journal `notifications` est déjà alimenté par les syncs ; `notifier()` centralisé dans serveur.js.
+- **API bookings** (`server/api-bookings.js`) :
+  - `POST /api/bookings/upsert` — **secret server-to-server** (`BOOKINGS_SECRET` en .env, Bearer ou x-adw-secret ; 503 si non configuré, 401 si invalide) : réception des réservations du plugin WP, upsert idempotent, puis **miroir immédiat**.
+  - Miroir « le site vend, l'app gère » : annulation traitée → désinscription locale + notification auto_unlink + reset du booking (jamais de résurrection) ; annulation non traitée → ignorée (file propre).
+  - `GET /bookings/non-traites` — file de validation avec **matching calculé par item** (n° membre > email LOWER > nom/prénom normalisés NFD → candidats, jamais certains).
+  - `POST /bookings/traitement-automatique` — rattache les certains (auto_linked, notifié), les incertains restent à l'humain.
+  - `PUT /bookings/:id/traitement {action: linked|created|ignored, member_id?}` — validation humaine : linked (inscription + notif), created (membre créé n° auto, données du booking + inscription + notif), ignored (silencieux). 409 si déjà traité, 404 id inconnu, formation inconnue → ignored + notif awaiting_validation.
+- Test 32/32 (`tests/m3-bookings.js`) : garde secret (401/400/503), hiérarchie complète du matching, auto-traitement, validation humaine (candidats, création #1003), miroir (annulation → désinscription notifiée + non-résurrection), file sans annulées, cycle complet notifications.
+- ⚠️ Leçon (bug attrapé par le test) : **`db.prepare('UPDATE…')` sans `.run()` s'exécute JAMAIS en better-sqlite3** (statement préparé ≠ requête jouée) — toujours `.run()`/`.get()`/`.all()`, et tester le RÉSULTAT pas le code HTTP (204 renvoyé alors que rien n'avait changé en base).
