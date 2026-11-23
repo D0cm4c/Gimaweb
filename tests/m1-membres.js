@@ -100,7 +100,7 @@ try {
     db2.close();
     verifie('cascade RGPD complète (visits, prints, liens, membre)', restants.visits === 0 && restants.prints === 0 && restants.fm === 0 && restants.membre === 0, restants);
 
-    const nonLivree = await fetchApi('/api/salles');
+    const nonLivree = await fetchApi('/api/tickets');
     verifie('endpoint non livré → 501', nonLivree.status === 501);
 } catch (e) {
     console.log('❌ échec du test :', e.message);

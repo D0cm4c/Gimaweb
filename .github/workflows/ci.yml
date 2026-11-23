@@ -18,3 +18,4 @@ jobs:
       - run: node tests/m1-membres.js
       - run: node tests/m1b-visites.js
       - run: node tests/m2a-formations.js
+      - run: node tests/m2b-salles.js

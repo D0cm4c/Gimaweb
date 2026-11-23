@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { creerApiMembres } from './api-membres.js';
 import { creerApiVisites } from './api-visites.js';
 import { creerApiFormations } from './api-formations.js';
+import { creerApiSalles } from './api-salles.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -31,8 +32,8 @@ db.pragma('journal_mode = WAL');
 db.exec(fs.readFileSync(path.join(RACINE, 'server', 'schema.sql'), 'utf8'));
 
 // Salles par défaut au premier démarrage (seed — cf. maquette)
-const salles = db.prepare('SELECT COUNT(*) AS n FROM rooms').get();
-if (salles.n === 0) {
+const compteSalles = db.prepare('SELECT COUNT(*) AS n FROM rooms').get();
+if (compteSalles.n === 0) {
     const seed = db.prepare('INSERT INTO rooms (id, name, capacity, sort_order) VALUES (?, ?, ?, ?)');
     seed.run('room-grande', 'Grande salle', 15, 1);
     seed.run('room-petite', 'Petite salle', 8, 2);
@@ -98,7 +99,16 @@ app.use('/api/auth', auth);
 // Endpoints métier par phase (docs/CONCEPTION.md §6) — M1a : membres
 app.use('/api', creerApiMembres(db, { sessionValide }));
 app.use('/api', creerApiVisites(db));
-app.use('/api', creerApiFormations(db));
+
+// Journal des actions automatiques (règle : tout automatisme est notifié)
+const notifier = (type, message, severite = 'info', details = null) => {
+    db.prepare('INSERT INTO notifications (id, type, severity, message, details) VALUES (?, ?, ?, ?, ?)')
+        .run(crypto.randomUUID(), type, severite, message, details ? JSON.stringify(details) : null);
+};
+
+const salles = creerApiSalles(db, { sessionValide, notifier });
+app.use('/api', salles.api);
+app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees }));
 app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M2+).' }));
 
 // Rôle A : fichiers statiques du frontend (public/ — livré en M5)
