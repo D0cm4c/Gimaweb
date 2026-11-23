@@ -45,10 +45,9 @@
 
         var currentFormation = null;
 
-        function roomCardHtml(f) {
-            var rooms = ADWDatabase.listRooms();
-            var dates = [];
-            try { dates = ADWDatabase.getFormationDates(f.id) || []; } catch (e) { dates = []; }
+        function roomCardHtml(f, rooms, dates) {
+            rooms = rooms || [];
+            dates = dates || [];
             var html = '<div class="form-group"><label for="roomSelect">Salle attribuée</label>' +
                 '<select id="roomSelect">' +
                 '<option value="">— Non attribuée —</option>';
@@ -79,8 +78,10 @@
             if (!select) return;
             select.addEventListener('change', function () {
                 var roomId = select.value || null;
-                var conflicts = roomId ? ADWDatabase.getRoomConflicts(f.id, roomId) : [];
-                ADWDatabase.setFormationRoom(f.id, roomId);
+                ADWDatabase.getRoomConflicts(f.id, roomId).then(function (conflicts) {
+                    conflicts = roomId ? (conflicts || []) : [];
+                    return ADWDatabase.setFormationRoom(f.id, roomId).then(function () { return conflicts; });
+                }).then(function (conflicts) {
                 if (roomId) {
                     var roomName = select.options[select.selectedIndex].textContent;
                     if (conflicts.length) {
@@ -104,10 +105,35 @@
                 } else {
                     conflictBox.hidden = true;
                 }
+                }).catch(function (err) { alert('Erreur : ' + err.message); });
             });
         }
 
         function render(f) {
+            return Promise.all([
+                ADWDatabase.listRooms().catch(function () { return []; }),
+                ADWDatabase.getFormationDates(f.id).catch(function () { return []; }),
+                ADWDatabase.getFormationAttendees(f.id).catch(function () { return []; }),
+                ADWDatabase.getWaitlist(f.event_id, f.title).catch(function () { return []; })
+            ]).then(function (sources) {
+                var inscrits = sources[2] || [];
+                var logsParMembre = {};
+                return Promise.all(inscrits.map(function (m) {
+                    return ADWDatabase.getPaymentLog(f.id, m.id).catch(function () { return []; });
+                })).then(function (tousLesLogs) {
+                    inscrits.forEach(function (m, i) { logsParMembre[m.id] = tousLesLogs[i] || []; });
+                    return { rooms: sources[0], dates: sources[1], attendees: inscrits, moduleDates: sources[1], waiting: sources[3], paiements: logsParMembre };
+                });
+            }).then(function (ctx) {
+                _renderInterne(f, ctx);
+            }).catch(function (err) {
+                loading.hidden = true;
+                notFound.hidden = false;
+                notFound.querySelector('p').textContent = 'Erreur de chargement : ' + err.message;
+            });
+        }
+
+        function _renderInterne(f, ctx) {
             currentFormation = f;
             pageTitle.textContent = f.title;
             document.title = f.title + ' — Atelier du Web';
@@ -117,10 +143,8 @@
             var tone = mainCat ? toneFor(mainCat) : -1;
             var bannerStyle = tone >= 0 ? ' style="background:' + TONE_SOLID[tone] + '"' : '';
 
-            var attendees = [];
-            try { attendees = ADWDatabase.getFormationAttendees(f.id) || []; } catch (e) { attendees = []; }
-            var moduleDates = [];
-            try { moduleDates = ADWDatabase.getFormationDates(f.id) || []; } catch (e) { moduleDates = []; }
+            var attendees = ctx.attendees || [];
+            var moduleDates = ctx.moduleDates || [];
             var moduleCount = moduleDates.length;
 
 
@@ -190,7 +214,7 @@
                     : '<p class="form-hint">Pas de description.</p>') +
                 '</div>' +
                 '<div class="stat-card" id="roomCard"><h3>📝 Salle & séances</h3>' +
-                roomCardHtml(f) +
+                roomCardHtml(f, ctx.rooms, ctx.dates) +
                 '</div>' +
                 '</div>';
 
@@ -217,8 +241,7 @@
                         (m.member_no ? ' <span class="member-no">#' + esc(m.member_no) + '</span>' : '') +
                         '<div class="form-hint">' + (m.email ? esc(m.email) : 'pas d\u2019email') +
                         (function () {
-                            var log = [];
-                            try { log = ADWDatabase.getPaymentLog(currentFormation.id, m.id) || []; } catch (e) { log = []; }
+                            var log = (ctx.paiements || {})[m.id] || [];
                             var parts = log.map(function (L) {
                                 var when = (L.created_at || '').slice(0, 10);
                                 return L.action === 'paid'
@@ -252,8 +275,7 @@
             html += '</div>';
 
             // ===== Liste d'attente : membres intéressés non inscrits =====
-            var waiting = [];
-            try { waiting = ADWDatabase.getWaitlist(f.event_id, f.title) || []; } catch (e) { waiting = []; }
+            var waiting = ctx.waiting || [];
             html += '<div class="stat-card" id="waitlistCard" style="margin-top:1.1rem;">' +
                 '<div style="display:flex;align-items:center;gap:0.7rem;flex-wrap:wrap;">' +
                 '<h3 style="margin:0;">\u23f1\ufe0f Liste d\u2019attente <span class="members-count">' + waiting.length + '</span></h3>' +
@@ -303,98 +325,9 @@
             loading.hidden = true;
         }
 
-        // ============ Labels MEC (Annulé, Niveau…) depuis la page publique ============
-        // La page de la formation expose « Labels : Annulé, Niveau intermédiaire » dans son HTML
-        // (bloc données MEC). L'API wp/v2 ne les expose pas — la page est la seule source
-        // publique. Fetch sans clé, lecture simple.
-        function loadMecLabels(f) {
-            // Source unique : l'endpoint public du plugin (GET /wp-json/adw-mec/v1/labels).
-            // Le fetch direct des pages HTML est bloqué par CORS depuis GitHub Pages (testé),
-            // et le flux RSS/wp-json ne contient pas le bloc MEC (excerpt tronqué — testé en live).
-            var info = window.ADWMec && window.ADWMec._labelsData
-                ? window.ADWMec._labelsData[String(f.event_id || f.id)] : null;
-            if (info && info.labels && info.labels.length) {
-                applyParsedData(f, { labels: info.labels, price: info.price, location: info.location, organizer: info.organizer });
-            }
-        }
+        // Gimaweb : labels/tarif/lieu/organisateur sont enrichis côté SERVEUR à chaque
+        // sync (plugin ADW MEC API) et servus par l'API — plus de fetch navigateur.
 
-        // Applique les données MEC parsées : badges + réactions + persistance + affichage à chaud
-        function applyParsedData(f, parsed) {
-            parsed = parsed || {};
-            var box = document.getElementById('mecLabels');
-            var labels = parsed.labels || [];
-                    // Persist in base : tarif/lieu/organisateur (colonnes existantes, souvent vides)
-                    try {
-                        if (parsed.price || parsed.location || parsed.organizer) {
-                            ADWDatabase.run('UPDATE formations SET price = COALESCE(NULLIF(?, \'\'), price), location = COALESCE(NULLIF(?, \'\'), location), organizer = COALESCE(NULLIF(?, \'\'), organizer) WHERE event_id = ?',
-                                [parsed.price || '', parsed.location || '', parsed.organizer || '', String(f.event_id || f.id)]);
-                        }
-                    } catch (e) { /* best effort */ }
-                    // Rafraîchir l'affichage avec les données fraîchement parsées (le rendu initial
-                    // lit la base, potentiellement vide pour un nouvel événement)
-                    if (parsed.price && !f.price) {
-                        var priceEl = document.querySelector('.hero p[style*="font-weight:700"]');
-                        if (priceEl && !priceEl.textContent.match(/€/)) {
-                            // pas de paragraphe prix dans le hero → le créer
-                        }
-                        f.price = parsed.price;
-                        var infoPrice = Array.prototype.find.call(document.querySelectorAll('.stat-card li'), function (li) {
-                            return li.textContent.indexOf('Tarif :') !== -1;
-                        });
-                        if (infoPrice) infoPrice.innerHTML = '<strong>💶 Tarif :</strong> ' + esc(parsed.price) + ' €';
-                    }
-                    if (parsed.location && !f.location) {
-                        f.location = parsed.location;
-                        var infoLieu = Array.prototype.find.call(document.querySelectorAll('.stat-card li'), function (li) {
-                            return li.textContent.indexOf('Lieu :') !== -1;
-                        });
-                        if (infoLieu) infoLieu.innerHTML = '<strong>📍 Lieu :</strong> ' + esc(parsed.location);
-                    }
-                    if (parsed.organizer && !f.organizer) {
-                        f.organizer = parsed.organizer;
-                        var infoOrg = Array.prototype.find.call(document.querySelectorAll('.stat-card li'), function (li) {
-                            return li.textContent.indexOf('Organisateur :') !== -1;
-                        });
-                        if (infoOrg) infoOrg.innerHTML = '<strong>👤 Organisateur :</strong> ' + esc(parsed.organizer);
-                    }
-                    if (!labels.length) return; // rien trouvé : on laisse le bloc vide
-                    // Labels MEC avec réactions (décision EPN oct. 2026) :
-                    //   « annulé »  → badge orange, résa désactivée, carte grisée
-                    //   « complet » → badge rouge, résa désactivée
-                    //   « nouveau » → badge vert
-                    var MAJORS = {
-                        canceled: /annul/i,
-                        full: /complet/i,
-                        fresh: /nouveau|new/i
-                    };
-                    var isCanceled = MAJORS.canceled.test(labels.join(' '));
-                    var isFull = !isCanceled && MAJORS.full.test(labels.join(' '));
-                    box.innerHTML = labels.map(function (lb) {
-                        var style;
-                        if (MAJORS.canceled.test(lb)) {
-                            style = 'background:var(--orange-light);color:#8F5600;border:1px solid var(--orange);font-weight:800;';
-                        } else if (MAJORS.full.test(lb)) {
-                            style = 'background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger);font-weight:800;';
-                        } else if (MAJORS.fresh.test(lb)) {
-                            style = 'background:var(--green-light);color:var(--green);border:1px solid var(--green);font-weight:800;';
-                        } else {
-                            style = 'background:rgba(255,255,255,0.22);color:#fff;border:1px solid rgba(255,255,255,0.4);';
-                        }
-                        return '<span class="badge" style="' + style + '">' + esc(lb) + '</span>';
-                    }).join('');
-                    // Réactions : annulé / complet → résa désactivée ; annulé → carte grisée
-                    var bookBtn = document.getElementById('bookBtn');
-                    var hero = document.querySelector('.hero');
-                    if ((isCanceled || isFull) && bookBtn) {
-                        bookBtn.disabled = true;
-                        bookBtn.classList.add('btn-disabled-locked');
-                        bookBtn.title = isCanceled ? 'Formation annulée — réservation fermée' : 'Formation complète — réservation fermée';
-                        bookBtn.textContent = isCanceled ? '🚫 Annulée' : '⛔ Complète';
-                    }
-                    if (isCanceled && hero) hero.classList.add('f-canceled-hero');
-        }
-
-        // ============ Suivi des inscrits : paiement + présence (oct. 2026) ============
         // ===== Logique liste d'attente (d\u00e9l\u00e9gation, comme le suivi inscrits) =====
         var waitlistLogicAttached = false;
         function attachWaitlistLogic(f) {
@@ -406,8 +339,7 @@
                 var book = e.target.closest('.wl-book');
                 if (book) {
                     var mid = book.getAttribute('data-mid');
-                    var m = null;
-                    try { m = ADWDatabase.queryAll('SELECT * FROM members WHERE id = ?', [mid])[0] || null; } catch (err) {}
+                    ADWDatabase.getMembre(mid).then(function (m) {
                     if (m && wlFormation.url) {
                         var url = wlFormation.url + (wlFormation.url.indexOf('?') === -1 ? '?' : '&') + 'method=mec-booking-modal';
                         var params = [
@@ -419,9 +351,10 @@
                         params.forEach(function (kv) { if (kv[1]) url += '&' + kv[0] + '=' + encodeURIComponent(kv[1]); });
                         window.open(url, '_blank', 'noopener');
                         if (window.ADWNotifications) {
-                            window.ADWNotifications.push('info', '\u2709\ufe0f Formulaire d\u2019inscription ouvert sur le site pour ' + m.first_name + ' ' + m.last_name + ' \u2014 ' + wlFormation.title + '.', 'success');
+                            window.ADWNotifications.push('info', '✉️ Formulaire d\u2019inscription ouvert sur le site pour ' + m.first_name + ' ' + m.last_name + ' — ' + wlFormation.title + '.', 'success');
                         }
                     }
+                    }).catch(function (err) { alert('Erreur : ' + err.message); });
                     return;
                 }
                 var rm = e.target.closest('.wl-remove');
@@ -447,16 +380,16 @@
                 var box = content.querySelector('#waitlistResults');
                 if (!box) return;
                 if (q.length < 2) { box.innerHTML = ''; return; }
-                var like = '%' + q + '%';
-                var members = [];
-                try {
-                    members = ADWDatabase.queryAll('SELECT id, first_name, last_name, member_no FROM members ' +
-                        'WHERE first_name LIKE ? OR last_name LIKE ? OR CAST(member_no AS TEXT) LIKE ? LIMIT 8', [like, like, like]);
-                } catch (err) { members = []; }
-                box.innerHTML = members.map(function (m) {
-                    return '<button type="button" class="btn btn-secondary btn-small wl-pick" data-mid="' + esc(m.id) + '" style="text-align:left;">' +
-                        esc(m.last_name.toUpperCase() + ' ' + m.first_name) + (m.member_no ? ' <span class="member-no">#' + esc(m.member_no) + '</span>' : '') + '</button>';
-                }).join('');
+                ADWDatabase.listerMembres().then(function (tous) {
+                    var members = (tous || []).filter(function (m) {
+                        return ((m.first_name || '') + ' ' + (m.last_name || '')).toLowerCase().indexOf(q) !== -1 ||
+                            String(m.member_no || '').indexOf(q) !== -1;
+                    }).slice(0, 8);
+                    box.innerHTML = members.map(function (m) {
+                        return '<button type="button" class="btn btn-secondary btn-small wl-pick" data-mid="' + esc(m.id) + '" style="text-align:left;">' +
+                            esc(m.last_name.toUpperCase() + ' ' + m.first_name) + (m.member_no ? ' <span class="member-no">#' + esc(m.member_no) + '</span>' : '') + '</button>';
+                    }).join('');
+                }).catch(function () { box.innerHTML = ''; });
             });
             content.addEventListener('click', function (e) {
                 var pick = e.target.closest('.wl-pick');
@@ -485,11 +418,12 @@
                     var method = payBtn.getAttribute('data-pay');
                     var already = payBtn.classList.contains('is-paid');
                     // clic sur un bouton déjà validé = annulation (toggle)
-                    ADWDatabase.setFmPayment(currentFormation.id, memberId, already ? null : method);
-                    if (window.ADWNotifications && !already) {
-                        window.ADWNotifications.push('info', '💳 ' + (method === 'bancontact' ? 'Bancontact' : 'Cash') + ' enregistré pour un inscrit de « ' + currentFormation.title + ' »', 'success');
-                    }
-                    render(f);
+                    ADWDatabase.setFmPayment(currentFormation.id, memberId, already ? null : method).then(function () {
+                        if (window.ADWNotifications && !already) {
+                            window.ADWNotifications.push('info', '💳 ' + (method === 'bancontact' ? 'Bancontact' : 'Cash') + ' enregistré pour un inscrit de « ' + currentFormation.title + ' »', 'success');
+                        }
+                        render(f);
+                    }).catch(function (err) { alert('Erreur : ' + err.message); });
                     return;
                 }
                 var attBtn = e.target.closest('.fm-att');
@@ -498,16 +432,19 @@
                     var memberId2 = li2 && li2.getAttribute('data-fm-mid');
                     if (!memberId2) return;
                     var target = attBtn.getAttribute('data-att'); // 'present' | 'canceled'
-                    ADWDatabase.setFmAttendance(currentFormation.id, memberId2, target);
+                    var msg = null;
                     if (window.ADWNotifications) {
                         var msg = target === 'present'
                             ? '✅ Présence confirmée (formation « ' + currentFormation.title + ' »)'
                             : target === 'canceled'
                             ? '🚫 Inscription marquée annulée (formation « ' + currentFormation.title + ' »)'
                             : '⬜ Marqué non concerné (formation « ' + currentFormation.title + ' »)';
-                        window.ADWNotifications.push('info', msg, target === 'present' ? 'success' : target === 'na' ? 'info' : 'warning');
+                        msg = (target === 'present' ? 'success' : target === 'na' ? 'info' : 'warning');
                     }
-                    render(f);
+                    ADWDatabase.setFmAttendance(currentFormation.id, memberId2, target).then(function () {
+                        if (msg && window.ADWNotifications) window.ADWNotifications.push('info', msg, target === 'present' ? 'success' : target === 'na' ? 'info' : 'warning');
+                        render(f);
+                    }).catch(function (err) { alert('Erreur : ' + err.message); });
                 }
             });
         }
@@ -521,13 +458,10 @@
         var SUB_LABELS = { none: 'Aucun abo', monthly: 'Abo mensuel · 3 €', yearly: 'Abo annuel · 30 €' };
 
         function openMemberPreview(memberId) {
-            var rows = ADWDatabase.queryAll(
-                'SELECT m.*, ' +
-                '(SELECT COUNT(*) FROM visits v WHERE v.member_id = m.id) AS visit_count, ' +
-                '(SELECT COUNT(*) FROM formations_members fm WHERE fm.member_id = m.id) AS formation_count ' +
-                'FROM members m WHERE m.id = ?', [memberId]);
-            if (!rows.length) return;
-            var m = rows[0];
+            ADWDatabase.getMembre(memberId).then(function (m) {
+            if (!m) return;
+            return ADWDatabase.getMemberFormations(memberId).then(function (fs) {
+                m.formation_count = (fs || []).length;
             previewTitle.textContent = m.first_name + ' ' + m.last_name;
             var expired = m.end_date && m.end_date < new Date().toISOString().slice(0, 10);
             previewBody.innerHTML =
@@ -548,8 +482,10 @@
                 '<div><dt>Formations</dt><dd>' + m.formation_count + '</dd></div>' +
                 '</dl>';
             previewFullBtn.href = 'membre.html?id=' + encodeURIComponent(m.id);
-            previewModal.hidden = false;
-            document.getElementById('memberPreviewCloseBtn').focus();
+                previewModal.hidden = false;
+                document.getElementById('memberPreviewCloseBtn').focus();
+            });
+            }).catch(function () { /* membre introuvable : ignore */ });
         }
 
         // ===== Feuille de séance imprimable (B6) =====
@@ -600,41 +536,31 @@
             window.print();
         });
 
-        // ===== Resynchroniser (fiche) : flux → synchro → miroir inscriptions → re-rendu =====
+        // ===== Resynchroniser (fiche) : sync SERVEUR -> miroir inscriptions -> re-rendu =====
         document.getElementById('formationContent').addEventListener('click', function (e) {
             var btn = e.target.closest('#resyncBtn');
             if (!btn) return;
             btn.disabled = true;
             btn.textContent = '⏳ Synchronisation…';
             var eventId = currentFormation ? (currentFormation.event_id || currentFormation.id) : null;
-            var doSync = function (events) {
-                try {
-                    var count = ADWDatabase.syncFormations(events || []);
-                    var removals = ADWDatabase.applyMirror();
-                    removals.forEach(function (r) {
-                        window.ADWNotifications.push('auto_unlink',
-                            '🗑 Inscription retirée : ' + r.memberName + ' — « ' + r.formationTitle + ' » (réservation annulée sur le site)',
-                            'warning');
-                    });
-                    window.ADWNotifications.push('sync_formations',
-                        '🔄 Resynchronisation : ' + (events || []).length + ' formation(s) à jour' + (removals.length ? ' · ' + removals.length + ' inscription(s) retirée(s)' : ''),
-                        'info');
-                } catch (err) { /* best effort */ }
+            ADWDatabase.syncFormations().then(function (resultat) {
+                window.ADWNotifications.push('sync_formations',
+                    '🔄 Resynchronisation serveur : ' + (resultat && resultat.total) + ' formation(s) dans le flux — ' +
+                    (resultat && resultat.misesAJour) + ' mise(s) à jour, ' + (resultat && resultat.retires) + ' retirée(s).',
+                    'info');
                 if (eventId) {
-                    var f2 = ADWDatabase.getFormationByEventId(eventId);
-                    if (f2) render(f2);
+                    return ADWDatabase.getFormationByEventId(eventId).then(function (f2) {
+                        if (f2) render(f2);
+                    });
                 }
+            }).catch(function (err) {
+                if (window.ADWNotifications) {
+                    window.ADWNotifications.push('error', '⚠️ Synchronisation impossible : ' + err.message + ' — données conservées.', 'danger');
+                }
+            }).then(function () {
                 btn.disabled = false;
                 btn.textContent = '🔄 Resynchroniser';
-            };
-            if (window.ADWMec && window.ADWMec.load) {
-                window.ADWMec.load().then(doSync).catch(function () {
-                    doSync([]);
-                    if (window.ADWNotifications) {
-                        window.ADWNotifications.push('error', '⚠️ Synchronisation impossible : site atelierduweb.be injoignable — données locales conservées.', 'danger');
-                    }
-                });
-            } else { doSync([]); }
+            });
         });
 
         document.getElementById('formationContent').addEventListener('click', function (e) {
@@ -665,33 +591,15 @@
                 notFound.querySelector('p').textContent = 'Aucune formation spécifiée dans l\u2019URL.';
                 return;
             }
-            // id = event_id MEC (clé naturelle partagée avec les cartes)
-            var f = ADWDatabase.getFormationByEventId(id);
-            if (!f) {
-                loading.hidden = true;
-                notFound.hidden = false;
-                return;
-            }
-            render(f);
-            // Enrichissement à chaud : si la base manque de données (tarif/lieu/organisateur/labels),
-            // tenter le flux (plugin A / RSS B) et re-rendre si de nouvelles données arrivent.
-            if (window.ADWMec && (!f.price || !f.location || !f.organizer || !f.labels)) {
-                window.ADWMec.load().then(function (events) {
-                    // persister la synchro enrichie puis relire
-                    try { ADWDatabase.syncFormations(events); } catch (e) { /* best effort */ }
-                    var f2 = ADWDatabase.getFormationByEventId(id);
-                    if (f2 && (f2.price !== f.price || f2.location !== f.location || f2.organizer !== f.organizer || f2.labels !== f.labels)) {
-                        render(f2);
-                    }
-                    // labels via l'endpoint du plugin uniquement (même hors synchro)
-                    if (window.ADWMec._labelsData) {
-                        var info = window.ADWMec._labelsData[String(id)];
-                        if (info && info.labels && info.labels.length) {
-                            applyParsedData(f2 || f, { labels: info.labels, price: info.price, location: info.location, organizer: info.organizer });
-                        }
-                    }
-                }).catch(function () { /* flux indisponible : fiche sur données locales */ });
-            }
+            // id = event_id MEC (clé naturelle) — résolu par le serveur
+            ADWDatabase.getFormationByEventId(id).then(function (f) {
+                if (!f) {
+                    loading.hidden = true;
+                    notFound.hidden = false;
+                    return;
+                }
+                render(f);
+            });
         }).catch(function (err) {
             loading.hidden = true;
             notFound.hidden = false;

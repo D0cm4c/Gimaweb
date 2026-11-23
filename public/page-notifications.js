@@ -99,8 +99,12 @@
     }
 
     function render() {
-        var items = [];
-        try { items = window.ADWDatabase.listNotifications(200) || []; } catch (e) { items = []; }
+        window.ADWDatabase.listNotifications(200).then(function (items) {
+            _render(items || []);
+        }).catch(function () { _render([]); });
+    }
+
+    function _render(items) {
 
         // compteurs d'en-tête
         var unread = items.filter(function (n) { return !n.is_read; }).length;
@@ -183,32 +187,33 @@
     document.addEventListener('click', function (e) {
         var readBtn = e.target.closest('.n-read');
         if (readBtn) {
-            try { window.ADWDatabase.markNotificationRead(readBtn.getAttribute('data-nid')); } catch (err) {}
-            if (window.ADWNotifications) window.ADWNotifications.refresh();
-            render();
+            window.ADWDatabase.markNotificationRead(readBtn.getAttribute('data-nid')).then(function () {
+                if (window.ADWNotifications) window.ADWNotifications.refresh();
+                render();
+            }).catch(function () { render(); });
             return;
         }
         var markAll = e.target.closest('#markAllReadBtn');
         if (markAll) {
-            try { window.ADWDatabase.markAllNotificationsRead(); } catch (err) {}
-            if (window.ADWNotifications) window.ADWNotifications.refresh();
-            render();
+            window.ADWDatabase.markAllNotificationsRead().then(function () {
+                if (window.ADWNotifications) window.ADWNotifications.refresh();
+                render();
+            }).catch(function () { render(); });
             return;
         }
         var clearRead = e.target.closest('#clearReadBtn');
         if (clearRead) {
             if (window.confirm('Effacer toutes les notifications lues ? Les non-lues restent.')) {
-                try { window.ADWDatabase.clearReadNotifications(); } catch (err) {}
-                render();
+                window.ADWDatabase.clearReadNotifications().then(render).catch(function () { render(); });
             }
             return;
         }
         var copyBtn = e.target.closest('.n-copy');
         if (copyBtn) {
             var nid = copyBtn.getAttribute('data-nid');
-            var item = null;
-            try { item = (window.ADWDatabase.listNotifications(200) || []).filter(function (n) { return n.id === nid; })[0]; } catch (err) {}
-            var contacts = item ? contactsOf(item) : null;
+            window.ADWDatabase.listNotifications(200).then(function (toutes) {
+                var item = (toutes || []).filter(function (n) { return n.id === nid; })[0];
+                var contacts = item ? contactsOf(item) : null;
             if (contacts && contacts.length) {
                 var text = contacts.join('\n');
                 if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -220,6 +225,7 @@
                     window.prompt('Copie manuelle (Ctrl+C) :', text);
                 }
             }
+            }).catch(function () { /* liste indisponible */ });
             return;
         }
         var more = e.target.closest('#notifMoreBtn');
