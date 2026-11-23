@@ -17,7 +17,7 @@ export const normaliserTitre = (titre) => String(titre || '')
     .replace(/\s+/g, ' ')
     .trim();
 
-export const creerApiFormations = (db) => {
+export const creerApiFormations = (db, { apresSync = null } = {}) => {
     const api = express.Router();
 
     // ---- Sync : le serveur fetch le site lui-même (plus jamais le navigateur) ----
@@ -69,6 +69,9 @@ export const creerApiFormations = (db) => {
             const placeholders = keptIds.map(() => '?').join(', ');
             const info = db.prepare(`DELETE FROM formations WHERE id NOT IN (${placeholders})`).run(...keptIds);
             retirees = info.changes;
+        }
+        if (typeof apresSync === 'function') {
+            try { apresSync(); } catch (e) { /* best effort — maquette */ }
         }
         // Journal (règle : toute action automatique est notifiée)
         if (events.length) {
