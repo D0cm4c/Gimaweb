@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://atelierduweb.be; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <title>À faire / Suggestions — Atelier du Web</title>
+    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0F3D5C">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+</head>
+<body>
+    <a class="skip-link" href="#main">Aller au contenu principal</a>
+
+    <div class="app-layout">
+        <div data-layout-sidebar></div>
+<div class="app-main">
+        <div data-layout-topbar data-title="À faire / Suggestions"></div>
+
+    <main id="main">
+        <section class="filters-bar" aria-label="Filtres">
+            <div class="filter-group">
+                <div class="segmented" role="group" aria-label="Filtrer par statut">
+                    <button class="seg-btn active" data-status="all">Toutes</button>
+                    <button class="seg-btn" data-status="open">À traiter</button>
+                    <button class="seg-btn" data-status="done">Traitées</button>
+                    <button class="seg-btn" data-status="discarded">Écartées</button>
+                </div>
+            </div>
+            <span class="members-count" id="suggCount" aria-live="polite"></span>
+        </section>
+
+        <div class="empty-state" id="loadingState">
+            <p>⏳ Chargement…</p>
+        </div>
+        <div id="suggList" style="display:flex;flex-direction:column;gap:0.7rem;" aria-label="Liste des suggestions"></div>
+        <div class="empty-state" id="emptyState" hidden>
+            <p>Aucune suggestion dans cette catégorie.</p>
+            <p class="form-hint">Le bouton 💡 en bas à droite de chaque page permet d'en ajouter.</p>
+        </div>
+    </main>
+
+    </div>
+    </div>
+    <footer class="site-footer">
+        <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
+    </footer>
+
+    <script src="layout.js?v=10"></script>
+    <script src="escape.js?v=1"></script>
+    <script src="auth.js?v=2"></script>
+    <script src="adw-client.js?v=1"></script>
+    <script src="theme.js?v=15"></script>
+    <script src="nav.js?v=2"></script>
+    <script src="openstatus.js?v=3"></script>
+    <script src="notifications.js?v=7"></script>
+    <script src="suggestions.js?v=2"></script>
+    <script src="globalsearch.js?v=3"></script>
+    <script src="page-suggestions.js?v=1"></script>
+<script>
+        // PWA : enregistrement du service worker (silencieux si non supporté)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>

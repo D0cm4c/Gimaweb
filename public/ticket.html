@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://atelierduweb.be; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <title>Ticket — Atelier du Web</title>
+    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0F3D5C">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+</head>
+<body>
+    <a class="skip-link" href="#main">Aller au contenu principal</a>
+
+    <div class="app-layout">
+        <div data-layout-sidebar></div>
+<div class="app-main">
+        <div data-layout-topbar data-title="Ticket" data-title-id="pageTitle" data-back-href="tickets.html" data-back-label="Retour aux tickets"></div>
+
+    <main id="main">
+        <div class="empty-state" id="loadingState">
+            <p>⏳ Chargement du ticket…</p>
+        </div>
+        <div id="notFoundState" class="empty-state" hidden>
+            <p>Ticket introuvable.</p>
+            <div class="action-buttons" style="justify-content:center;">
+                <a class="btn btn-primary" href="tickets.html">← Retour aux tickets</a>
+            </div>
+        </div>
+        <div id="ticketContent" hidden></div>
+    </main>
+
+    </div>
+    </div>
+    <footer class="site-footer">
+        <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
+    </footer>
+
+    <script src="layout.js?v=10"></script>
+    <script src="escape.js?v=1"></script>
+    <script src="auth.js?v=2"></script>
+    <script src="adw-client.js?v=1"></script>
+    <script src="theme.js?v=15"></script>
+    <script src="nav.js?v=2"></script>
+    <script src="openstatus.js?v=3"></script>
+    <script src="notifications.js?v=7"></script>
+    <script src="suggestions.js?v=2"></script>
+    <script src="page-ticket.js?v=1"></script>
+<script>
+        // PWA : enregistrement du service worker (silencieux si non supporté)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>

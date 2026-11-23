@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://atelierduweb.be; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <title>Tableau de bord — Atelier du Web</title>
+    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0F3D5C">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+</head>
+<body>
+    <a class="skip-link" href="#main">Aller au contenu principal</a>
+
+    <div class="app-layout">
+        <div data-layout-sidebar></div>
+<div class="app-main">
+        <div data-layout-topbar data-title="Tableau de bord" data-search-id="siteSearch" data-search-label="Rechercher" data-search-placeholder="Rechercher sur atelierduweb.be..."></div>
+
+    <main id="main">
+        <section class="hero">
+            <p class="hero-lead">La journée d'aujourd'hui d'un coup d'œil : formations, visites, alertes et actions à mener. Les statistiques de pilotage vivent sur la page → Statistiques.</p>
+            <div class="hero-actions">
+                <button class="btn btn-primary" id="quickCheckinBtn">✅ Pointer une visite</button>
+                <button class="btn btn-primary" id="quickPrintBtn">🖨️ Impression</button>
+                <a href="membres.html" class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">👥 Gérer les membres</a>
+                <a href="https://atelierduweb.be" class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">🌐 atelierduweb.be</a>
+            </div>
+        </section>
+
+        <div class="empty-state" id="dashLoading">
+            <p>⏳ Chargement des données…</p>
+        </div>
+
+        <section class="mosaic" id="dashboardMosaic" aria-label="Tableau de bord en mosaïque">
+            <div class="kpi-card kpi-hero">
+                <span class="kpi-icon" aria-hidden="true">📅</span>
+                <div>
+                    <div class="stat-num" id="statVisitsToday">0</div>
+                    <div class="stat-label">Visites aujourd'hui</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon" aria-hidden="true">🛠️</span>
+                <div>
+                    <div class="stat-num" id="statTicketsOpen">0</div>
+                    <div class="stat-label">Incidents ouverts</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon" aria-hidden="true">🧑‍🤝‍🧑</span>
+                <div>
+                    <div class="stat-num" id="statFluxNew">0</div>
+                    <div class="stat-label">Nouveaux aujourd'hui</div>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon" aria-hidden="true">🎯</span>
+                <div>
+                    <div class="stat-num" id="statWaiting">0</div>
+                    <div class="stat-label">En liste d'attente</div>
+                </div>
+            </div>
+
+            <section id="todayAgenda" class="span-4" aria-label="Agenda du jour" hidden></section>
+
+            <div class="stat-card span-2">
+                <h2>📋 Dernières visites</h2>
+                <ul class="recent-list" id="recentVisits"></ul>
+                <p class="form-hint">Visites ce mois : <strong id="statVisitsMonth">0</strong> · Dernière : <strong id="statLastVisit">—</strong></p>
+            </div>
+
+            <div class="stat-card span-2" id="printsDueCard">
+                <h2>🖨️ Impressions à solder</h2>
+                <ul class="recent-list" id="printsDueList"></ul>
+                <p class="form-hint" id="printsDueTotal"></p>
+                <a class="btn btn-secondary btn-small" href="membres.html?prints=due" style="margin-top:0.75rem;">→ Voir tous les membres concernés</a>
+            </div>
+
+            <section id="lastNotifs" class="span-2" aria-label="Dernières notifications" hidden></section>
+
+
+            <section id="mostWaited" class="span-2" aria-label="Formations les plus attendues" hidden></section>
+
+
+        </section>
+
+        <section class="quick-actions" hidden id="quickActions">
+            <h3>⚡ Actions rapides</h3>
+            <div class="action-buttons">
+                <a href="membres.html" class="btn btn-primary">➕ Ajouter un membre</a>
+                <a href="membres.html" class="btn btn-secondary">👥 Voir les membres</a>
+                <a href="membres.html" class="btn btn-secondary">📤 Exporter les données</a>
+            </div>
+        </section>
+    </main>
+
+    </div>
+    </div>
+    <footer class="site-footer">
+        <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
+    </footer>
+
+    <!-- Check-in rapide -->
+    <div class="modal-overlay" id="checkinModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="checkinTitle">
+            <h3 id="checkinTitle">✅ Pointer une visite</h3>
+            <div class="form-group" id="checkinSearchGroup">
+                <label for="checkinSearch">Nom ou n° de membre</label>
+                <input type="text" id="checkinSearch" placeholder="Ex : Marie ou 1002..." autocomplete="off">
+                <p class="form-hint" id="checkinHint">Tapez les premières lettres ou le numéro (#1002).</p>
+            </div>
+            <ul class="checkin-results" id="checkinResults"></ul>
+            <div id="reasonStep" hidden>
+                <div class="form-group">
+                    <p class="form-hint" id="reasonWho" style="font-weight:600;"></p>
+                    <label for="visitReason">Raison de la visite</label>
+                    <select id="visitReason"></select>
+                    <p class="form-hint">Source des motifs : Zoom Baromètre de l'inclusion numérique 2026 (Fondation Roi Baudouin).</p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" id="reasonConfirm">✅ Pointer la visite</button>
+                    <span style="flex:1"></span>
+                    <button type="button" class="btn btn-secondary" id="reasonCancel">← Retour</button>
+                </div>
+            </div>
+            <div class="modal-actions" id="checkinActions">
+                <button type="button" class="btn btn-primary" id="anonVisitBtn" title="Pointer une visite d'une personne sans fiche membre (A)">👤 Visite anonyme (1 €)</button>
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-secondary" id="checkinCloseBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Impression rapide -->
+    <div class="modal-overlay" id="printModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="printTitle">
+            <h3 id="printTitle">🖨️ Enregistrer une impression</h3>
+            <div class="form-group">
+                <label for="printSearch">Nom ou n° de membre</label>
+                <input type="text" id="printSearch" placeholder="Ex : Marie ou 1002..." autocomplete="off">
+                <p class="form-hint">Sélectionnez le membre puis le type d'impression. Le montant est ajouté à son solde (payable plus tard).</p>
+            </div>
+            <ul class="checkin-results" id="printResults"></ul>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="printCloseBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="layout.js?v=10"></script>
+    <script src="escape.js?v=1"></script>
+    <script src="auth.js?v=2"></script>
+    <script src="theme.js?v=15"></script>
+    <script src="nav.js?v=2"></script>
+    <script src="notifications.js?v=7"></script>
+    <script src="adw-client.js?v=1"></script>
+    <script src="suggestions.js?v=2"></script>
+    <script src="globalsearch.js?v=3"></script>
+    <script src="dashboard.js?v=39"></script>
+<script>
+        // PWA : enregistrement du service worker (silencieux si non supporté)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>

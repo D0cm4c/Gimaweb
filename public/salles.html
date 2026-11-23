@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://atelierduweb.be; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
+    <title>Salles — Atelier du Web</title>
+    <link rel="stylesheet" href="styles.css?v=90">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0F3D5C">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+</head>
+<body>
+    <a class="skip-link" href="#main">Aller au contenu principal</a>
+
+    <div class="app-layout">
+        <div data-layout-sidebar></div>
+<div class="app-main">
+        <div data-layout-topbar data-title="Planning des salles"></div>
+
+    <main id="main">
+        <section class="filters-bar" aria-label="Navigation et filtres">
+            <button class="btn btn-secondary btn-small" id="prevMonthBtn" title="Mois précédent">◀</button>
+            <strong id="monthLabel" style="min-width:170px;text-align:center;text-transform:capitalize;"></strong>
+            <button class="btn btn-secondary btn-small" id="nextMonthBtn" title="Mois suivant">▶</button>
+            <button class="btn btn-primary btn-small" id="todayBtn">Aujourd'hui</button>
+            <span class="members-count" id="monthCount" aria-live="polite"></span>
+            <button class="btn btn-secondary btn-small" id="unassignedBtn" title="Formations sans salle attribuée">🏷 Sans salle <span class="badge badge-full" id="unassignedBadge">0</span></button>
+        </section>
+
+        <div id="planningWrap" style="overflow-x:auto;"></div>
+
+        <!-- Modale : formations sans salle -->
+        <div class="modal-overlay" id="unassignedModal" hidden>
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="unassignedTitle" style="max-width:640px;">
+                <h3 id="unassignedTitle">🏷 Formations sans salle</h3>
+                <p class="form-hint">Attribue une salle à chaque formation — les créneaux correspondants se bloquent dans le planning.</p>
+                <div id="unassignedList" class="checkin-results" style="max-height:50vh;"></div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-primary" id="unassignedCloseBtn">Fermer</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    </div>
+    </div>
+    <footer class="site-footer">
+        <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
+    </footer>
+
+    <script src="layout.js?v=10"></script>
+    <script src="escape.js?v=1"></script>
+    <script src="auth.js?v=2"></script>
+    <script src="adw-client.js?v=1"></script>
+    <script src="theme.js?v=15"></script>
+    <script src="nav.js?v=2"></script>
+    <script src="openstatus.js?v=3"></script>
+    <script src="notifications.js?v=7"></script>
+    <script src="suggestions.js?v=2"></script>
+    <script src="globalsearch.js?v=3"></script>
+    <script src="page-salles.js?v=1"></script>
+    <script src="shortcuts.js?v=1"></script>
+<script>
+        // PWA : enregistrement du service worker (silencieux si non supporté)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>
