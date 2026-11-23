@@ -17,3 +17,4 @@ jobs:
       - run: node tests/m0.js
       - run: node tests/m1-membres.js
       - run: node tests/m1b-visites.js
+      - run: node tests/m2a-formations.js
