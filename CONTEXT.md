@@ -32,7 +32,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 ## 📦 État actuel
 
 - Bootstrap livré (PR #1) : README, AGENTS.md, CONTEXT.md, docs de conception + contrat API, charte copiée, `server/schema.sql` (16 tables consolidées).
-- M0 (squelette Express + `/api/sante`) : **prêt à coder dès le go**.
+- M0 **fusionné** (PR #1, #3 — CI verte sur main) : Express + better-sqlite3 (16 tables, salles seedées), `/api/sante`, auth mot de passe partagé + session 30 min, CI (test 8/8). Prochaine phase : M1 membres.
+- PR #1 et #3 fusionnées le 23 nov. 2026 sur demande du porteur.
 
 ## 🧠 Leçons (importées de la maquette)
 
