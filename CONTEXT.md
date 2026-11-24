@@ -243,3 +243,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix** : appel supprimé + rendu des labels serveur ajouté dans le hero (champ labels de l'API). Bump cache page-formation.js v2.
 - M7 : formation.html?id=301 (mock WP) chargée en DOM réel, fiche rendue sans erreur. 39/39, régression **331/331**.
 - ⚠ Leçon : quand on supprime une fonction à la migration, grepper SON NOM dans tout public/ (appel fantôme) ; et chaque page doit être testée avec de VRAIES données, pas seulement son écran d'erreur.
+
+## ✨ v1.4.0 — favicon + carte Prochaine fermeture (PR #29)
+
+- Demande utilisateur : les événements du site cat\u00e9gorie \u00ab fermeture \u00bb ne sont pas des formations — ne doivent pas figurer dans formations.html, mais m\u00e9ritent une carte dashboard \u00ab Prochaine fermeture \u00bb (conditionnelle) au-dessus de \u00ab Aujourd'hui à l'Atelier \u00bb.
+- **Serveur** : `prochaine_fermeture` dans `/api/agregats/flot` (MIN(date) \u00e0 venir, cat\u00e9gorie LIKE fermeture insensible \u00e0 la casse) ; agenda du jour du flot EXCLUT d\u00e9sormais les fermetures.
+- **Front** : applyFilters + fillSelects excluent fermeture (page-formations.js) ; carte `#nextClosure` cach\u00e9e par d\u00e9faut, remplie par renderNextClosure() seulement si le flot trouve une fermeture (dashboard.js).
+- **Favicon** : assets/icons/icon-192.png (marque AW existante) li\u00e9 dans les 12 pages.
+- M7 (mock WP + \u00e9v\u00e9nement fermeture cat Fermeture, 15 ao\u00fbt 2027) : 7 nouvelles v\u00e9rifications (d\u00e9tection flot, exclusion liste/filtre, carte visible + position DOM au-dessus de l'agenda, favicon 200). 47/47, r\u00e9gression **339/339**.

@@ -47,7 +47,7 @@
                 opt.textContent = d.toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' });
                 monthSelect.appendChild(opt);
             });
-            Object.keys(cats).sort().forEach(function (c) {
+            Object.keys(cats).sort().filter(function (c) { return c.toLowerCase().indexOf('fermeture') === -1; }).forEach(function (c) {
                 var opt = document.createElement('option');
                 opt.value = c;
                 opt.textContent = c;
@@ -60,6 +60,8 @@
             var month = monthSelect.value;
             var cat = catSelect.value;
             filtered = events.filter(function (ev) {
+                // Les événements « fermeture » du site ne sont pas des formations (nouveauté v1.4.0)
+                if ((ev.categories || []).some(function (c) { return c.toLowerCase().indexOf('fermeture') !== -1; })) return false;
                 if (period === 'upcoming' && ev.startDate && ev.startDate < todayStr) return false;
                 if (month && ev.startDate && ev.startDate.slice(0, 7) !== month) return false;
                 if (cat && (ev.categories || []).indexOf(cat) === -1) return false;

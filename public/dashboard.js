@@ -114,6 +114,25 @@
     }
     var TONE_SOLID = ['#0F3D5C', '#6C5CE7', '#2F9BE4', '#18A55F', '#E8734A', '#B26A00', '#D8434B', '#7A5230', '#556B2F', '#4A4E69'];
 
+    function renderNextClosure() {
+        var el = document.getElementById('nextClosure');
+        if (!el) return;
+        var fem = flot.prochaine_fermeture;
+        if (!fem || !fem.date) {
+            el.hidden = true;
+            el.innerHTML = '';
+            return;
+        }
+        var d = new Date(fem.date + 'T12:00:00');
+        var dateTxt = d.toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+        el.innerHTML = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;border-left:4px solid var(--warning, #EFA02C);">' +
+            '<h3>\uD83D\uDD34 Prochaine fermeture</h3>' +
+            '<p style="margin:0.2rem 0 0;font-weight:700;">\uD83D\uDCC5 ' + (fem.title ? fem.title.replace(/fermeture/i, 'Fermeture').trim() : 'Fermeture') + '</p>' +
+            '<p class="form-hint" style="margin:0.25rem 0 0;">' + dateTxt + (fem.time_label ? ' \u00b7 ' + fem.time_label : '') + ' \u2014 pr\u00E9viens les usagers \u00E0 l\u2019accueil.</p>' +
+            '</div>';
+        el.hidden = false;
+    }
+
     function renderTodayAgenda() {
         var el = document.getElementById('todayAgenda');
         if (!el) return;
@@ -220,6 +239,7 @@
 
     function render() {
         obtenirFlot().then(function () {
+        renderNextClosure();
         renderTodayAgenda();
         renderMostWaited();
         renderLastNotifs();

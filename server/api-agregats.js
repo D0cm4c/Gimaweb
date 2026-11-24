@@ -24,7 +24,8 @@ export const creerApiAgregats = (db) => {
              (SELECT name FROM rooms r WHERE r.id = f.room_id) AS room_name,
              (SELECT COUNT(*) FROM formations_members fm WHERE fm.formation_id = f.id) AS attendee_count
              FROM formation_dates fd JOIN formations f ON f.id = fd.formation_id
-             WHERE fd.date = ? ORDER BY fd.slot ASC, f.title ASC`
+             WHERE fd.date = ? AND lower(coalesce(f.categories, '')) NOT LIKE '%fermeture%'
+             ORDER BY fd.slot ASC, f.title ASC`
         ).all(ajd);
 
         // Visites récentes (6 dernières, avec identités et motifs)
@@ -59,7 +60,16 @@ export const creerApiAgregats = (db) => {
             "SELECT COUNT(*) v FROM tickets WHERE status IN ('open', 'in_progress') AND priority = 'urgent' AND (assignee IS NULL OR assignee = '')"
         );
 
+        // Prochaine fermeture : événement du site de catégorie « fermeture » (date la plus proche à venir)
+        const fermeture = db.prepare(
+            `SELECT f.title, f.event_id, f.time_label, MIN(fd.date) AS date
+             FROM formations f JOIN formation_dates fd ON fd.formation_id = f.id
+             WHERE lower(coalesce(f.categories, '')) LIKE '%fermeture%' AND fd.date >= date('now')
+             GROUP BY f.id ORDER BY date ASC LIMIT 1`
+        ).get() || null;
+
         res.json({
+            prochaine_fermeture: fermeture,
             kpi: {
                 visites_aujourdhui: un('SELECT COUNT(*) v FROM visits WHERE visit_date = ?', [ajd]),
                 visites_mois: un('SELECT COUNT(*) v FROM visits WHERE strftime(\'%Y-%m\', visit_date) = ?', [mois]),

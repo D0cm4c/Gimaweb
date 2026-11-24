@@ -54,3 +54,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Fix signalé** : la fiche formation plantait au chargement — appel fantôme à `loadMecLabels()`, fonction supprimée à la migration serveur (les labels viennent du serveur à la sync), l'appel était resté.
 - Bonus : les labels serveur (niveau, annulé…) sont maintenant rendus dans le hero de la fiche (badges), champ `labels` servi par l'API.
 - M7 étendu : `formation.html?id=<vraie formation>` chargée en DOM réel sans erreur (le test aurait attrapé le bug). 39/39. Régression : 331/331.
+## v1.4.0 — favicon + carte « Prochaine fermeture »
+- **Favicon** : `<link rel="icon">` (icon-192.png, la marque AW de la charte) ajouté aux 12 pages.
+- **Nouveauté demandée** : les événements du site de catégorie « fermeture » ne sont plus des formations — exclus de la page formations (liste + filtre catégorie + agenda du jour du dashboard), et une nouvelle carte dashboard **« 🔴 Prochaine fermeture »** apparaît au-dessus de « Aujourd'hui à l'Atelier », uniquement si un événement fermeture est programmé : titre, date et horaires de la plus proche fermeture à venir.
+- `GET /api/agregats/flot` expose `prochaine_fermeture` (titre, date la plus proche à venir, horaires) — null si aucune.
+- Tests (mock WP avec un événement fermeture) : fermeture absente de la liste/garde formation visible/absente du filtre, carte dashboard affichée avec la date + positionnée au-dessus de l'agenda, favicon servi. 47/47. Régression : 339/339.
