@@ -157,3 +157,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Nouvelle suite `tests/m7-dom.js` (17/17)** : chaque page est chargée en **vrai DOM (jsdom, devDependency)** avec ses scripts exécutés, fetch branché sur le serveur réel avec cookie jar (comme un navigateur) → « page charge sans erreur JS » pour les 12 pages ; puis **parcours DOM du bouton Importer XML** : présent → clic → modale de déverrouillage → saisie du mot de passe → submit → modale d'import visible → essai serveur 1 fiche analysée.
 - Régression totale : **310/310** (12 suites).
 - ⚠ Leçons (les plus importantes du chantier) : 1) une expression-flottante est INFAILLIBLE en `node --check` — seule une exécution réelle en DOM l'attrape ; 2) le point commun de « plein de boutons morts » = une seule fonction partagée qui throw (ici ensureUnlocked) ; 3) une réécriture UI se teste en CLIQUANT, pas seulement en appelant l'API en dessous.
+
+## 🔧 Cache navigateur (complément PR #16)
+
+- `auth.js?v=2` → `?v=3` dans les 12 pages : force le rechargement du fichier corrigé sur tous les postes LAN (sinon les navigateurs gardent l'ancien `auth.js` cassé en cache et les boutons restent morts même après `git pull`).
+- Règle à retenir pour les prochaines corrections frontend : **bump du `?v=` d'un script à chaque modification de ce script** (le versioning des tags vient de la maquette, il ne se bump pas tout seul).
