@@ -46,15 +46,16 @@
             if (existante) existante.remove();
             var modale = document.createElement('div');
             modale.id = 'adw-auth-modal';
-            modale.className = 'modal';
-            modale.hidden = false;
-                '<div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="adw-auth-titre">' +
+            modale.className = 'modal-overlay';
+            modale.style.zIndex = '1000';
+            modale.innerHTML =
+                '<div class="modal" role="dialog" aria-modal="true" aria-labelledby="adw-auth-titre">' +
                 '<h3 id="adw-auth-titre">🔐 Session admin requise</h3>' +
                 '<p class="form-hint">' + (window.ADWEscape ? window.ADWEscape.html(label || '') : (label || '')) + '</p>' +
                 '<form id="adw-auth-form">' +
-                '<input type="password" id="adw-auth-pass" placeholder="Mot de passe admin" autocomplete="current-password" required>' +
-                '<p class="form-hint form-error" id="adw-auth-erreur" hidden></p>' +
-                '<div class="bk-actions">' +
+                '<div class="form-group"><input type="password" id="adw-auth-pass" placeholder="Mot de passe admin" autocomplete="current-password" required></div>' +
+                '<p class="form-hint" id="adw-auth-erreur" style="color:var(--danger);margin:0.4rem 0 0;" hidden></p>' +
+                '<div class="modal-actions">' +
                 '<button type="button" class="btn btn-secondary" id="adw-auth-annuler">Annuler</button>' +
                 '<button type="submit" class="btn btn-primary">Déverrouiller</button>' +
                 '</div></form></div>';
