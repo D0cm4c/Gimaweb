@@ -43,3 +43,6 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Fix signalé** : les cartes formations n'étaient pas cliquables — les deux listeners de la maquette (clic carte → `formation.html?id=…`, clic « Réserver sur le site » → sélecteur de membre présaisi) avaient été perdus lors de la migration serveur M5a. Réintégrés en délégué sur la grille (la réservation MEC reste un lien/bouton : le clic carte ne la déclenche pas).
 - `<script src="booking.js?v=3">` restauré dans formations.html (le sélecteur de membre n'était même pas chargé).
 - M7 étendu : mock WP dans le test DOM, clic réel sur une carte (navigation vérifiée via VirtualConsole) + clic Réserver (modale du sélecteur ouverte). 30/30. Régression : 322/322.
+## v1.2.6 — formations.html : filtres réparés
+- **Fix signalé** : les filtres ne répondaient pas — les listeners de la recherche (input), du mois et de la catégorie (change) et des boutons de période « À venir / Toutes » avaient été perdus à la migration serveur M5a, comme les clics de cartes corrigés en v1.2.5. Réintégrés à l'identique de la maquette.
+- M7 étendu : la recherche filtre réellement les cartes (0 résultat sur un terme inexistant, résultat retrouvé ensuite), bascule de période testée par clic. 33/33. Régression : 325/325.

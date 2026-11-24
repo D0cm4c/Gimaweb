@@ -110,7 +110,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.2.5 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.5', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.2.6 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.6', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -157,6 +157,26 @@ for (const p of PAGES) {
         verifie('formations.html : bouton Réserver présent (bk-open)', false, 'aucun .bk-open');
     }
     verifie('formations.html charge sans erreur JS', erreursF.length === 0, erreursF.join(' | '));
+    // Filtres : recherche + période (régression v1.2.5 — listeners perdus à la migration)
+    const avant = wf.document.querySelectorAll('.f-card.f-card-link').length;
+    const si = wf.document.getElementById('searchInput');
+    si.value = 'zzzz-inexistant';
+    si.dispatchEvent(new wf.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 300));
+    const apresRecherche = wf.document.querySelectorAll('.f-card.f-card-link').length;
+    verifie('formations.html : la recherche filtre les cartes', apresRecherche === 0 && avant > 0, avant + ' -> ' + apresRecherche);
+    si.value = '';
+    si.dispatchEvent(new wf.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 300));
+    const btnToutes = wf.document.querySelector('[data-period="all"]');
+    const navigations2 = navigations; // réutilise le même collecteur
+    btnToutes.click();
+    await new Promise((r) => setTimeout(r, 300));
+    verifie('formations.html : bascule période « Toutes » fonctionnelle (bouton actif)', btnToutes.classList.contains('active'));
+    si.value = 'mot de passe';
+    si.dispatchEvent(new wf.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 300));
+    verifie('formations.html : recherche à nouveau trouvée', wf.document.querySelectorAll('.f-card.f-card-link').length >= 1);
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

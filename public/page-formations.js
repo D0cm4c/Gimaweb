@@ -235,6 +235,19 @@
             });
         }
 
+        // Filtres : recherche, mois, catégorie, période (réintégrés de la maquette — perdus à la migration)
+        document.querySelectorAll('[data-period]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.querySelectorAll('[data-period]').forEach(function (b) { b.classList.remove('active'); });
+                btn.classList.add('active');
+                period = btn.getAttribute('data-period');
+                applyFilters();
+            });
+        });
+        searchInput.addEventListener('input', applyFilters);
+        monthSelect.addEventListener('change', applyFilters);
+        catSelect.addEventListener('change', applyFilters);
+
         // Carte cliquable -> fiche formation ; bouton Réserver -> sélecteur de membre (booking.js)
         // (réintégré de la maquette — perdus lors de la migration serveur, v1.2.5)
         grid.addEventListener('click', function (e) {

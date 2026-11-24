@@ -219,3 +219,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix** : réintégration des listeners (clic carte ignore `.bk-open, a, button` comme la maquette) + tag `booking.js?v=3` restauré avant page-formations.js.
 - M7 : mock WP boucle locale ajouté au serveur de test, navigation vérifiée via **VirtualConsole jsdomError** (jsdom n'implémente pas la navigation — on capte la tentative), modale booking vérifiée. 30/30, régression **322/322**.
 - ⚠ Leçon : lors d'une réécriture de page, la PARITÉ DES TAGS script avec la maquette doit être vérifiée (ici booking.js manquant) — un listener restauré sur un script non chargé reste muet.
+
+## 🚨 v1.2.6 — formations.html : filtres inertes (PR #26)
+
+- **Symptôme** : recherche / mois / catégorie / période sans effet sur formations.html.
+- **Cause** : mêmes pertes de migration M5a que les clics de cartes (v1.2.5) — `applyFilters` était appelée après chargement mais AUCUN listener d'entrée (input/change/clic période) n'était branché.
+- **Fix** : listeners réintégrés à l'identique de la maquette. Bump cache `page-formations.js?v=39`.
+- M7 : recherche testée par interaction (terme inexistant → 0 carte, puis terme réel → cartes), bascule « Toutes » testée par clic. 33/33, régression **325/325**.
+- ⚠ Leçon : la page formations était systématiquement vidée de ses listeners à la migration — après ce doublon, TOUTES les interactions des pages réécrites doivent être listées depuis la maquette et testées une par une.
