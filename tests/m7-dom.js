@@ -88,7 +88,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.1.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.0', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.1.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.1', v && v.textContent);
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

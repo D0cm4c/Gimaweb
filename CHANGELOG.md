@@ -16,3 +16,6 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - La colonne latérale affiche **« Gimaweb v1.2.0 »** en bas, au-dessus du lien atelierduweb.be — version lue depuis `GET /api/sante` (toujours en synchro avec `package.json`).
 - Bump cache `layout.js?v=11` + `styles.css?v=91` unifiée dans les 12 pages (les pages trainaient 3 numéros de styles.css différents : 24/28/90 → 91).
 - Suite DOM étendue : position du bloc vérifiée dans le footer + texte exact. Régression : 312/312.
+## v1.2.1 — correctif import XML volumineux (413)
+- **Fix** : l'import du fichier des 3 806 membres échouait en « HTTP 413 » — `express.json({ limit: '2mb' })` rejetait le body **avant** d'atteindre l'endpoint (la garde 50 Mo côté route ne servait jamais). Limite dédiée `64mb` sur `/api/membres/import` uniquement ; le reste de l'API reste à 2 Mo.
+- Test étendu : XML de 8+ Mo analysé en mode essai (50 fiches), plus de 413. Régression : 313/313.

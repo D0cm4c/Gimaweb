@@ -174,3 +174,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - `.side-version` ajouté à styles.css (couleur atticée, uppercase 0,72rem).
 - Bump cache : `layout.js?v=11`, et `styles.css` unifiée en `?v=91` (les pages trainaient 24/28/90 — maquette).
 - Test DOM `m7-dom.js` étendu : position du bloc (avant le lien) + texte exact affiché. Régression : **312/312**.
+
+## 🚨 v1.2.1 — fix 413 sur l'import XML réel (PR #20)
+
+- **Symptôme en production** : « erreur de lecture XML : http 413 » au chargement du fichier des 3 806 membres.
+- **Cause** : `express.json({ limit: '2mb' })` (serveur.js) rejetait le body AVANT l'endpoint — la garde 50 Mo de `/api/membres/import` n'était jamais atteinte. Le XML Access réel dépasse 2 Mo.
+- **Fix** : body-parser dédié `app.use('/api/membres/import', express.json({ limit: '64mb' }))` monté AVANT le parseur 2 Mo ; le reste de l'API reste à 2 Mo. Test étendu : XML 8+ Mo en mode essai → 50 fiches analysées, plus de 413 (`tests/m5d-import-xml.js` 20/20). Régression : **313/313**.
+- ⚠ Leçon : une garde de taille côté route est inutile si le middleware global coupe avant — tester la volumétrie RÉELLE (3 806 fiches), pas 3 fiches.

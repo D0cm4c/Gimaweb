@@ -111,6 +111,9 @@ const gardeAdmin = (req, res, next) => {
 // ---- Application ----
 const app = express();
 app.disable('x-powered-by');
+// Import XML de l'ancienne base Access : le XML des 3 806 membres dépasse largement 2 Mo
+// → limite dédiée AVANT le parseur JSON global (le garde 50 Mo reste côté endpoint)
+app.use('/api/membres/import', express.json({ limit: '64mb' }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/sante', (req, res) => {

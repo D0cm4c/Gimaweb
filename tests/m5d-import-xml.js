@@ -75,6 +75,17 @@ verifie('ré-import : 3 doublons ignorés', reimp.status === 201 && reimp.body.i
 const notifs = await fetchApi('/api/notifications');
 verifie('notification import_membres', (notifs.body || []).some((n) => n.type === 'import_membres'), notifs.body && notifs.body.length);
 
+// ---- Volumétrie réelle : le XML des 3806 membres dépasse 2 Mo (limite JSON globale)
+// → le body-parser dédié de la route d'import doit accepter (fix v1.2.1 : express.json 2mb rejetait en 413 AVANT l'endpoint)
+const recs = [];
+for (let i = 9000; i < 9050; i++) {
+    recs.push('<Tbl_Membres><Num_id>' + i + '</Num_id><Nom>Nomplutotlong' + i + '</Nom><Pr_x00E9_nom>Prenomcompose' + i + '</Pr_x00E9_nom><Adresse>Rue de la Longueur Padding Padding Padding ' + i + '</Adresse><Statut_x0020_Social>cpas</Statut_x0020_Social></Tbl_Membres>');
+}
+const gros = '<dataroot>' + recs.join('') + '</dataroot>' + '  <!-- ' + 'x'.repeat(8 * 1024 * 1024) + ' -->';
+verifie('XML volumineux (> 8 Mo) accepté', gros.length > 8 * 1024 * 1024, gros.length);
+const grosEssai = await fetchApi('/api/membres/import', avecCookie(json('POST', { xml: gros, essai: true })));
+verifie('essai sur gros XML : 50 fiches analysées, pas de 413', grosEssai.status === 200 && grosEssai.body.analyses === 50, { status: grosEssai.status, body: grosEssai.body });
+
 // ---- XML cassé → 400 ----
 const casse = await fetchApi('/api/membres/import', avecCookie(json('POST', { xml: '<dataroot><pas_fermé>' })));
 verifie('XML invalide → 400 avec message', casse.status === 400 && /XML invalide/.test(casse.body.erreur || ''), casse.body);
