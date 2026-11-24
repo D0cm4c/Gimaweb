@@ -63,3 +63,6 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - La carte « Prochaine fermeture » affiche désormais **la date de début ET de fin** de la fermeture (« du lundi 15 août au mardi 16 août ») quand l'événement s'étend sur plusieurs jours ; date seule si fermeture d'un jour.
 - `prochaine_fermeture` du flot expose `date` (début) et `date_fin` (MAX des dates de l'événement).
 - Test : fermeture du mock sur 2 jours, date_fin vérifiée et période affichée dans la carte. 48/48. Régression : 340/340.
+## v1.4.2 — fix formation.html : « Réserver sur le site » inerte
+- **Fix signalé** : le bouton « Réserver sur le site » de la fiche formation ne faisait rien — le handler était présent mais `booking.js` (le sélecteur de membre présaisi) n'était pas chargé par formation.html (même oubli que formations.html en v1.2.5).
+- `<script src="booking.js?v=3">` ajouté ; le clic réel est testé dans le DOM (modale du sélecteur ouverte). 50/50. Régression : 342/342.
