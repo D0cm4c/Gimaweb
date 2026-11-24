@@ -256,3 +256,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - Compl\u00e9ment demand\u00e9 : la carte doit montrer la p\u00e9riode compl\u00e8te. Flot : MAX(fd.date) AS date_fin en plus du MIN ; dashboard : \u00ab du X au Y \u00bb si date_fin > date, date seule sinon.
 - Mock : \u00e9v\u00e9nement fermeture sur 2 jours (15 + 16 ao\u00fbt 2027, parseur multi-dates du serveur v\u00e9rifi\u00e9 au passage). 48/48, r\u00e9gression **340/340**.
+
+## 🚨 v1.4.2 — formation.html : Réserver sur le site inerte (PR #31)
+
+- **Symptôme** : clic « Réserver sur le site » sans effet sur la fiche formation.
+- **Cause** : le handler délégué existait (`window.ADWBooking.openPicker`) mais `booking.js` n'était pas chargé par formation.html → `window.ADWBooking` undefined, le handler rendait silencieusement. Exactement l'oubli bookings.js de formations.html (v1.2.5) sur l'autre page formations.
+- **Fix** : tag `<script src="booking.js?v=3">` ajouté avant page-formation.js. M7 : clic réel sur #bookBtn → modale du sélecteur de membre ouverte (50/50).
+- ⚠ Leçon (règle de registre) : TOUTE page qui référence une API d'un script partagé (ADWBooking, ADWAuth…) doit charger CE script — la parité des TAGS script de la maquette est la checklist, page par page.
