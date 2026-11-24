@@ -110,7 +110,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.3.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.3.0', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.3.1 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.3.1', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -202,6 +202,15 @@ for (const p of PAGES) {
     verifie('tickets.html : soumission du ticket ferme la modale', tm.hidden === true);
     const surServeur = await (await fetch(`${origine}/api/tickets`)).json();
     verifie('tickets.html : le ticket créé est en base', surServeur.some((t) => t.title === 'Reservation test M10'), surServeur.length);
+}
+
+// ---- 1sexies) formation.html?id=<vraie formation> : la fiche se rend sans erreur
+// (bug v1.3.1 : loadMecLabels is not defined — appel fantôme d'une fonction supprimée à la migration)
+{
+    const { errors: erreursFo, window: wfo, navigations: navFo } = await chargerPage('formation.html?id=301');
+    await new Promise((r) => setTimeout(r, 1200));
+    const titre = wfo.document.getElementById('pageTitle');
+    verifie('formation.html?id : fiche rendue sans erreur', erreursFo.length === 0 && Boolean(titre), erreursFo.join(' | '));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

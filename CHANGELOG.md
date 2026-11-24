@@ -50,3 +50,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Audit systématique** : comparaison des branchements `addEventListener` fichier par fichier entre la maquette et Gimaweb (26 fichiers) — toutes les pages sont à parité, SAUF page-formations.js qui gardait 5 manquants.
 - **Fix** : modale « Inscriptions du site » complètement réparée (ouvrir via le bouton badge, fermer, clic-fond) — les 3 listeners étaient perdus à la migration ; le bouton « Charger 3 résas de démo » (obsolète en serveur, la sync arrive du plugin WP) retiré de la page.
 - **Tests** : clics réels étendus — modale Inscriptions du site (ouvrir/fermer par le fond), modale Signaliser un incident de tickets.html (ouvrir, soumettre, vérification du ticket en base). 38/38. Régression : 330/330.
+## v1.3.1 — fix formation.html : « loadMecLabels is not defined »
+- **Fix signalé** : la fiche formation plantait au chargement — appel fantôme à `loadMecLabels()`, fonction supprimée à la migration serveur (les labels viennent du serveur à la sync), l'appel était resté.
+- Bonus : les labels serveur (niveau, annulé…) sont maintenant rendus dans le hero de la fiche (badges), champ `labels` servi par l'API.
+- M7 étendu : `formation.html?id=<vraie formation>` chargée en DOM réel sans erreur (le test aurait attrapé le bug). 39/39. Régression : 331/331.

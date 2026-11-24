@@ -159,7 +159,8 @@
                 (f.duration ? ' · ' + esc(f.duration) : '') +
                 (moduleCount ? ' · ' + moduleCount + ' module' + (moduleCount > 1 ? 's' : '') : '') +
                 '</p>' +
-                (f.price ? '<p style="opacity:0.95;font-size:1.05rem;font-weight:700;margin-top:0.3rem;">💶 ' + esc(f.price) + ' €</p>' : '') +
+                (f.labels ? '<p style="margin-top:0.3rem;">' + f.labels.split(', ').map(function (l) { return '<span class="badge badge-new">' + esc(l) + '</span>'; }).join(' ') + '</p>' : '') +
+                                (f.price ? '<p style="opacity:0.95;font-size:1.05rem;font-weight:700;margin-top:0.3rem;">💶 ' + esc(f.price) + ' €</p>' : '') +
                 '<div id="mecLabels" style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.5rem;"></div>' +
                 '<div class="hero-actions"><button class="btn btn-primary" id="bookBtn">Réserver sur le site</button>' +
                 '<button class="btn btn-secondary" id="printSheetBtn" title="Feuille de séance imprimable : liste des inscrits avec cases paiement et présence à cocher au stylo">🖨️ Feuille de séance</button></div>' +
@@ -318,7 +319,6 @@
 
             content.innerHTML = html;
             attachRoomLogic(f);
-            loadMecLabels(f);
             attachAttendeeLogic(f);
             attachWaitlistLogic(f);
             content.hidden = false;

@@ -235,3 +235,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - `ticketModal` (tickets.html) vérifié sain au passage : la modale de création fonctionne (test ajouté : ouvrir \u2192 remplir \u2192 soumettre \u2192 ticket en base).
 - M7 : 38/38. Régression complète : **330/330**.
 - ⚠ Leçon consolidée : les pertes de la migration se concentraient sur les fichiers RÉÉCRITS (page-formations.js surtout) ; les fichiers copiés tels quels (dashboard.js, tickets.js, settings.js…) sont à parité — la réécriture est le facteur de risque, pas la copie.
+
+## 🚨 v1.3.1 — formation.html : appel fantôme loadMecLabels (PR #28)
+
+- **Symptôme** : « Erreur de chargement : loadMecLabels is not defined » sur la fiche formation.
+- **Cause** : lors de la migration M5b, la FONCTION loadMecLabels a été supprimée (labels servis par l'API) mais son APPEL est resté ligne 321 → ReferenceError au premier rendu de fiche. Aucun test ne chargeait formation.html AVEC un id — la page n'était testée que sur son chemin d'erreur.
+- **Fix** : appel supprimé + rendu des labels serveur ajouté dans le hero (champ labels de l'API). Bump cache page-formation.js v2.
+- M7 : formation.html?id=301 (mock WP) chargée en DOM réel, fiche rendue sans erreur. 39/39, régression **331/331**.
+- ⚠ Leçon : quand on supprime une fonction à la migration, grepper SON NOM dans tout public/ (appel fantôme) ; et chaque page doit être testée avec de VRAIES données, pas seulement son écran d'erreur.
