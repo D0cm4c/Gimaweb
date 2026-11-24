@@ -167,3 +167,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - L'app s'appelle **Gimaweb**. **v1.0.0 = première mise en production** (M0-M6, docs) ; **v1.1.0 = correctif auth.js + bump cache** (PR #16-#17) — c'est la version en prod.
 - La version vit dans `package.json` (`version`) et est exposée par `GET /api/sante` (`version`, via createRequire — plus jamais en dur dans le code). Règle : **incrémenter à chaque maj poussée** — correctif = x.y.Z, fonctionnalité = x.Y.0, rupture de contrat = X.0.0 — et l'ajouter au `CHANGELOG.md`.
+
+## 🖥️ v1.2.0 — nom + version affichés dans la sidebar (PR #19)
+
+- `layout.js` : bloc `.side-version` (#adwVersion) dans le footer de la sidebar, **au-dessus du lien atelierduweb.be** — rempli par `fetch('/api/sante')` → « Gimaweb v1.2.0 » (synchro automatique avec package.json, aucune édition de page nécessaire au prochain bump).
+- `.side-version` ajouté à styles.css (couleur atticée, uppercase 0,72rem).
+- Bump cache : `layout.js?v=11`, et `styles.css` unifiée en `?v=91` (les pages trainaient 24/28/90 — maquette).
+- Test DOM `m7-dom.js` étendu : position du bloc (avant le lien) + texte exact affiché. Régression : **312/312**.

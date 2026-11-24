@@ -80,6 +80,17 @@ for (const p of PAGES) {
     verifie(`${p} charge sans erreur JS (scripts: ${scripts.length})`, errors.length === 0, errors.join(' | '));
 }
 
+// ---- 1bis) La sidebar affiche le nom et la version (au-dessus du lien atelierduweb.be) ----
+{
+    const { dom: d2, window: w2 } = await chargerPage('membres.html');
+    const v = w2.document.getElementById('adwVersion');
+    const footer = v && v.parentElement;
+    const lien = footer && footer.querySelector('a.side-external');
+    const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
+    verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.1.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.0', v && v.textContent);
+}
+
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
 const { dom, window, errors } = await chargerPage('membres.html');
 await new Promise((r) => setTimeout(r, 300));
