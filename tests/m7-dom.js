@@ -110,7 +110,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.2.6 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.6', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.3.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.3.0', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -177,6 +177,31 @@ for (const p of PAGES) {
     si.dispatchEvent(new wf.Event('input', { bubbles: true }));
     await new Promise((r) => setTimeout(r, 300));
     verifie('formations.html : recherche à nouveau trouvée', wf.document.querySelectorAll('.f-card.f-card-link').length >= 1);
+    // Modale « Inscriptions du site » : ouverture par clic réel + fermeture par clic-fond
+    wf.document.getElementById('bookingsBtn').click();
+    await new Promise((r) => setTimeout(r, 600));
+    const bm = wf.document.getElementById('bookingsModal');
+    verifie('formations.html : modale Inscriptions du site ouverte par clic', Boolean(bm) && !bm.hidden);
+    bm.click(); // clic sur le fond (overlay)
+    await new Promise((r) => setTimeout(r, 200));
+    verifie('formations.html : fermeture par clic sur le fond', bm.hidden === true);
+}
+
+// ---- 1quinquies) tickets.html : modale « Signaler un incident » ouvre/ferme ----
+{
+    const { window: wt } = await chargerPage('tickets.html');
+    await new Promise((r) => setTimeout(r, 400));
+    const tm = wt.document.getElementById('ticketModal');
+    wt.document.getElementById('newTicketBtn').click();
+    await new Promise((r) => setTimeout(r, 200));
+    const ouvert = tm && !tm.hidden;
+    verifie('tickets.html : clic « Signaler un incident » ouvre la modale', ouvert);
+    wt.document.getElementById('tkTitle').value = 'Reservation test M10';
+    wt.document.getElementById('tkSave').click();
+    await new Promise((r) => setTimeout(r, 800));
+    verifie('tickets.html : soumission du ticket ferme la modale', tm.hidden === true);
+    const surServeur = await (await fetch(`${origine}/api/tickets`)).json();
+    verifie('tickets.html : le ticket créé est en base', surServeur.some((t) => t.title === 'Reservation test M10'), surServeur.length);
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

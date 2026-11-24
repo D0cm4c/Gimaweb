@@ -266,6 +266,15 @@
             }).catch(function (err) { alert('Erreur : ' + err.message); });
         });
 
+        // Modale inscriptions du site : ouvrir / fermer / clic-fond (réintégrés de la maquette)
+        var bookingsModal = document.getElementById('bookingsModal');
+        document.getElementById('bookingsBtn').addEventListener('click', function () {
+            renderBookingsQueue();
+            bookingsModal.hidden = false;
+        });
+        document.getElementById('bookingsCloseBtn').addEventListener('click', function () { bookingsModal.hidden = true; });
+        bookingsModal.addEventListener('click', function (e) { if (e.target === bookingsModal) bookingsModal.hidden = true; });
+
         function loadEvents() {
             // Gimaweb : la synchro avec atelierduweb.be vit côté SERVEUR (GET /api/formations,
             // auto-sync 15 min) — le navigateur lit la base unique, il ne fetch plus le site.
