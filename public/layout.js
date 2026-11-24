@@ -37,6 +37,7 @@
         '<a href="parametres.html"><span class="nav-ico" aria-hidden="true">\u2699\uFE0F</span> Paramètres</a>' +
         '</nav>' +
         '<div class="sidebar-footer">' +
+        '<div class="side-version" id="adwVersion">Gimaweb</div>' +
         '<a class="side-external" href="https://atelierduweb.be" target="_blank" rel="noopener">\uD83C\uDF10 atelierduweb.be</a>' +
         '</div>' +
         '</aside>';
@@ -73,6 +74,11 @@
                 active.classList.add('active');
                 active.setAttribute('aria-current', 'page');
             }
+            // Version de l'app (package.json serveur, via /api/sante) — affichée en bas de la sidebar
+            fetch('/api/sante').then(function (r) { return r.json(); }).then(function (s) {
+                var v = document.getElementById('adwVersion');
+                if (v && s && s.version) v.textContent = 'Gimaweb v' + s.version;
+            }).catch(function () { /* silencieux */ });
         }
 
         var topbarSlot = document.querySelector('[data-layout-topbar]');
