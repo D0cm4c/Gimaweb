@@ -92,6 +92,11 @@ auth.post('/deconnexion', (req, res) => {
     cookieHeader(res, '', 0);
     res.json({ ok: true });
 });
+// Vérification de session : le navigateur NE FAIT PAS CONFIANCE à sa mémoire locale
+// (un redémarrage du serveur purge les sessions en mémoire — erreur production v1.2.2)
+auth.get('/verification', (req, res) => {
+    res.json({ valide: sessionValide(req) });
+});
 const sessionValide = (req) => {
     const m = (req.headers.cookie || '').match(/gimaweb_session=([a-f0-9]+)/);
     if (!m) return false;

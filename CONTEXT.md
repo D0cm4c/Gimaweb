@@ -181,3 +181,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Cause** : `express.json({ limit: '2mb' })` (serveur.js) rejetait le body AVANT l'endpoint — la garde 50 Mo de `/api/membres/import` n'était jamais atteinte. Le XML Access réel dépasse 2 Mo.
 - **Fix** : body-parser dédié `app.use('/api/membres/import', express.json({ limit: '64mb' }))` monté AVANT le parseur 2 Mo ; le reste de l'API reste à 2 Mo. Test étendu : XML 8+ Mo en mode essai → 50 fiches analysées, plus de 413 (`tests/m5d-import-xml.js` 20/20). Régression : **313/313**.
 - ⚠ Leçon : une garde de taille côté route est inutile si le middleware global coupe avant — tester la volumétrie RÉELLE (3 806 fiches), pas 3 fiches.
+
+## 🚨 v1.2.2 — fix « session admin requise » après redémarrage (PR #22)
+
+- **Symptôme en production** : import XML → « erreur de lecture XML : session admin requise » (401).
+- **Cause** : après un `systemctl restart` (fait pour la v1.2.1), les sessions serveur (en mémoire) sont purgées — mais `auth.js` faisait confiance à sa **mémoire locale 25 min** sans re-vérifier côté serveur : la garde `ensureUnlocked` laissait passer, et l'API répondait 401 sans jamais redemander le mot de passe.
+- **Fix** : `GET /api/auth/verification` (session serveur consultée même quand la mémoire locale dit « déverrouillé ») — session morte → purge mémoire locale → modale de mot de passe RE-affichée. `auth.js?v=4` (bump cache 12 pages).
+- Scénario **rejoué dans `tests/m7-dom.js`** : déverrouillage → purge de session forcée (déconnexion = redémarrage simulé) → clic Importer → re-modale → re-déverrouillage → import OK. 22/22, régression **323/323**.
+- ⚠ Leçon : une mémoire locale de déverrouillage n'est qu'un CACHE — la vérité de la session vit serveur ; toute action gardée doit vérifier avant d'agir.

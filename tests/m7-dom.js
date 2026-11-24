@@ -88,7 +88,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.1.0 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.1', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.2.2 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.2', v && v.textContent);
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
@@ -117,10 +117,29 @@ if (pwd) {
 const importModal = doc.getElementById('importModal');
 verifie('après déverrouillage : modale d\u2019import visible', Boolean(importModal) && !importModal.hidden);
 
+// ---- 3) Scénario de production v1.2.2 : le serveur redémarre (sessions en mémoire purgées)
+// mais le navigateur garde sa mémoire locale « déverrouillé » + un cookie périmé
+// → le clic doit RE-ouvrir la modale de mot de passe, pas renvoyer un 401 à l'API ----
+await fetch(`${origine}/api/auth/deconnexion`, { method: 'POST', headers: { ...(etatCookies.value ? { Cookie: etatCookies.value } : {}) } });
+const memLocale = window.localStorage.getItem('gimaweb_deverrouille_jusquau');
+verifie('mémoire locale dit encore « déverrouillé » (scénario reconstitué)', Boolean(memLocale));
+importBtn.click();
+await new Promise((r) => setTimeout(r, 500));
+const pass2 = doc.querySelector('#adw-auth-form input[type="password"]');
+verifie('clic après purge de session : la modale de mot de passe RE-apparaît (pas de 401)', Boolean(pass2));
+if (pass2) {
+    const form2 = pass2.closest('form');
+    pass2.value = 'chantier';
+    form2.dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('re-déverrouillage : modale d\u2019import à nouveau visible', importModal && !importModal.hidden);
+}
+
+
 // fichier XML (comme un file input) : preview
 const xml = '<dataroot><Tbl_Membres><Num_id>9001</Num_id><Nom>Testdom</Nom><Pr_x00E9_nom>Vera</Pr_x00E9_nom></Tbl_Membres></dataroot>';
 const results = await fetch(`${origine}/api/membres/import`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
     body: JSON.stringify({ xml, essai: true }),
     headers: { 'Content-Type': 'application/json', ...(etatCookies.value ? { Cookie: etatCookies.value } : {}) },
 });
