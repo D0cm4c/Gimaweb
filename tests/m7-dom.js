@@ -4,13 +4,25 @@ import { spawn } from 'child_process';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
 fs.rmSync('data', { recursive: true, force: true });
 
+import http from 'http';
+const FLUX = [{ id: 301, title: { rendered: 'Secret de mot de passe solide' }, link: 'https://atelierduweb.be/formation/motdepasse/',
+    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Matin\u00e9e \uD83D\uDCC5 Dates : Le 15 f\u00e9vrier 2027 \u23f0 Horaires : De 9h30 \u00e0 12h30</p>' }, mec_category: [9] }];
+const mock = http.createServer((req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    if (req.url.startsWith('/wp-json/wp/v2/mec-events')) res.end(JSON.stringify(FLUX));
+    else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }]));
+    else { res.statusCode = 404; res.end('{}'); }
+});
+await new Promise((r) => mock.listen(32993, '127.0.0.1', r));
+
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32136', ADMIN_HASH_SHA256: hash },
+    env: { ...process.env, PORT: '32136', ADMIN_HASH_SHA256: hash,
+        WP_BASE: 'http://127.0.0.1:32993/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32993/inconnu' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreursServeur = '';
@@ -29,10 +41,17 @@ const etatCookies = { value: '', url: '' };
 async function chargerPage(page) {
     const html = await (await fetch(`${origine}/${page}`)).text();
     const errors = [];
+    const navigations = [];
+    const vc = new VirtualConsole();
+    vc.on('jsdomError', (e) => {
+        if (String(e && e.message || '').includes('navigation')) navigations.push(String(e.message));
+        else errors.push('jsdomError: ' + (e && e.message));
+    });
     const dom = new JSDOM(html, {
         url: `${origine}/${page}`,
         runScripts: 'outside-only',
-        pretendToBeVisual: true
+        pretendToBeVisual: true,
+        virtualConsole: vc
     });
     const { window } = dom;
     // Cookie jar partagé : le fetch de la page se comporte comme un navigateur (session admin)
@@ -69,7 +88,7 @@ async function chargerPage(page) {
     }
     // laisse tourner les promesses d'init
     await new Promise((r) => setTimeout(r, 700));
-    return { dom, window, errors, scripts, alertes };
+    return { dom, window, errors, scripts, alertes, navigations };
 }
 
 const PAGES = ['index.html', 'membres.html', 'formations.html', 'formation.html', 'membre.html', 'salles.html',
@@ -91,7 +110,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.2.4 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.4', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.2.5 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.5', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -114,6 +133,30 @@ for (const p of PAGES) {
     wf.document.getElementById('renewSubBtn').click();
     await new Promise((r) => setTimeout(r, 900));
     verifie('membre.html?id : clic « Renouveler l’abo » fonctionne (alerte de confirmation)', alertesFiche.some((m) => m.includes('Abonnement renouvel')), alertesFiche.join(' | '));
+}
+
+// ---- 1quater) formations.html : cartes cliquables (fiche) + bouton Réserver (sélecteur membre)
+{
+    const { errors: erreursF, window: wf, navigations } = await chargerPage('formations.html');
+    await new Promise((r) => setTimeout(r, 1500));
+    const carte = wf.document.querySelector('.f-card.f-card-link');
+    verifie('formations.html : au moins une carte formation rendue', Boolean(carte));
+    if (carte) {
+        navigations.length = 0;
+        carte.click();
+        await new Promise((r) => setTimeout(r, 400));
+        verifie('formations.html : clic carte → navigation vers formation.html?id', navigations.length > 0, navigations.join(' | '));
+    }
+    const book = wf.document.querySelector('.bk-open');
+    if (book) {
+        book.click();
+        await new Promise((r) => setTimeout(r, 500));
+        const modale = wf.document.querySelector('#bookingSearchInput');
+        verifie('formations.html : bouton Réserver → sélecteur de membre ouvert', Boolean(modale) && modale.closest('.modal-overlay') && !modale.closest('.modal-overlay').hidden);
+    } else {
+        verifie('formations.html : bouton Réserver présent (bk-open)', false, 'aucun .bk-open');
+    }
+    verifie('formations.html charge sans erreur JS', erreursF.length === 0, erreursF.join(' | '));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
@@ -172,6 +215,7 @@ verifie('essai serveur : 1 fiche analysée', results.status === 200 && (await re
 
 if (erreursServeur) console.log('stderr serveur :', erreursServeur);
 srv.kill();
+mock.close();
 await new Promise((r) => setTimeout(r, 300));
 console.log(`\n${ok}/${tout} vérifications réussies`);
 process.exit(ok === tout ? 0 : 1);

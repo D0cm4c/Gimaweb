@@ -211,3 +211,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix (1)** fermeture au bon endroit + suppression de la fermeture en trop en fin de fonction ; **fix (2)** : `.detail-head-actions` (rangée dédiée basée flex-basis:100%, padding-right 7.5rem réserve filigrane, min-height 104px du hero).
 - M7 étendu : clic réel sur « Renouveler l'abo » → alerte attendue (le test échouait sur l'ancien code), JS alert/confirm espionnés dans chargerPage. 26/26, régression **321/321**.
 - ⚠ Leçon : dernière occurrence connue du schéma « callback non refermé » ; pour l'avenir, tout nouveau bloc addEventListener doit être testé par CLIC, pas juste par chargement de page.
+
+## 🚨 v1.2.5 — formations.html : cartes non cliquables (PR #25)
+
+- **Symptôme** : les cartes formations ne mènent nulle part ; « Réserver sur le site » inerte.
+- **Cause** : les deux listeners délégués de la maquette (clic carte → fiche, clic bk-open → sélecteur de membre) n'ont pas survécu à la migration M5a (le fichier a été réécrit autour du client HTTP, le bloc `grid.addEventListener` a sauté) ; et `booking.js` n'était pas chargé par formations.html.
+- **Fix** : réintégration des listeners (clic carte ignore `.bk-open, a, button` comme la maquette) + tag `booking.js?v=3` restauré avant page-formations.js.
+- M7 : mock WP boucle locale ajouté au serveur de test, navigation vérifiée via **VirtualConsole jsdomError** (jsdom n'implémente pas la navigation — on capte la tentative), modale booking vérifiée. 30/30, régression **322/322**.
+- ⚠ Leçon : lors d'une réécriture de page, la PARITÉ DES TAGS script avec la maquette doit être vérifiée (ici booking.js manquant) — un listener restauré sur un script non chargé reste muet.
