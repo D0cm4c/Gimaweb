@@ -37,6 +37,9 @@ async function chargerPage(page) {
     const { window } = dom;
     // Cookie jar partagé : le fetch de la page se comporte comme un navigateur (session admin)
     etatCookies.url = `${origine}/${page}`;
+    const alertes = [];
+    window.alert = (m) => { alertes.push(String(m)); };
+    window.confirm = () => true;
     window.fetch = (u, o) => {
         const url = new URL(String(u), `${origine}/`).href;
         const entetes = { ...((o && o.headers) || {}) };
@@ -66,7 +69,7 @@ async function chargerPage(page) {
     }
     // laisse tourner les promesses d'init
     await new Promise((r) => setTimeout(r, 700));
-    return { dom, window, errors, scripts };
+    return { dom, window, errors, scripts, alertes };
 }
 
 const PAGES = ['index.html', 'membres.html', 'formations.html', 'formation.html', 'membre.html', 'salles.html',
@@ -88,7 +91,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.2.3 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.3', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.2.4 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.4', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -100,11 +103,17 @@ for (const p of PAGES) {
         method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: ck },
         body: JSON.stringify({ first_name: 'Domi', last_name: 'Niqueur', subscription: 'none', start_date: '2027-01-05', end_date: '2027-02-05' })
     })).json();
-    const { errors: erreursFiche, window: wf } = await chargerPage(`membre.html?id=${encodeURIComponent(cree.id)}`);
+    const { errors: erreursFiche, window: wf, alertes: alertesFiche } = await chargerPage(`membre.html?id=${encodeURIComponent(cree.id)}`);
     await new Promise((r) => setTimeout(r, 500));
     const selecteur = wf.document.getElementById('interestPick');
     verifie('membre.html?id : fiche rendue sans erreur (intérêts inclus)', erreursFiche.length === 0, erreursFiche.join(' | '));
     verifie('membre.html?id : sélecteur de formations présent (allFormations résolu)', Boolean(selecteur), selecteur && selecteur.tagName);
+    const delBtn = wf.document.getElementById('deleteMemberBtn');
+    const wrapp = delBtn && delBtn.closest('.detail-head-actions');
+    verifie('membre.html?id : boutons groupés sous l’identité (.detail-head-actions, 4)', Boolean(wrapp) && wrapp.querySelectorAll('button').length === 4, wrapp && wrapp.querySelectorAll('button').length);
+    wf.document.getElementById('renewSubBtn').click();
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('membre.html?id : clic « Renouveler l’abo » fonctionne (alerte de confirmation)', alertesFiche.some((m) => m.includes('Abonnement renouvel')), alertesFiche.join(' | '));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
