@@ -50,9 +50,14 @@
         function render() {
             var bounds = monthBounds(view);
             monthLabel.textContent = view.toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' });
-
-            var rooms = window.ADWDatabase.listRooms();
-            var planning = window.ADWDatabase.getRoomPlanning(bounds[0], bounds[1]);
+            Promise.all([
+                window.ADWDatabase.listRooms().catch(function () { return []; }),
+                window.ADWDatabase.getRoomPlanning(bounds[0], bounds[1]).catch(function () { return []; }),
+                window.ADWDatabase.formationsWithoutRoom().catch(function () { return []; })
+            ]).then(function (sources) {
+            var rooms = sources[0] || [];
+            var planning = sources[1] || [];
+            var withoutData = sources[2] || [];
             var formations = {};
             planning.forEach(function (p) {
                 // ordonne par fid
@@ -63,9 +68,7 @@
             // Index: date -> [{room, slot, fid, title, event_id, categories}]
             var byCell = {};
             planning.forEach(function (p) {
-                var f = window.ADWDatabase.getFormationByEventId(p.event_id);
-                if (!f || !f.room_id) return;
-                var key = p.date + '|' + f.room_id + '|' + p.slot;
+                var key = p.date + '|' + p.room_id + '|' + p.slot;
                 byCell[key] = { fid: p.fid, title: p.title, event_id: p.event_id, cat: mainCatOf(p.categories) };
             });
 
@@ -122,20 +125,27 @@
             monthCount.textContent = occupied + ' créneau' + (occupied > 1 ? 'x' : '') + ' occupé' + (occupied > 1 ? 's' : '');
 
             // Badge sans salle
-            var without = window.ADWDatabase.formationsWithoutRoom();
-            unassignedBadge.textContent = without.length;
-            unassignedBadge.style.display = without.length ? '' : 'none';
+            unassignedBadge.textContent = withoutData.length;
+            unassignedBadge.style.display = withoutData.length ? '' : 'none';
+            }).catch(function () {
+                planningWrap.innerHTML = '<div class="empty-state"><p>Erreur de chargement (serveur injoignable).</p></div>';
+            });
         }
 
         function renderUnassigned() {
-            var rooms = window.ADWDatabase.listRooms();
-            var without = window.ADWDatabase.formationsWithoutRoom();
+            Promise.all([
+                window.ADWDatabase.listRooms().catch(function () { return []; }),
+                window.ADWDatabase.formationsWithoutRoom().catch(function () { return []; })
+            ]).then(function (sources) {
+            var rooms = sources[0] || [];
+            var without = sources[1] || [];
             unassignedList.innerHTML = without.length ? '' : '<p class="form-hint" style="padding:1rem;">Toutes les formations ont une salle. 🎉</p>';
-            without.forEach(function (f) {
+            var promises = without.map(function (f) {
+                return window.ADWDatabase.getFormationDates(f.id).catch(function () { return []; }).then(function (dates) {
+                dates = dates || [];
                 var li = document.createElement('div');
                 li.className = 'checkin-item';
                 li.style.flexWrap = 'wrap';
-                var dates = window.ADWDatabase.getFormationDates(f.id);
                 li.innerHTML =
                     '<div style="flex:1;min-width:200px;"><strong>' + esc(f.title) + '</strong>' +
                     '<div class="form-hint">' + esc(f.date_text || f.start_date || 'dates à confirmer') + ' · ' + dates.length + ' séance' + (dates.length > 1 ? 's' : '') + (dates.length ? ' (' + dates[0].slot + ')' : '') + '</div></div>' +
@@ -144,23 +154,30 @@
                     rooms.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>'; }).join('') +
                     '</select>';
                 unassignedList.appendChild(li);
+                });
             });
+            return Promise.all(promises).then(function () {
             unassignedList.querySelectorAll('.unassigned-select').forEach(function (sel) {
                 sel.addEventListener('change', function () {
                     if (!sel.value) return;
                     var fid = sel.getAttribute('data-fid');
-                    var f = window.ADWDatabase.queryAll('SELECT title, event_id FROM formations WHERE id = ?', [fid])[0];
-                    var conflicts = window.ADWDatabase.getRoomConflicts(fid, sel.value);
-                    window.ADWDatabase.setFormationRoom(fid, sel.value);
                     var roomName = sel.options[sel.selectedIndex].textContent;
-                    if (window.ADWNotifications) {
-                        window.ADWNotifications.push('info', '📝 « ' + f.title + ' » attribuée à ' + roomName +
-                            (conflicts.length ? ' — ⚠️ ' + conflicts.length + ' conflit(s) de créneau' : ''), conflicts.length ? 'warning' : 'success');
-                    }
-                    renderUnassigned();
-                    render();
+                    window.ADWDatabase.getRoomConflicts(fid, sel.value).then(function (conflicts) {
+                        conflicts = conflicts || [];
+                        return window.ADWDatabase.setFormationRoom(fid, sel.value).then(function () { return conflicts; });
+                    }).then(function (conflicts) {
+                        if (window.ADWNotifications) {
+                            window.ADWNotifications.push('info', '📝 Formation attribuée à ' + roomName +
+                                (conflicts.length ? ' — ⚠️ ' + conflicts.length + ' conflit(s) de créneau' : ''),
+                                conflicts.length ? 'warning' : 'success');
+                        }
+                        renderUnassigned();
+                        render();
+                    }).catch(function (err) { alert('Erreur : ' + err.message); });
                 });
             });
+            });
+            }).catch(function () { unassignedList.innerHTML = '<p class="form-hint">Erreur de chargement.</p>'; });
         }
 
         document.getElementById('prevMonthBtn').addEventListener('click', function () {
