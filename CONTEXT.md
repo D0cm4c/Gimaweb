@@ -227,3 +227,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix** : listeners réintégrés à l'identique de la maquette. Bump cache `page-formations.js?v=39`.
 - M7 : recherche testée par interaction (terme inexistant → 0 carte, puis terme réel → cartes), bascule « Toutes » testée par clic. 33/33, régression **325/325**.
 - ⚠ Leçon : la page formations était systématiquement vidée de ses listeners à la migration — après ce doublon, TOUTES les interactions des pages réécrites doivent être listées depuis la maquette et testées une par une.
+
+## 🔍 v1.3.0 — audit de parité des listeners (PR #27)
+
+- **Méthode** : script d'extraction des `.addEventListener` fichier par fichier maquette vs Gimaweb (26 fichiers comparés) — compteurs ET cibles.
+- **Résultat** : parité partout sauf `page-formations.js` (dernier fichier réécrit en M5a) : il manquait les 3 listeners de la modale Inscriptions du site (bookingsBtn/bookingsCloseBtn/clic-fond). Réintégrés + bouton démo retiré du HTML.
+- `ticketModal` (tickets.html) vérifié sain au passage : la modale de création fonctionne (test ajouté : ouvrir \u2192 remplir \u2192 soumettre \u2192 ticket en base).
+- M7 : 38/38. Régression complète : **330/330**.
+- ⚠ Leçon consolidée : les pertes de la migration se concentraient sur les fichiers RÉÉCRITS (page-formations.js surtout) ; les fichiers copiés tels quels (dashboard.js, tickets.js, settings.js…) sont à parité — la réécriture est le facteur de risque, pas la copie.

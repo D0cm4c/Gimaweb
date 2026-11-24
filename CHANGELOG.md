@@ -46,3 +46,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 ## v1.2.6 — formations.html : filtres réparés
 - **Fix signalé** : les filtres ne répondaient pas — les listeners de la recherche (input), du mois et de la catégorie (change) et des boutons de période « À venir / Toutes » avaient été perdus à la migration serveur M5a, comme les clics de cartes corrigés en v1.2.5. Réintégrés à l'identique de la maquette.
 - M7 étendu : la recherche filtre réellement les cartes (0 résultat sur un terme inexistant, résultat retrouvé ensuite), bascule de période testée par clic. 33/33. Régression : 325/325.
+## v1.3.0 — audit de parité des interactions (toutes pages)
+- **Audit systématique** : comparaison des branchements `addEventListener` fichier par fichier entre la maquette et Gimaweb (26 fichiers) — toutes les pages sont à parité, SAUF page-formations.js qui gardait 5 manquants.
+- **Fix** : modale « Inscriptions du site » complètement réparée (ouvrir via le bouton badge, fermer, clic-fond) — les 3 listeners étaient perdus à la migration ; le bouton « Charger 3 résas de démo » (obsolète en serveur, la sync arrive du plugin WP) retiré de la page.
+- **Tests** : clics réels étendus — modale Inscriptions du site (ouvrir/fermer par le fond), modale Signaliser un incident de tickets.html (ouvrir, soumettre, vérification du ticket en base). 38/38. Régression : 330/330.
