@@ -203,3 +203,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Chasse à la classe entière** (grep des appels client sans `.then`) : feuille de présence (page-formation.js), suppression ticket (tickets.js), suppression salle (settings.js), renouvellement abo (app.js) — tout corrigé + normalisation newStart/newEnd dans le client.
 - Bumps cache adw-client v2 / app v38 / tickets v4 / settings v33 ; assertion M5a dé-épinglée de ?v=1 ; M7 teste membre.html?id avec un vrai membre.
 - ⚠ Leçon : après une migration sync→async, GREPPER tous les sites d'appel sans .then — chaque `var x = client.methode()` est un bug latent (crash ou « undefined » silencieux).
+
+## 🚨 v1.2.4 — fiche membre : listeners emboîtés + chevauchement filigrane (PR #24)
+
+- **Symptômes** : (1) boutons de membre.html inertes ; (2) « Supprimer » sur le n° de membre en filigrane.
+- **Cause (1)** : le callback `checkinBtn.addEventListener(...)` n'était jamais refermé — intérêts/impressions/renouvellement/suppression étaient câblés DANS ce callback (donc seulement après un 1er clic sur « Pointer une visite »). `node --check` valide la syntaxe → invisible en CI. Double du bug M5b (listener Renouveler dans le callback Supprimer).
+- **Fix (1)** fermeture au bon endroit + suppression de la fermeture en trop en fin de fonction ; **fix (2)** : `.detail-head-actions` (rangée dédiée basée flex-basis:100%, padding-right 7.5rem réserve filigrane, min-height 104px du hero).
+- M7 étendu : clic réel sur « Renouveler l'abo » → alerte attendue (le test échouait sur l'ancien code), JS alert/confirm espionnés dans chargerPage. 26/26, régression **321/321**.
+- ⚠ Leçon : dernière occurrence connue du schéma « callback non refermé » ; pour l'avenir, tout nouveau bloc addEventListener doit être testé par CLIC, pas juste par chargement de page.

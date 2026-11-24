@@ -157,10 +157,12 @@
                             : '<span class="badge ' + (expired ? 'badge-full' : 'badge-ok') + '">' + (expired ? 'Inscription expirée' : 'Inscription active') + '</span>') +
                         ((member.subscription === 'monthly' || member.subscription === 'yearly') ? '<span class="badge ' + s.badge + '">' + s.label + '</span>' : '') +
                     '</div></div>' +
+                    '<div class="detail-head-actions">' +
                     '<button type="button" class="btn btn-secondary btn-small" id="editMemberBtn" title="Modifier les informations du membre">✏️ Modifier</button>' +
                     '<button type="button" class="btn btn-secondary btn-small" id="renewSubBtn" title="Prolonger l\u2019inscription selon la formule du membre">♻️ Renouveler l\u2019abo</button>' +
                     '<button type="button" class="btn btn-primary btn-small" id="checkinBtn" title="Enregistrer la visite du jour pour ce membre">✅ Pointer une visite</button>' +
-                    '<button type="button" class="btn btn-danger btn-small" id="deleteMemberBtn" style="margin-left:auto;align-self:flex-start;">🗑️ Supprimer</button>' +
+                    '<button type="button" class="btn btn-danger btn-small" id="deleteMemberBtn">🗑️ Supprimer</button>' +
+                    '</div>' +
                 '</div>' +
                 '</div>' + // fin carte tête
                 // ---- Grille de cartes (mise en page oct. 2026) ----
@@ -337,6 +339,7 @@
                         ? '⚠️ Visite déjà pointée aujourd’hui pour ce membre.'
                         : 'Erreur : ' + err.message);
                 });
+            });
             // ===== Int\u00e9r\u00eats / listes d'attente : ajout (dropdown ou libre) et retrait =====
             content.addEventListener('click', function (e) {
                 var rm = e.target.closest('.wl-remove');
@@ -418,7 +421,6 @@
                         });
                     }
                 });
-            });
             });
         }
 

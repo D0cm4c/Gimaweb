@@ -34,3 +34,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - 4 voisins du même type corrigés : feuille de présence (page-formation.js), suppression ticket (tickets.js), suppression salle (settings.js), renouvellement d'abonnement (app.js).
 - Client : previewRenewal/renewSubscription normalisent newStart/newEnd en plus des champs serveur.
 - Bumps cache : adw-client v2, app v38, tickets v4, settings v33. Régression : 319/319.
+## v1.2.4 — fiche membre : boutons réparés + actions sur leur propre rangée
+- **Fix signalé** : sur membre.html, Renouveler / Supprimer / Intérêts / Impressions ne répondaient pas — le callback du bouton « Pointer une visite » n'était jamais refermé : tout le câblage des autres actions était emboîté DEDANS (syntaxe valide en `node --check`, donc invisible pour la CI). Les actions ne se câblaient qu'après un premier clic sur « Pointer une visite ».
+- **Mise en page signalée** : le bouton « Supprimer » chevauchait le n° de membre en filigrane — les 4 boutons passent sur leur propre rangée (`.detail-head-actions`) sous le bloc identité, avec réserve horizontale pour le filigrane + hauteur mini du hero.
+- Bumps cache : page-membre v24, styles v92.
+- Test DOM étendu : clic RÉEL sur « Renouveler l'abo » (alerte de confirmation attendue) + structure des boutons groupés. Régression : 321/321.

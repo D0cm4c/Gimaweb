@@ -838,6 +838,16 @@ main {
 .m-card-head { margin-bottom: 0; }
 .m-card-head .detail-head { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 
+/* Fiche membre (oct. 2026) : les actions occupent leur propre rangée SOUS le bloc identité,
+   avec une réserve à droite pour le filigrane — « Supprimer » ne peut plus chevaucher le n° membre */
+.m-card-head .detail-head { min-height: 104px; }
+.detail-head-actions {
+    display: flex; gap: 0.7rem; flex-wrap: wrap;
+    flex-basis: 100%; margin-top: 0.8rem;
+    padding-right: 7.5rem;
+}
+.detail-head-actions .btn { align-self: flex-start; }
+
 /* Filigrane du n° de membre (membre.html) — même position que le compteur d'inscrits de formation.html */
 .member-no-watermark {
     position: absolute; right: 1.4rem; top: 1rem;
