@@ -3,6 +3,7 @@
 // Contrat : docs/CONTRAT-API.md. IDs TEXT (base36) comme dans la maquette.
 import express from 'express';
 import crypto from 'crypto';
+import { parserXmlMembres, importerXmlMembres } from './import-xml.js';
 
 const CHAMPS = ['first_name', 'last_name', 'age', 'phone', 'email', 'address', 'start_date', 'end_date', 'subscription', 'postal_code', 'gender', 'social_status'];
 const SOUSCRIPTIONS = new Set(['none', 'monthly', 'yearly']);
@@ -24,7 +25,7 @@ const ajouterMois = (dateStr, mois) => {
 
 const aujourdhui = () => new Date().toISOString().slice(0, 10);
 
-export const creerApiMembres = (db, { sessionValide = () => false } = {}) => {
+export const creerApiMembres = (db, { sessionValide = () => false, notifier = () => {} } = {}) => {
     const api = express.Router();
 
     // N° de membre auto : premier libre à partir de 1000 (gaps comblés), max 9999
@@ -171,6 +172,25 @@ export const creerApiMembres = (db, { sessionValide = () => false } = {}) => {
             db.prepare('UPDATE members SET start_date = ?, end_date = ? WHERE id = ?').run(debut, fin, req.params.id);
         })();
         res.json({ nouveau_debut: debut, nouvelle_fin: fin });
+    });
+
+    // Import XML de l'ancienne base Access (derri\u00e8re la session admin)
+    api.post('/membres/import', (req, res) => {
+        if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
+        const xml = req.body && req.body.xml;
+        if (typeof xml !== 'string' || !xml.trim()) return res.status(400).json({ erreur: 'XML manquant.' });
+        if (xml.length > 50 * 1024 * 1024) return res.status(413).json({ erreur: 'XML trop volumineux (50 Mo max).' });
+        const essai = Boolean(req.body.essai);
+        try {
+            if (essai) {
+                const { membres, avertissements } = parserXmlMembres(xml);
+                return res.json({ essai: true, analyses: membres.length, avertissements });
+            }
+            const resultat = importerXmlMembres(db, xml, notifier);
+            res.status(201).json(resultat);
+        } catch (e) {
+            res.status(400).json({ erreur: 'Lecture du XML impossible : ' + e.message });
+        }
     });
 
     return api;
