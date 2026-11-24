@@ -9,6 +9,7 @@
 | Doc | Rôle |
 |---|---|
 | [`CONTEXT.md`](CONTEXT.md) | Mémoire du projet (première lecture) |
+| [`CHANGELOG.md`](CHANGELOG.md) | **Gimaweb v1.1.0** — versions, incrémentées à chaque mise en production |
 | [`AGENTS.md`](AGENTS.md) | Règles pour les sessions IA |
 | [`docs/CONCEPTION.md`](docs/CONCEPTION.md) | Phase de pré-production : architecture, options pesées, décisions figées / à valider, plan M0→M5 |
 | [`docs/CONTRAT-API.md`](docs/CONTRAT-API.md) | Contrat de l'API REST (miroir de l'issue app #150) |

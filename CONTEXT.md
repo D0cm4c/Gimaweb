@@ -162,3 +162,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - `auth.js?v=2` → `?v=3` dans les 12 pages : force le rechargement du fichier corrigé sur tous les postes LAN (sinon les navigateurs gardent l'ancien `auth.js` cassé en cache et les boutons restent morts même après `git pull`).
 - Règle à retenir pour les prochaines corrections frontend : **bump du `?v=` d'un script à chaque modification de ce script** (le versioning des tags vient de la maquette, il ne se bump pas tout seul).
+
+## 🏷️ Versionnement officiel (PR #18)
+
+- L'app s'appelle **Gimaweb**. **v1.0.0 = première mise en production** (M0-M6, docs) ; **v1.1.0 = correctif auth.js + bump cache** (PR #16-#17) — c'est la version en prod.
+- La version vit dans `package.json` (`version`) et est exposée par `GET /api/sante` (`version`, via createRequire — plus jamais en dur dans le code). Règle : **incrémenter à chaque maj poussée** — correctif = x.y.Z, fonctionnalité = x.Y.0, rupture de contrat = X.0.0 — et l'ajouter au `CHANGELOG.md`.

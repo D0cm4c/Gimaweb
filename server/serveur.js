@@ -4,6 +4,8 @@
 import express from 'express';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import { createRequire } from 'module';
+const VERSION = createRequire(import.meta.url)('../package.json').version;
 import { creerApiMembres } from './api-membres.js';
 import { creerApiVisites } from './api-visites.js';
 import { creerApiFormations } from './api-formations.js';
@@ -116,8 +118,7 @@ app.get('/api/sante', (req, res) => {
     res.json({
         status: 'ok',
         service: 'gimaweb',
-        version: '0.1.0',
-        phase: 'M0 — squelette',
+        version: VERSION,
         base: path.basename(DB_PATH),
         salles: salleCount
     });
