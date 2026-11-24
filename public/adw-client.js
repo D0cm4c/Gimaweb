@@ -87,9 +87,11 @@
             return PUT('/api/membres/' + encodeURIComponent(id), corps);
         },
         deleteMemberCompletely: function (id) { return DEL('/api/membres/' + encodeURIComponent(id)).then(function () { return true; }); },
-        previewRenewal: function (id) { return GET('/api/membres/' + encodeURIComponent(id) + '/renouvellement'); },
+        previewRenewal: function (id) { return GET('/api/membres/' + encodeURIComponent(id) + '/renouvellement')
+            .then(function (r) { return r && { newStart: r.nouveau_debut, newEnd: r.nouvelle_fin, nouveau_debut: r.nouveau_debut, nouvelle_fin: r.nouvelle_fin }; }); },
         renewSubscription: function (id, debut, fin) {
-            return POST('/api/membres/' + encodeURIComponent(id) + '/renouvellement', { nouveau_debut: debut, nouvelle_fin: fin });
+            return POST('/api/membres/' + encodeURIComponent(id) + '/renouvellement', { nouveau_debut: debut, nouvelle_fin: fin })
+                .then(function (r) { return r && { newStart: r.nouveau_debut, newEnd: r.nouvelle_fin, nouveau_debut: r.nouveau_debut, nouvelle_fin: r.nouvelle_fin }; });
         },
         // ---- Visites & impressions ----
         pointerVisite: function (memberId, raison) {

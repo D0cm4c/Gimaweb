@@ -123,11 +123,12 @@
             Promise.all([
                 ADWDatabase.listerVisitesMembre(member.id).catch(function () { return []; }),
                 ADWDatabase.getMemberFormations(member.id).catch(function () { return []; }),
-                ADWDatabase.getMemberWaitlist(member.id).catch(function () { return []; })
+                ADWDatabase.getMemberWaitlist(member.id).catch(function () { return []; }),
+                ADWDatabase.listFormationTitlesDistinct().catch(function () { return []; })
             ]).then(function (sources) {
                 var visits = sources[0].slice(0, 30);
                 var formations = sources[1] || [];
-                _renderInterne(member, visits, formations, sources[2] || []);
+                _renderInterne(member, visits, formations, sources[2] || [], sources[3] || []);
             }).catch(function (err) {
                 loading.hidden = true;
                 notFound.hidden = false;
@@ -135,7 +136,7 @@
             });
         }
 
-        function _renderInterne(member, visits, formations, interestsData) {
+        function _renderInterne(member, visits, formations, interestsData, tousTitres) {
 
             pageTitle.textContent = member.first_name + ' ' + member.last_name;
             document.title = member.first_name + ' ' + member.last_name + ' — Atelier du Web';
@@ -253,8 +254,7 @@
             } else {
                 html += '<p class="form-hint">Aucun int\u00e9r\u00eat enregistr\u00e9.</p>';
             }
-            var allFormations = [];
-            try { allFormations = ADWDatabase.listFormationTitlesDistinct() || []; } catch (e) { allFormations = []; }
+            var allFormations = tousTitres || [];
             html += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.7rem;align-items:center;">' +
                 '<select id="interestPick" style="flex:1;min-width:200px;">' +
                 '<option value="">\u2014 Choisir une formation existante \u2014</option>' +

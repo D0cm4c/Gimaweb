@@ -24,3 +24,13 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - `GET /api/auth/verification` : le navigateur consulte la session serveur avant de considérer l'app déverrouillée ; si la session est morte, la modale de mot de passe RE-apparaît.
 - `auth.js?v=4` dans les 12 pages (bump cache).
 - Scénario rejoué dans `tests/m7-dom.js` (déconnexion forcée = purge, puis clic : re-modale, re-déverrouillage, import OK). Régression : 323/323.
+## v1.2.3 — correctif « allFormations.map is not a function » (fiche membre) + 4 du même type
+- **Fix signalé** : membre.html → « Erreur : allFormations.map is not a function ». Cause : `listFormationTitlesDistinct()` (promesse depuis la migration serveur) assignée sans `.then` — le sélecteur d'intérêts recevait une promesse.
+- **4 voisins du même type corrigés dans la vague** : feuille de présence `page-formation.js` (getFormationAttendees), suppression de ticket `tickets.js` (getTicket/refresh), suppression de salle `settings.js` (deleteRoom → crash « undefined »), renouvellement d'abonnement `app.js` (previewRenewal/renewSubscription affichaient « du undefined au undefined »).
+- `adw-client.js` : `previewRenewal`/`renewSubscription` normalisent `newStart`/`newEnd` (contrat maquette) en plus de `nouveau_debut`/`nouvelle_fin` (serveur).
+- Bumps cache : adw-client v2, app v38, tickets v4, settings v33. Test M7 étendu : membre.html?id= avec un VRAI membre rendu sans erreur + sélecteur présent. Régression : 319/319.
+## v1.2.3 — correctif fiche membre + 4 appels promesse non attendus
+- Fix signalé : membre.html → « allFormations.map is not a function » (listFormationTitlesDistinct promesse non attendue).
+- 4 voisins du même type corrigés : feuille de présence (page-formation.js), suppression ticket (tickets.js), suppression salle (settings.js), renouvellement d'abonnement (app.js).
+- Client : previewRenewal/renewSubscription normalisent newStart/newEnd en plus des champs serveur.
+- Bumps cache : adw-client v2, app v38, tickets v4, settings v33. Régression : 319/319.

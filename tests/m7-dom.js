@@ -88,7 +88,23 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.2.2 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.2', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.2.3 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.2.3', v && v.textContent);
+}
+
+// ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
+// (bug production v1.2.3 : listFormationTitlesDistinct() promesse non attendue → « allFormations.map is not a function »)
+{
+    const co = await fetch(`${origine}/api/auth/connexion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'chantier' }) });
+    const ck = (co.headers.get('set-cookie') || '').split(';')[0];
+    const cree = await (await fetch(`${origine}/api/membres`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: ck },
+        body: JSON.stringify({ first_name: 'Domi', last_name: 'Niqueur', subscription: 'none', start_date: '2027-01-05', end_date: '2027-02-05' })
+    })).json();
+    const { errors: erreursFiche, window: wf } = await chargerPage(`membre.html?id=${encodeURIComponent(cree.id)}`);
+    await new Promise((r) => setTimeout(r, 500));
+    const selecteur = wf.document.getElementById('interestPick');
+    verifie('membre.html?id : fiche rendue sans erreur (intérêts inclus)', erreursFiche.length === 0, erreursFiche.join(' | '));
+    verifie('membre.html?id : sélecteur de formations présent (allFormations résolu)', Boolean(selecteur), selecteur && selecteur.tagName);
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

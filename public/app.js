@@ -435,16 +435,17 @@
                 renewArmed = null;
                 detailRenewBtn.textContent = '♻️ Renouveler l’abo';
                 detailRenewBtn.classList.remove('btn-danger');
-                var res = ADWDatabase.renewSubscription(detailMember.id, r.newStart, r.newEnd);
-                if (!res) return;
-                if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé : du ' + res.newStart + ' au ' + res.newEnd + ' (membre ' + detailMember.member_no + ')', 'success', { member_id: detailMember.id });
-                showToast('♻️ Renouvelé — inscription du ' + res.newStart + ' au ' + res.newEnd);
-                render();
-                openDetail(detailMember.id);
+                ADWDatabase.renewSubscription(detailMember.id, r.newStart, r.newEnd).then(function (res) {
+                    if (!res) return;
+                    if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé : du ' + res.newStart + ' au ' + res.newEnd + ' (membre ' + detailMember.member_no + ')', 'success', { member_id: detailMember.id });
+                    showToast('♻️ Renouvelé — inscription du ' + res.newStart + ' au ' + res.newEnd);
+                    render();
+                    openDetail(detailMember.id);
+                });
                 return;
             }
             // 1er clic : calculer et afficher l'aperçu (rien n'est écrit en base)
-            var r = ADWDatabase.previewRenewal(detailMember.id);
+            ADWDatabase.previewRenewal(detailMember.id).then(function (r) {
             if (!r) return;
             renewArmed = r;
             detailRenewBtn.textContent = '✅ Confirmer : du ' + fmtDMY(r.newStart) + ' au ' + fmtDMY(r.newEnd) + ' ?';
@@ -454,6 +455,7 @@
                 detailRenewBtn.textContent = '♻️ Renouveler l’abo';
                 detailRenewBtn.classList.remove('btn-danger');
             }, RENEW_ARMED_MS);
+            }).catch(function (e) { showToast('Renouvellement impossible : ' + (e && e.message ? e.message : e), 'error'); });
         });
     }
 

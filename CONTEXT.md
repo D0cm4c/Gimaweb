@@ -189,3 +189,17 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix** : `GET /api/auth/verification` (session serveur consultée même quand la mémoire locale dit « déverrouillé ») — session morte → purge mémoire locale → modale de mot de passe RE-affichée. `auth.js?v=4` (bump cache 12 pages).
 - Scénario **rejoué dans `tests/m7-dom.js`** : déverrouillage → purge de session forcée (déconnexion = redémarrage simulé) → clic Importer → re-modale → re-déverrouillage → import OK. 22/22, régression **323/323**.
 - ⚠ Leçon : une mémoire locale de déverrouillage n'est qu'un CACHE — la vérité de la session vit serveur ; toute action gardée doit vérifier avant d'agir.
+
+## 🚨 v1.2.3 — fix allFormations.map + 4 appels promesse non attendus (PR #23)
+
+- **Symptôme** : membre.html → « allFormations.map is not a function » : `listFormationTitlesDistinct()` promesse non attendue (reste de la maquette sync).
+- **Chasse à la classe entière** (grep des `ADWDatabase.x()` sans `.then`) : feuille de présence (page-formation.js), suppression ticket (tickets.js), suppression salle (settings.js — crash res.blocked sur une promesse), renouvellement abo (app.js — « du undefined au undefined ») — tout corrigé au pattern `.then` + normalisation newStart/newEnd dans le client (previewRenewal/renewSubscription).
+- Bumps cache adw-client v2 / app v38 / tickets v4 / settings v33 ; assertion M5a dé-épinglée de `?v=1` ; M7 teste membre.html?id avec un vrai membre (sélecteur intérêts rendu).
+- ⚠ Leçon : après une migration sync→async, GREPPER tous les sites d'appel sans `.then` — chaque `var x = client.methode()` est un bug latent qui CRASHE ou silencieusement affiche undefined.
+
+## 🚨 v1.2.3 — fix allFormations.map + 4 appels promesse non attendus (PR #23)
+
+- **Symptôme** : membre.html → « allFormations.map is not a function » : `listFormationTitlesDistinct()` promesse non attendue.
+- **Chasse à la classe entière** (grep des appels client sans `.then`) : feuille de présence (page-formation.js), suppression ticket (tickets.js), suppression salle (settings.js), renouvellement abo (app.js) — tout corrigé + normalisation newStart/newEnd dans le client.
+- Bumps cache adw-client v2 / app v38 / tickets v4 / settings v33 ; assertion M5a dé-épinglée de ?v=1 ; M7 teste membre.html?id avec un vrai membre.
+- ⚠ Leçon : après une migration sync→async, GREPPER tous les sites d'appel sans .then — chaque `var x = client.methode()` est un bug latent (crash ou « undefined » silencieux).
