@@ -14,3 +14,8 @@
 | [`docs/CONTRAT-API.md`](docs/CONTRAT-API.md) | Contrat de l'API REST (miroir de l'issue app #150) |
 | [`server/schema.sql`](server/schema.sql) | Schéma SQLite consolidé (16 tables, base de départ) |
 | [`docs/CHARTE-GRAPHIQUE.html`](docs/CHARTE-GRAPHIQUE.html) | La charte design qui fait foi |
+| [`docs/ADMINISTRATION.md`](docs/ADMINISTRATION.md) | Installation serveur, systemd + sauvegarde nocturne 02:30, restauration |
+
+## État du chantier (M6, fusionné)
+
+Toutes les pages maquette sont migrées sur le client HTTP (`public/adw-client.js`) : **zéro SQL navigateur** — agrégats dashboard/stats calculés serveur, import XML Access (`POST /api/membres/import`), visites anonymes (1 €), sauvegarde chiffrée + restauration. Régression : **293/293** (`npm test`, 11 suites fonctionnelles en boucle locale).

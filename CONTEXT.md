@@ -143,3 +143,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Couvre ~46 méthodes client jamais exercées par les suites précédentes (preview/renewRenewal, effacerSolde, syncFormations, unregister, setFmPayment/Attendance, addRoom/renameRoom/deleteRoom, setFormationDates, getRoomConflicts, waitlist complète, suggestions, tickets via client, équipe, notifications détaillées, sauvegardeChiffree/remplacerBase).
 - Régression totale : **293/293** (11 suites).
 - ⚠ Leçons (contrats réels qu'il faut connaître avant d'écrire un test client) : `payment` attend un MOYEN (`bancontact|cash`), `attendance` un état (`present|canceled`), jamais un montant/booléen ; le planning porte `fid` (pas `formation_id`) ; notification lue = `is_read` ; les 204 (markRead, setSuggestionStatus) ne renvoient AUCUN corps — toujours re-lister pour vérifier l'effet ; visites abonné mensuel = 0 € (seule l'anonyme paie).
+
+## 📦 Documentation — fin de chantier (PR #15)
+
+- `docs/CONTRAT-API.md` complété : visites anonymes (`member_id` NULL depuis M5c), historique visites/impressions par membre, **import XML Access** (`POST /api/membres/import`, essai/réel, gardes 401/400/413), **agrégats** (`/api/agregats/flot`, `/api/agregats/stats`, `/api/recherche`), et correction du remplacement de base (JSON `fichier_base64`, pas multipart) + sauvegarde chiffrée (AES-256-GCM, timer 02:30).
+- `README.md` : ADMINISTRATION.md ajouté à la table des docs + état du chantier (M6 fusionné, 0 SQL navigateur, 293/293).

@@ -28,7 +28,17 @@
 | Rôle | Endpoint |
 |---|---|
 | pointage (refus double pointage côté serveur) | `POST /api/visites` |
-| impressions (solde, paiement) | `POST /api/impressions` · `PUT /api/impressions/:id` |
+| **visite anonyme** (passage sans inscription, 1 €, motif baromètre FRB) | `POST /api/visites` `{anonyme: true, reason}` — `member_id` NULL en base (nullable depuis M5c) |
+| historique visites d'un membre | `GET /api/membres/:id/visites` |
+| impressions (solde, solder, effacer) | `POST /api/impressions` · `POST /api/membres/:id/impressions/solder` · `DELETE /api/membres/:id/impressions` |
+
+### Membres — import XML (base Access)
+| Rôle | Endpoint |
+|---|---|
+| aperçu sans écriture (modale d'import) | `POST /api/membres/import` `{xml, essai: true}` → `{analyses, avertissements}` |
+| import réel (transaction, doublons `member_no` ignorés, notification `import_membres`) | `POST /api/membres/import` `{xml}` → 201 `{analyses, importes, doublons, avertissements}` |
+
+Parseur serveur sans dépendance (`server/import-xml.js`), mappings identiques à la maquette (tags Access `_xHHHH_`, STATUS_MAP `orbem`→`cpas` etc., dates FR, âge, email). Garde : 401 sans session admin · 400 XML manquant/invalide · 413 > 50 Mo.
 
 ### Formations
 | Méthode | Endpoint |
@@ -70,8 +80,15 @@
 ### Salles, Suggestions, Tickets, Équipe
 `listRooms/addRoom/renameRoom/deleteRoom` → `GET/POST/PUT/DELETE /api/salles` · `addSuggestion/listSuggestions/openSuggestionsCount/setSuggestionStatus` → `/api/suggestions` · `addTicket/getTicket/listTickets/updateTicket/deleteTicket/addTicketComment/listTicketComments` → `/api/tickets` (+ `/comments`) · `listTeamMembers/addTeamMember/deleteTeamMember` → `/api/equipe`.
 
+### Agrégats (M5c — pages dashboard & statistiques)
+| Rôle | Endpoint |
+|---|---|
+| dashboard en UN appel (KPI du jour/mois, agenda du jour, 6 visites récentes, impressions dues + top 3, tickets) | `GET /api/agregats/flot` |
+| page Statistiques en UN appel (membres, visites/revenus, rétention, profil CP, motifs FRB, inclusion, statuts, cp_top10, genres, rapport annuel, heatmap 12 semaines, graphique 14 jours + 12 mois) | `GET /api/agregats/stats` |
+| recherche globale topbar | `GET /api/recherche?q=…` (≥ 2 caractères) |
+
 ### Import / remplacement
-`replaceDatabase(fichier)` → `POST /api/base/remplacement` (multipart) — reprend la validation d'en-tête SQLite + `integrity_check` de la maquette ; garde admin.
+`sauvegardeChiffree()` → `POST /api/base/sauvegarde` (AES-256-GCM, dépôt WebDAV Nextcloud, timer systemd 02:30). `replaceDatabase(fichier)` → `POST /api/base/remplacement` `{fichier_base64}` (JSON — `.db` SQLite ou `.aes` chiffré) — validation d'en-tête SQLite + `integrity_check`, adoption au redémarrage avec purge des `-wal`/`-shm` ; garde admin.
 
 ## Le schéma
 
