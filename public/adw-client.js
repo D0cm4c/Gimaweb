@@ -58,6 +58,7 @@
 
         // ---- Membres ----
         listerMembres: function () { return GET('/api/membres'); },
+        importerXml: function (xml, essai) { return POST('/api/membres/import', { xml: xml, essai: Boolean(essai) }); },
         getMembre: function (id) { return GET('/api/membres/' + encodeURIComponent(id)); },
         creerMembre: function (m) {
             var corps = {

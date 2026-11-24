@@ -124,7 +124,7 @@ app.get('/api/sante', (req, res) => {
 });
 app.use('/api/auth', auth);
 // Endpoints métier par phase (docs/CONCEPTION.md §6) — M1a : membres
-app.use('/api', creerApiMembres(db, { sessionValide }));
+app.use('/api', creerApiMembres(db, { sessionValide, notifier: (type, message, severite, details) => notifier(type, message, severite, details) }));
 app.use('/api', creerApiVisites(db));
 
 // Journal des actions automatiques (règle : tout automatisme est notifié)

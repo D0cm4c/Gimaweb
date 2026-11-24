@@ -23,3 +23,4 @@ jobs:
       - run: node tests/m4-tickets-sauvegarde.js
       - run: node tests/m5a-frontend.js
       - run: node tests/m5c-agregats.js
+      - run: node tests/m5d-import-xml.js

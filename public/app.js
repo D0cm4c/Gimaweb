@@ -778,58 +778,35 @@
         if (!file) return;
         var reader = new FileReader();
         reader.onload = function () {
-            try {
-                var result = ADWImport.parseXml(reader.result);
-                pendingImport = result.members;
-                var w = result.warnings;
+            ADWDatabase.importerXml(reader.result, true).then(function (apercu) {
+                pendingImport = reader.result;
+                var w = apercu.avertissements || {};
                 var warnTxt = [];
-                if (w.noStatus) warnTxt.push(w.noStatus + ' statut(s) non mappé(s) laissé(s) vide(s)');
-                if (w.badEmail) warnTxt.push(w.badEmail + ' email(s) illisible(s) ignoré(s)');
-                if (w.badDate) warnTxt.push(w.badDate + ' date(s) de fin invalide(s)');
+                if (w.non_mappe_statut) warnTxt.push(w.non_mappe_statut + ' statut(s) non mappé(s) laissé(s) vide(s)');
+                if (w.email_illisible) warnTxt.push(w.email_illisible + ' email(s) illisible(s) ignoré(s)');
+                if (w.date_fin_invalide) warnTxt.push(w.date_fin_invalide + ' date(s) de fin invalide(s)');
                 var el = document.getElementById('impCount');
-                if (el) el.textContent = result.members.length + ' membres';
+                if (el) el.textContent = apercu.analyses + ' membres';
                 var we = document.getElementById('impWarn');
                 if (we) we.textContent = warnTxt.length ? warnTxt.join(' · ') : 'Aucun problème détecté.';
                 if (importPreview) importPreview.hidden = false;
-            } catch (e) {
-                alert('Erreur de lecture du XML : ' + e.message);
-            }
+            }).catch(function (e) {
+                alert('Erreur de lecture du XML : ' + (e && e.message ? e.message : e));
+            });
         };
         reader.readAsText(file);
     }
 
     function confirmImport() {
-        if (!pendingImport || !pendingImport.length) return;
-        alert('Import XML : migration serveur prévue en M5b — utiliser la sauvegarde/restauration de base en attendant.');
-        pendingImport = null;
-        return;
-        function MIGRE_M5B() {
-        var existing = {};
-        var toInsert = pendingImport.filter(function (m) { return !existing[m.member_no]; });
-        var skipped = pendingImport.length - toInsert.length;
-
-        var db = ADWDatabase.db;
-        db.run('BEGIN TRANSACTION');
-        var stmt = db.prepare(
-            'INSERT INTO members (id, member_no, first_name, last_name, age, phone, email, address, postal_code, gender, social_status, start_date, end_date, subscription) ' +
-            'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        toInsert.forEach(function (m) {
-            stmt.run([
-                'imp' + m.member_no, m.member_no, m.first_name, m.last_name,
-                m.age, m.phone || null, m.email || null, m.address || null,
-                m.postal_code, m.gender, m.social_status,
-                m.start_date, m.end_date, m.subscription
-            ]);
-        });
-        stmt.free();
-        db.run('COMMIT');
-
-        ADWDatabase.persist().then(function () {
+        if (!pendingImport) return;
+        ADWDatabase.importerXml(pendingImport, false).then(function (result) {
             closeImport();
             render();
-            showToast('📥 ' + toInsert.length + ' membres importés' + (skipped ? ' (' + skipped + ' doublons ignorés)' : ''), 'success');
+            showToast('📥 ' + result.importes + ' membres importés' +
+                (result.doublons ? ' (' + result.doublons + ' doublons ignorés)' : ''), 'success');
+        }).catch(function (e) {
+            alert('Import impossible : ' + (e && e.message ? e.message : e));
         });
-        }
     }
     if (importBtn) importBtn.addEventListener('click', openImport);
     if (importCloseBtn) importCloseBtn.addEventListener('click', closeImport);
