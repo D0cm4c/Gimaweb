@@ -251,3 +251,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Front** : applyFilters + fillSelects excluent fermeture (page-formations.js) ; carte `#nextClosure` cach\u00e9e par d\u00e9faut, remplie par renderNextClosure() seulement si le flot trouve une fermeture (dashboard.js).
 - **Favicon** : assets/icons/icon-192.png (marque AW existante) li\u00e9 dans les 12 pages.
 - M7 (mock WP + \u00e9v\u00e9nement fermeture cat Fermeture, 15 ao\u00fbt 2027) : 7 nouvelles v\u00e9rifications (d\u00e9tection flot, exclusion liste/filtre, carte visible + position DOM au-dessus de l'agenda, favicon 200). 47/47, r\u00e9gression **339/339**.
+
+## ✨ v1.4.1 — carte fermeture : dates début + fin (PR #30)
+
+- Compl\u00e9ment demand\u00e9 : la carte doit montrer la p\u00e9riode compl\u00e8te. Flot : MAX(fd.date) AS date_fin en plus du MIN ; dashboard : \u00ab du X au Y \u00bb si date_fin > date, date seule sinon.
+- Mock : \u00e9v\u00e9nement fermeture sur 2 jours (15 + 16 ao\u00fbt 2027, parseur multi-dates du serveur v\u00e9rifi\u00e9 au passage). 48/48, r\u00e9gression **340/340**.

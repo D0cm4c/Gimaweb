@@ -125,6 +125,10 @@
         }
         var d = new Date(fem.date + 'T12:00:00');
         var dateTxt = d.toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+        if (fem.date_fin && fem.date_fin !== fem.date) {
+            var dFin = new Date(fem.date_fin + 'T12:00:00');
+            dateTxt += ' au ' + dFin.toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' });
+        }
         el.innerHTML = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;border-left:4px solid var(--warning, #EFA02C);">' +
             '<h3>\uD83D\uDD34 Prochaine fermeture</h3>' +
             '<p style="margin:0.2rem 0 0;font-weight:700;">\uD83D\uDCC5 ' + (fem.title ? fem.title.replace(/fermeture/i, 'Fermeture').trim() : 'Fermeture') + '</p>' +
