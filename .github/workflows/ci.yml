@@ -24,3 +24,4 @@ jobs:
       - run: node tests/m5a-frontend.js
       - run: node tests/m5c-agregats.js
       - run: node tests/m5d-import-xml.js
+      - run: node tests/m6-parcours.js
