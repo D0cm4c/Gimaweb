@@ -59,3 +59,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Nouveauté demandée** : les événements du site de catégorie « fermeture » ne sont plus des formations — exclus de la page formations (liste + filtre catégorie + agenda du jour du dashboard), et une nouvelle carte dashboard **« 🔴 Prochaine fermeture »** apparaît au-dessus de « Aujourd'hui à l'Atelier », uniquement si un événement fermeture est programmé : titre, date et horaires de la plus proche fermeture à venir.
 - `GET /api/agregats/flot` expose `prochaine_fermeture` (titre, date la plus proche à venir, horaires) — null si aucune.
 - Tests (mock WP avec un événement fermeture) : fermeture absente de la liste/garde formation visible/absente du filtre, carte dashboard affichée avec la date + positionnée au-dessus de l'agenda, favicon servi. 47/47. Régression : 339/339.
+## v1.4.1 — carte fermeture : période complète (début → fin)
+- La carte « Prochaine fermeture » affiche désormais **la date de début ET de fin** de la fermeture (« du lundi 15 août au mardi 16 août ») quand l'événement s'étend sur plusieurs jours ; date seule si fermeture d'un jour.
+- `prochaine_fermeture` du flot expose `date` (début) et `date_fin` (MAX des dates de l'événement).
+- Test : fermeture du mock sur 2 jours, date_fin vérifiée et période affichée dans la carte. 48/48. Régression : 340/340.
