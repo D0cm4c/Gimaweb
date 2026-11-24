@@ -148,3 +148,12 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - `docs/CONTRAT-API.md` complété : visites anonymes (`member_id` NULL depuis M5c), historique visites/impressions par membre, **import XML Access** (`POST /api/membres/import`, essai/réel, gardes 401/400/413), **agrégats** (`/api/agregats/flot`, `/api/agregats/stats`, `/api/recherche`), et correction du remplacement de base (JSON `fichier_base64`, pas multipart) + sauvegarde chiffrée (AES-256-GCM, timer 02:30).
 - `README.md` : ADMINISTRATION.md ajouté à la table des docs + état du chantier (M6 fusionné, 0 SQL navigateur, 293/293).
+
+## 🚨 Correctif production — bug auth.js : modale de déverrouillage VIDE (PR #16)
+
+- **Symptôme signalé en production* : « pleins de liens/boutons qui marchent pas », dont Importer XML de membres.html.
+- **Cause racine** : `public/auth.js` `ouvrirModale()` — **la ligne `modale.innerHTML = …` avait disparu** lors de la réécriture M5a : la grande chaîne HTML restait une expression flottante (syntaxe valide !), la modale était appendChild-ée VIDE, puis `champ.focus()` sur `null` → **TypeError à CHAQUE action gardée** (ensureUnlocked) : import XML, suppressions, purge RGPD, sauvegarde, paramètres… Le `node --check` ne peut pas attraper ça ( valide en syntaxe), et aucune suite ne chargeait les pages dans un DOM.
+- **Correctif** : innerHTML restauré + structure conforme à la charte (overlay `modal-overlay` > `modal`, `form-group`, `modal-actions`, `zIndex 1000`) comme `auth.js` maquette.
+- **Nouvelle suite `tests/m7-dom.js` (17/17)** : chaque page est chargée en **vrai DOM (jsdom, devDependency)** avec ses scripts exécutés, fetch branché sur le serveur réel avec cookie jar (comme un navigateur) → « page charge sans erreur JS » pour les 12 pages ; puis **parcours DOM du bouton Importer XML** : présent → clic → modale de déverrouillage → saisie du mot de passe → submit → modale d'import visible → essai serveur 1 fiche analysée.
+- Régression totale : **310/310** (12 suites).
+- ⚠ Leçons (les plus importantes du chantier) : 1) une expression-flottante est INFAILLIBLE en `node --check` — seule une exécution réelle en DOM l'attrape ; 2) le point commun de « plein de boutons morts » = une seule fonction partagée qui throw (ici ensureUnlocked) ; 3) une réécriture UI se teste en CLIQUANT, pas seulement en appelant l'API en dessous.
