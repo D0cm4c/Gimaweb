@@ -72,10 +72,14 @@
 
     function escapeHtml(str) { return window.ADWEscape.html(str); }
 
-    function one(sql, params, col) {
-        var rows = ADWDatabase.queryAll(sql, params);
-        if (!rows.length) return 0;
-        return rows[0][col || 'v'];
+    // Gimaweb : les agrégats vivent côté serveur — un seul appel GET /api/agregats/flot
+    var flot = { kpi: {}, agenda: [], visites_recentes: [], impressions: {} };
+
+    function obtenirFlot() {
+        return ADWDatabase.agregatsFlot().then(function (f) {
+            flot = f || { kpi: {}, agenda: [], visites_recentes: [], impressions: {} };
+            return flot;
+        }).catch(function () { return flot; });
     }
 
     function setText(id, value) {
@@ -113,16 +117,7 @@
     function renderTodayAgenda() {
         var el = document.getElementById('todayAgenda');
         if (!el) return;
-        var today = isoLocal(new Date());
-        var rows;
-        try {
-            rows = ADWDatabase.queryAll(
-                'SELECT f.title, f.event_id, f.time_label, f.categories, f.room_id, fd.slot, ' +
-                '(SELECT name FROM rooms r WHERE r.id = f.room_id) AS room_name, ' +
-                '(SELECT COUNT(*) FROM formations_members fm WHERE fm.formation_id = f.id) AS attendee_count ' +
-                'FROM formation_dates fd JOIN formations f ON f.id = fd.formation_id ' +
-                'WHERE fd.date = ? ORDER BY fd.slot ASC, f.title ASC', [today]);
-        } catch (e) { rows = []; }
+        var rows = flot.agenda || [];
         if (!rows.length) {
             // Journée calme : carte discrète plutôt qu'un trou
             el.innerHTML = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;opacity:0.75;">' +
@@ -156,8 +151,9 @@
     function renderMostWaited() {
         var el = document.getElementById('mostWaited');
         if (!el) return;
-        var rows = [];
-        try { rows = ADWDatabase.getMostWaitedFormations(5) || []; } catch (e) { rows = []; }
+        ADWDatabase.getMostWaitedFormations(5).catch(function () { return []; }).then(_renderMW); return;
+        function _renderMW(rows) {
+            rows = rows || [];
         if (!rows.length) { el.hidden = true; return; }
         var total = rows.reduce(function (s, r) { return s + r.waiting; }, 0);
         var html = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;">' +
@@ -177,14 +173,16 @@
         html += '</div></div>';
         el.innerHTML = html;
         el.hidden = false;
+        }
     }
 
     // 3 dernières notifications (dashboard) — aperçu du centre, lien vers notifications.html
     function renderLastNotifs() {
         var el = document.getElementById('lastNotifs');
         if (!el) return;
-        var items = [];
-        try { items = ADWDatabase.listNotifications(3) || []; } catch (e) { items = []; }
+        ADWDatabase.listNotifications(3).catch(function () { return []; }).then(_renderLN); return;
+        function _renderLN(items) {
+            items = items || [];
         if (!items.length) { el.hidden = true; return; }
         function ago(iso) {
             if (!iso) return '';
@@ -217,31 +215,32 @@
         html += '</div></div>';
         el.innerHTML = html;
         el.hidden = false;
+        }
     }
 
     function render() {
+        obtenirFlot().then(function () {
         renderTodayAgenda();
         renderMostWaited();
         renderLastNotifs();
 
-        var visitsToday = one('SELECT COUNT(*) v FROM visits WHERE visit_date = date(\'now\')');
-        var visitsMonth = one('SELECT COUNT(*) v FROM visits WHERE strftime(\'%Y-%m\', visit_date) = strftime(\'%Y-%m\', \'now\')');
+        var visitsToday = flot.kpi.visites_aujourdhui;
+        var visitsMonth = flot.kpi.visites_mois;
         setText('statVisitsToday', visitsToday);
         setText('statVisitsMonth', visitsMonth);
 
         var ticketsEl = document.getElementById('statTicketsOpen');
         if (ticketsEl) {
-            var openT = 0, urgentT = 0, unassignedT = 0;
-            try { openT = one('SELECT COUNT(*) v FROM tickets WHERE status IN (\'open\', \'in_progress\')'); } catch (e) { /* table absente : 0 */ }
-            try { urgentT = one('SELECT COUNT(*) v FROM tickets WHERE status IN (\'open\', \'in_progress\') AND priority = \'urgent\''); } catch (e) {}
-            try { unassignedT = one('SELECT COUNT(*) v FROM tickets WHERE status IN (\'open\', \'in_progress\') AND priority = \'urgent\' AND (assignee IS NULL OR assignee = \'\')'); } catch (e) {}
+            var openT = flot.kpi.tickets_ouverts || 0;
+            var urgentT = flot.kpi.tickets_urgents || 0;
+            var unassignedT = flot.kpi.tickets_urgents_non_assignes || 0;
             ticketsEl.textContent = openT;
             ticketsEl.title = openT + ' incident(s) ouvert(s)' +
                 (urgentT ? ' \u2014 dont ' + urgentT + ' urgent(s)' : '') +
                 (unassignedT ? ' (' + unassignedT + ' non assign\u00e9(s))' : '');
         }
 
-        var lastVisit = one('SELECT MAX(visit_date) v FROM visits');
+        var lastVisit = flot.kpi.derniere_visite;
         setText('statLastVisit', lastVisit || '\u2014');
 
         var cards = document.querySelectorAll('.stat-card, .kpi-grid, .chart-card');
@@ -249,18 +248,14 @@
         if (loading) loading.hidden = true;
 
         // KPI Nouveaux aujourd'hui (ex-carte flux) + KPI En liste d'attente
-        var todayFlux = ADWDatabase.queryAll(
-            "SELECT v.member_id, (SELECT COUNT(*) FROM visits v2 WHERE v2.member_id = v.member_id AND v2.visit_date < v.visit_date) AS prior " +
-            "FROM visits v WHERE v.visit_date = date('now')");
-        var newToday = 0;
-        todayFlux.forEach(function (r) { if (r.prior === 0) newToday++; });
+        var newToday = flot.kpi.nouveaux_aujourdhui || 0;
         setText('statFluxNew', newToday);
-        var waiting = 0;
-        try { waiting = one('SELECT COUNT(*) v FROM waitlist'); } catch (e) {}
+        var waiting = flot.kpi.en_attente || 0;
         setText('statWaiting', waiting);
 
         renderRecentVisits();
         renderPrintsDue();
+        });
     }
 
 
@@ -268,10 +263,7 @@
     function renderRecentVisits() {
         var recentList = document.getElementById('recentVisits');
         if (!recentList) return;
-        var recent = ADWDatabase.queryAll(
-            'SELECT v.visit_date, m.first_name, m.last_name, m.member_no, v.amount, v.reason ' +
-            'FROM visits v JOIN members m ON m.id = v.member_id ' +
-            'ORDER BY v.visit_date DESC, v.created_at DESC LIMIT 6');
+        var recent = flot.visites_recentes || [];
         if (recent.length) {
             recentList.innerHTML = recent.map(function (r) {
                 var d = new Date(r.visit_date);
@@ -301,15 +293,9 @@
         var card = document.getElementById('printsDueCard');
         if (card) card.removeAttribute('hidden');
         if (!list) return;
-        var rows = ADWDatabase.queryAll(
-            'SELECT m.id, m.first_name, m.last_name, m.member_no, ' +
-            'COALESCE((SELECT SUM(amount) FROM prints p WHERE p.member_id = m.id AND paid = 0), 0) AS balance, ' +
-            '(SELECT MAX(print_date) FROM prints p WHERE p.member_id = m.id AND paid = 0) AS last_print ' +
-            'FROM members m ' +
-            'WHERE (SELECT SUM(amount) FROM prints p WHERE p.member_id = m.id AND paid = 0) > 0 ' +
-            'ORDER BY last_print DESC, balance DESC LIMIT 3');
-        var total = one('SELECT COALESCE(SUM(amount), 0) v FROM prints WHERE paid = 0');
-        var count = one('SELECT COUNT(DISTINCT member_id) v FROM prints WHERE paid = 0');
+        var rows = (flot.impressions && flot.impressions.top) || [];
+        var total = (flot.impressions && flot.impressions.total) || 0;
+        var count = (flot.impressions && flot.impressions.compte) || 0;
 
         if (rows.length) {
             list.innerHTML = rows.map(function (r) {
@@ -425,20 +411,18 @@
     var checkinHint = document.getElementById('checkinHint');
     var checkinNav = (checkinSearch && checkinResults) ? makeListNavigable(checkinSearch, checkinResults, {}) : null;
 
-    var CHECKIN_SQL = 'SELECT id, first_name, last_name, member_no, subscription, end_date, ' +
-        '(SELECT COUNT(*) FROM visits v WHERE v.member_id = members.id AND v.visit_date = date(\'now\')) AS visited_today, ' +
-        '(SELECT COALESCE(SUM(amount), 0) FROM prints p WHERE p.member_id = members.id AND paid = 0) AS print_balance ' +
-        'FROM members';
-
-    function searchMembers(q) {
+    // La liste /api/membres est déjà enrichie (visited_today, print_balance) — filtre client.
+    function searchMembers(q, apres) {
         q = (q || '').trim().toLowerCase();
-        if (/^\d+$/.test(q)) {
-            return ADWDatabase.queryAll(CHECKIN_SQL + ' WHERE CAST(member_no AS TEXT) LIKE ? ORDER BY member_no LIMIT 8', ['%' + q + '%']);
-        }
-        if (q) {
-            return ADWDatabase.queryAll(CHECKIN_SQL + ' WHERE lower(first_name || \' \' || last_name) LIKE ? ORDER BY last_name COLLATE NOCASE LIMIT 8', ['%' + q + '%']);
-        }
-        return ADWDatabase.queryAll(CHECKIN_SQL + ' ORDER BY last_name COLLATE NOCASE LIMIT 8');
+        ADWDatabase.listerMembres().then(function (tous) {
+            tous = tous || [];
+            var membres = tous.filter(function (m) {
+                if (!q) return true;
+                if (/^\d+$/.test(q)) return String(m.member_no || '').indexOf(q) !== -1;
+                return ((m.first_name || '') + ' ' + (m.last_name || '')).toLowerCase().indexOf(q) !== -1;
+            }).slice(0, 8);
+            apres(membres);
+        }).catch(function () { apres([]); });
     }
 
     function openCheckin() {
@@ -449,7 +433,7 @@
             checkinSearch.value = '';
             checkinSearch.focus();
         }
-        displayCheckinResults(searchMembers(''));
+        searchMembers('', afficherResultatsPointage);
     }
 
     function closeCheckin() {
@@ -466,7 +450,7 @@
         return '';
     }
 
-    function displayCheckinResults(members) {
+    function afficherResultatsPointage(members) {
         if (!checkinResults) return;
         checkinResults.innerHTML = '';
         if (!members.length) {
@@ -588,10 +572,8 @@
         var today = new Date().toISOString().slice(0, 10);
         var visitId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
         var isAnon = pendingVisitMember === null;
-        var memberId = isAnon ? 'anon' : pendingVisitMember.id;
         var amount = isAnon ? 1 : (pendingVisitMember.subscription === 'none' ? 1 : 0);
-        ADWDatabase.run('INSERT INTO visits (id, member_id, visit_date, amount, reason) VALUES (?, ?, ?, ?, ?)',
-            [visitId, memberId, today, amount, reason]).then(function () {
+        ADWDatabase.pointerVisite(isAnon ? 'anon' : pendingVisitMember.id, reason).then(function () {
                 hideReasonStep();
                 closeCheckin();
                 render();
@@ -664,7 +646,7 @@
             printSearch.value = '';
             printSearch.focus();
         }
-        displayPrintResults(searchMembers(''));
+        searchMembers('', displayPrintResults);
     }
 
     function closePrint() {
@@ -700,13 +682,10 @@
                     e.stopPropagation();
                     var type = btn.getAttribute('data-print');
                     var amount = type === 'bw' ? 0.10 : 0.50;
-                    var today = new Date().toISOString().slice(0, 10);
-                    var printId = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-                    ADWDatabase.run('INSERT INTO prints (id, member_id, print_date, type, amount, paid) VALUES (?, ?, ?, ?, ?, 0)',
-                        [printId, m.id, today, type, amount]).then(function () {
+                    ADWDatabase.ajouterImpression(m.id, type, amount).then(function () {
                         render();
                         showToast('🖨️ Impression ' + (type === 'bw' ? 'N&B' : 'couleur') + ' pour ' + m.first_name + ' (' + amount.toFixed(2).replace('.', ',') + ' €)');
-                        displayPrintResults(searchMembers(printSearch ? printSearch.value : ''));
+                        searchMembers(printSearch ? printSearch.value : '', displayPrintResults);
                     });
                 });
             });
@@ -720,7 +699,7 @@
         if (e.target === printModal) closePrint();
     });
     if (printSearch) printSearch.addEventListener('input', function () {
-        displayPrintResults(searchMembers(printSearch.value));
+        searchMembers(printSearch.value, displayPrintResults);
     });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && printModal && !printModal.hidden) closePrint();

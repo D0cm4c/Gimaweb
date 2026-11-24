@@ -26,7 +26,7 @@ CREATE INDEX IF NOT EXISTS idx_members_enddate ON members(end_date);        -- a
 
 CREATE TABLE IF NOT EXISTS visits (
     id TEXT PRIMARY KEY,
-    member_id TEXT NOT NULL,
+    member_id TEXT,                            -- NULL = visite anonyme (M5c), sinon FK membre
     visit_date TEXT NOT NULL,
     amount REAL DEFAULT 1.0,
     reason TEXT,                            -- motif de visite, vocabulaire baromètre FRB 2026 (nov. 2026)

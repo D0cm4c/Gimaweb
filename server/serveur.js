@@ -11,6 +11,7 @@ import { creerApiSalles } from './api-salles.js';
 import { creerApiNotifications } from './api-notifications.js';
 import { creerApiBookings } from './api-bookings.js';
 import { creerApiTickets } from './api-tickets.js';
+import { creerApiAgregats } from './api-agregats.js';
 import { creerApiSauvegarde, adopterRemplacementAuDemarrage } from './sauvegarde.js';
 import fs from 'fs';
 import path from 'path';
@@ -36,6 +37,26 @@ adopterRemplacementAuDemarrage(DB_PATH);
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.exec(fs.readFileSync(path.join(RACINE, 'server', 'schema.sql'), 'utf8'));
+
+// Migration M5c : visits.member_id devient nullable (visites anonymes) sur les bases existantes
+const memberIdNullable = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('visits') WHERE name = 'member_id' AND [notnull] = 0").get();
+if (memberIdNullable.n === 0) {
+    db.exec(`DROP INDEX IF EXISTS idx_visits_member_date;
+        CREATE TABLE visits_mig (
+            id TEXT PRIMARY KEY,
+            member_id TEXT,
+            visit_date TEXT NOT NULL,
+            amount REAL DEFAULT 1.0,
+            reason TEXT,
+            created_at TEXT DEFAULT (datetime('now')),
+            FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
+        );
+        INSERT INTO visits_mig (id, member_id, visit_date, amount, reason, created_at) SELECT id, member_id, visit_date, amount, reason, created_at FROM visits;
+        DROP TABLE visits;
+        ALTER TABLE visits_mig RENAME TO visits;
+        CREATE INDEX IF NOT EXISTS idx_visits_member_date ON visits(member_id, visit_date);`);
+    console.log('[gimaweb] migration M5c : visits.member_id nullable (visites anonymes)');
+}
 
 // Salles par défaut au premier démarrage (seed — cf. maquette)
 const compteSalles = db.prepare('SELECT COUNT(*) AS n FROM rooms').get();
@@ -122,6 +143,7 @@ const prochainNumero = () => {
 app.use('/api', creerApiNotifications(db));
 app.use('/api', creerApiBookings(db, { notifier, prochainNumero }));
 app.use('/api', creerApiTickets(db, { sessionValide, notifier }));
+app.use('/api', creerApiAgregats(db));
 app.use('/api', creerApiSauvegarde({ sessionValide, notifier, dbPath: DB_PATH }));
 app.use('/api', salles.api);
 app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees }));

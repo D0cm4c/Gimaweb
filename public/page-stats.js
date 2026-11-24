@@ -4,28 +4,23 @@
     // Page Statistiques (stats.html) — le pilotage de la directrice :
     // KPI membres/inscriptions/revenus, stats détaillées, rétention, profil,
     // inclusion, graphiques visites + heatmap, rapport annuel.
-    // Dépend de : db.js (window.ADWDatabase), escape.js.
+    // Migrée M5c : tous les agrégats viennent de GET /api/agregats/stats (un seul appel).
+    // Dépend de : adw-client.js (window.ADWDatabase), escape.js.
 
     function escapeHtml(str) { return window.ADWEscape.html(str); }
-
-    function one(sql, params, col) {
-        var rows = window.ADWDatabase.queryAll(sql, params || []);
-        if (!rows.length) return 0;
-        return rows[0][col || 'v'] || 0;
-    }
 
     function setText(id, value) {
         var el = document.getElementById(id);
         if (el) el.textContent = String(value);
     }
 
+    var stats = null; // payload /api/agregats/stats
     var chartMode = 'days';
-    var ADWDatabase = window.ADWDatabase;
     var chartDaysBtn = document.getElementById('chartDaysBtn');
     var chartMonthsBtn = document.getElementById('chartMonthsBtn');
     var annualReportBtn = document.getElementById('annualReportBtn');
 
-    // Couleurs et libell\u00e9s des statuts sociaux (donut inclusion) \u2014 extraits de dashboard.js
+    // Couleurs et libellés des statuts sociaux (donut inclusion) — extraits de dashboard.js
     var STATUS_COLORS = {
         cpas: '#2F9BE4',
         actiris: '#6C5CE7',
@@ -38,145 +33,110 @@
     };
     var STATUS_NAMES = {
         cpas: 'CPAS / Orbem', actiris: 'Actiris', travailleur: 'Travailleur.se',
-        etudiant: '\u00c9tudiant', pensionne: 'Pensionn\u00e9', mutuelle: 'Mutuelle',
-        interim: 'Int\u00e9rim', enfant: 'Enfant'
+        etudiant: 'Étudiant', pensionne: 'Pensionné', mutuelle: 'Mutuelle',
+        interim: 'Intérim', enfant: 'Enfant'
     };
 
-    function eur(v) { return Number(v).toFixed(2).replace('.', ',') + ' \u20ac'; }
+    function eur(v) { return Number(v).toFixed(2).replace('.', ',') + ' €'; }
 
     // ===== KPI + carte Membres (stats détaillées) =====
-    function renderMembersStats() {
-        var total = one('SELECT COUNT(*) v FROM members');
-        var active = one('SELECT COUNT(*) v FROM members WHERE date(end_date) >= date(\'now\') OR end_date IS NULL');
-        var expired = one('SELECT COUNT(*) v FROM members WHERE date(end_date) < date(\'now\') AND end_date IS NOT NULL');
-        var monthly = one('SELECT COUNT(*) v FROM members WHERE subscription = \'monthly\'');
-        var yearly = one('SELECT COUNT(*) v FROM members WHERE subscription = \'yearly\'');
-        var newThisMonth = one('SELECT COUNT(*) v FROM members WHERE date(created_at) >= date(\'now\', \'start of month\')');
-        var revenueMonth = one('SELECT COALESCE(SUM(amount), 0) v FROM visits WHERE strftime(\'%Y-%m\', visit_date) = strftime(\'%Y-%m\', \'now\')');
-
-        var visitsMonth = one('SELECT COUNT(*) v FROM visits WHERE strftime(\'%Y-%m\', visit_date) = strftime(\'%Y-%m\', \'now\')');
-        setText('statVisitsMonth', visitsMonth);
-        setText('statTotal', total);
-        setText('statActive', active);
-        setText('statExpired', expired);
-        setText('statNewMonth', newThisMonth);
-        setText('statMonthly', monthly);
-        setText('statYearly', yearly);
-        setText('statActivePct', (total ? Math.round((active / total) * 100) : 0) + ' %');
+    function renderMembersStats(s) {
+        var m = s.membres;
+        setText('statVisitsMonth', s.visites.mois);
+        setText('statTotal', m.total);
+        setText('statActive', m.actifs);
+        setText('statExpired', m.expires);
+        setText('statNewMonth', m.nouveaux_mois);
+        setText('statMonthly', m.mensuels);
+        setText('statYearly', m.annuels);
+        setText('statActivePct', (m.total ? Math.round((m.actifs / m.total) * 100) : 0) + ' %');
         var rev = document.getElementById('statRevenueMonth');
-        if (rev) rev.textContent = revenueMonth.toFixed(2).replace('.', ',') + ' \u20ac';
+        if (rev) rev.textContent = eur(s.visites.revenus_mois);
     }
 
     // ===== Rétention =====
-    function renderRetention() {
-        var perMember = window.ADWDatabase.queryAll(
-            'SELECT m.id, ' +
-            '(SELECT COUNT(*) FROM visits v WHERE v.member_id = m.id) AS visits, ' +
-            '(SELECT MAX(visit_date) FROM visits v WHERE v.member_id = m.id) AS last_visit ' +
-            'FROM members m');
-        var regulars = 0, oneshot = 0, never = 0, silent = 0;
-        var totalVisits = 0;
-        perMember.forEach(function (r) {
-            totalVisits += r.visits;
-            if (r.visits >= 5) regulars++;
-            else if (r.visits === 1) oneshot++;
-            else if (r.visits === 0) never++;
-            if (r.visits > 0 && r.last_visit && r.last_visit < new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10)) silent++;
-        });
-        var regularVisits = perMember.filter(function (r) { return r.visits >= 5; }).reduce(function (s, r) { return s + r.visits; }, 0);
-        setText('retRegulars', regulars + ' membres (' + (totalVisits ? Math.round((regularVisits / totalVisits) * 100) : 0) + ' % des visites)');
-        setText('retOneshot', String(oneshot));
-        setText('retNever', String(never));
-        setText('retSilent', String(silent));
+    function renderRetention(s) {
+        var r = s.retention;
+        setText('retRegulars', r.reguliers + ' membres (' + (r.total_visites ? Math.round((r.reguliers_visites / r.total_visites) * 100) : 0) + ' % des visites)');
+        setText('retOneshot', String(r.uniques));
+        setText('retNever', String(r.jamais));
+        setText('retSilent', String(r.silencieux));
     }
 
     // ===== Profil socio-spatial =====
-    function renderProfile() {
-        var byCp = window.ADWDatabase.queryAll(
-            "SELECT postal_code, COUNT(*) c FROM members WHERE postal_code IS NOT NULL AND postal_code != '' GROUP BY postal_code ORDER BY c DESC LIMIT 4");
-        var totalCp = one("SELECT COUNT(*) v FROM members WHERE postal_code IS NOT NULL AND postal_code != ''");
-        var sg = one("SELECT COUNT(*) v FROM members WHERE postal_code IN ('1000','1020','1030','1040','1050','1060','1070','1080','1090','1100','1120','1130','1140','1150','1160','1170','1180','1190','1200','1210')");
+    function renderProfile(s) {
+        var p = s.profil;
         var pl = document.getElementById('profileList');
         if (pl) {
-            pl.innerHTML = byCp.map(function (r) {
-                var pct = totalCp ? Math.round((r.c / totalCp) * 100) : 0;
+            pl.innerHTML = p.cp_top.map(function (r) {
+                var pct = p.cp_total ? Math.round((r.c / p.cp_total) * 100) : 0;
                 return '<li><strong>' + escapeHtml(r.postal_code) + '</strong> : ' + r.c + ' membres (' + pct + ' %)</li>';
-            }).join('') || '<li class="form-hint">Aucun code postal renseign\u00e9.</li>';
+            }).join('') || '<li class="form-hint">Aucun code postal renseigné.</li>';
         }
-        setText('profileHint', totalCp ? Math.round((sg / totalCp) * 100) + ' % des usagers viennent de la R\u00e9gion de Bruxelles-Capitale' : 'Renseignez les codes postaux pour activer cette analyse.');
+        setText('profileHint', p.cp_total ? Math.round((p.bruxelles / p.cp_total) * 100) + ' % des usagers viennent de la Région de Bruxelles-Capitale' : 'Renseignez les codes postaux pour activer cette analyse.');
     }
 
     // ===== Motifs de visite (vocabulaire du Zoom Baromètre de l'inclusion numérique 2026, FRB) =====
-    function renderVisitReasons() {
-        var rows = window.ADWDatabase.queryAll(
-            "SELECT reason, COUNT(*) c FROM visits WHERE reason IS NOT NULL AND reason != '' GROUP BY reason ORDER BY c DESC LIMIT 6");
-        var total = one("SELECT COUNT(*) v FROM visits WHERE reason IS NOT NULL AND reason != ''");
+    function renderVisitReasons(s) {
+        var mo = s.motifs;
         var rl = document.getElementById('reasonsList');
         if (rl) {
-            rl.innerHTML = rows.map(function (r) {
-                var pct = total ? Math.round((r.c / total) * 100) : 0;
+            rl.innerHTML = mo.top.map(function (r) {
+                var pct = mo.total ? Math.round((r.c / mo.total) * 100) : 0;
                 return '<li><strong>' + escapeHtml(r.reason) + '</strong> : ' + r.c + ' (' + pct + ' %)</li>';
             }).join('') || '<li class="form-hint">Aucun motif renseigné — pointez des visites avec raison.</li>';
         }
-        setText('reasonsHint', total ? total + ' visites avec motif — source : Zoom Baromètre inclusion numérique 2026 (FRB).' : 'Les motifs se collectent au pointage des visites (dashboard).');
+        setText('reasonsHint', mo.total ? mo.total + ' visites avec motif — source : Zoom Baromètre inclusion numérique 2026 (FRB).' : 'Les motifs se collectent au pointage des visites (dashboard).');
     }
 
     // ===== Inclusion numérique =====
-    function renderInclusion() {
-        var totalM = one('SELECT COUNT(*) v FROM members');
-        var vulnerable = one("SELECT COUNT(*) v FROM members WHERE social_status IN ('cpas', 'mutuelle', 'interim', 'actiris')");
-        var cpasPart = one("SELECT COUNT(*) v FROM members WHERE social_status = 'cpas'");
-        var noSub = one("SELECT COUNT(*) v FROM members WHERE subscription = 'none' OR subscription IS NULL");
+    function renderInclusion(s) {
+        var totalM = s.membres.total;
+        var inc = s.inclusion;
         var pct = function (v) { return totalM ? Math.round((v / totalM) * 100) : 0; };
-        setText('inclVulnerable', vulnerable + ' membres (' + pct(vulnerable) + ' %)');
-        setText('inclCpas', pct(cpasPart) + ' %');
-        setText('inclFree', noSub + ' membres (' + pct(noSub) + ' %)');
-        setText('inclHint', 'CPAS/Orbem, mutuellistes, int\u00e9rimaires et accompagn\u00e9s Actiris : le public prioritaire de la m\u00e9diation num\u00e9rique.');
+        setText('inclVulnerable', inc.vulnerables + ' membres (' + pct(inc.vulnerables) + ' %)');
+        setText('inclCpas', pct(inc.cpas) + ' %');
+        setText('inclFree', inc.sans_abonnement + ' membres (' + pct(inc.sans_abonnement) + ' %)');
+        setText('inclHint', 'CPAS/Orbem, mutuellistes, intérimaires et accompagnés Actiris : le public prioritaire de la médiation numérique.');
     }
 
-    function buildAnnualReport() {
-        var year = new Date().getFullYear();
+    function buildAnnualReport(s) {
+        var year = s.rapport.annee;
         var sep = ';';
         var lines = [];
         var add = function (k, v) { lines.push('"' + String(k).replace(/"/g, '""') + '"' + sep + '"' + String(v).replace(/"/g, '""') + '"'); };
-        var total = one('SELECT COUNT(*) v FROM members');
-        var active = one("SELECT COUNT(*) v FROM members WHERE date(end_date) >= date('now') OR end_date IS NULL");
-        var visitsYear = one("SELECT COUNT(*) v FROM visits WHERE strftime('%Y', visit_date) = '" + year + "'");
-        var uniqueVisitors = one("SELECT COUNT(DISTINCT member_id) v FROM visits WHERE strftime('%Y', visit_date) = '" + year + "'");
-        var monthly = one("SELECT COUNT(*) v FROM members WHERE subscription = 'monthly'");
-        var yearly = one("SELECT COUNT(*) v FROM members WHERE subscription = 'yearly'");
-        var vuln = one("SELECT COUNT(*) v FROM members WHERE social_status IN ('cpas','mutuelle','interim','actiris')");
-        var seniors = one('SELECT COUNT(*) v FROM members WHERE age >= 65');
+        var total = s.membres.total;
+        var rap = s.rapport;
 
-        lines.push('"Rapport annuel ' + year + ' \u2014 Atelier du Web (EPN)"');
+        lines.push('"Rapport annuel ' + year + ' — Atelier du Web (EPN)"');
         add('Généré le', new Date().toLocaleDateString('fr-BE'));
         lines.push('');
         lines.push('"Usagers"');
-        add('Membres enregistrés (total)', total);
-        add('Inscriptions actives', active);
-        add('Abonnements mensuels', monthly);
-        add('Abonnements annuels', yearly);
+        add('Membres enregistrés (total)', rap.total);
+        add('Inscriptions actives', rap.actifs);
+        add('Abonnements mensuels', rap.mensuels);
+        add('Abonnements annuels', rap.annuels);
         lines.push('');
         lines.push('"Fréquentation ' + year + '"');
-        add('Visites de l\u2019année', visitsYear);
-        add('Usagers uniques ayant visité', uniqueVisitors);
+        add('Visites de l\u2019année', rap.visites_annee);
+        add('Usagers uniques ayant visité', rap.visiteurs_uniques);
         lines.push('');
         lines.push('"Inclusion numérique"');
-        add('Usagers publics vulnérables (CPAS/Orbem, mutuelle, intérim, Actiris)', vuln);
-        add('Usagers seniors (65+)', seniors);
+        add('Usagers publics vulnérables (CPAS/Orbem, mutuelle, intérim, Actiris)', rap.vulnerables);
+        add('Usagers seniors (65+)', rap.seniors);
         lines.push('');
         lines.push('"Statuts sociaux (répartition)"');
-        ADWDatabase.queryAll("SELECT social_status, COUNT(*) c FROM members WHERE social_status IS NOT NULL AND social_status != '' GROUP BY social_status ORDER BY c DESC").forEach(function (r) {
+        s.statuts.forEach(function (r) {
             add(r.social_status, r.c + ' (' + (total ? Math.round((r.c / total) * 100) : 0) + ' %)');
         });
         lines.push('');
         lines.push('"Codes postaux (top 10)"');
-        ADWDatabase.queryAll("SELECT postal_code, COUNT(*) c FROM members WHERE postal_code IS NOT NULL AND postal_code != '' GROUP BY postal_code ORDER BY c DESC LIMIT 10").forEach(function (r) {
+        s.cp_top10.forEach(function (r) {
             add(r.postal_code, r.c);
         });
         lines.push('');
         lines.push('"Genres"');
-        ADWDatabase.queryAll("SELECT gender, COUNT(*) c FROM members WHERE gender IS NOT NULL AND gender != '' GROUP BY gender").forEach(function (r) {
+        s.genres.forEach(function (r) {
             add(r.gender, r.c);
         });
 
@@ -186,22 +146,20 @@
         a.download = 'rapport-annuel-' + year + '-atelierduweb.csv';
         a.click();
         URL.revokeObjectURL(a.href);
-        showToast('📊 Rapport annuel ' + year + ' téléchargé');
+        showToast('\uD83D\uDCCA Rapport annuel ' + year + ' téléchargé');
     }
 
-    function renderHeatmap() {
+    function renderHeatmap(s) {
         var hm = document.getElementById('heatmap');
         if (!hm) return;
-        var rows = ADWDatabase.queryAll(
-            "SELECT visit_date, COUNT(*) c FROM visits WHERE visit_date >= date('now', '-83 days') GROUP BY visit_date");
         var byDay = {};
-        rows.forEach(function (r) { byDay[r.visit_date] = r.c; });
-
         var max = 1;
-        rows.forEach(function (r) { if (r.c > max) max = r.c; });
+        s.heatmap.forEach(function (r) {
+            byDay[r.visit_date] = r.c;
+            if (r.c > max) max = r.c;
+        });
 
         var today = new Date();
-        var todayDow = today.getDay();
         var start = new Date(today);
         start.setDate(start.getDate() - 83);
         while (start.getDay() !== 1) start.setDate(start.getDate() - 1);
@@ -224,12 +182,11 @@
         hm.setAttribute('aria-label', 'Carte de chaleur de la fréquentation quotidienne sur 12 semaines');
     }
 
-    function renderStatusDonut() {
+    function renderStatusDonut(s) {
         var donut = document.getElementById('statusDonut');
         var legend = document.getElementById('statusDonutLegend');
         if (!donut || !legend) return;
-        var rows = ADWDatabase.queryAll(
-            "SELECT social_status, COUNT(*) c FROM members WHERE social_status IS NOT NULL AND social_status != '' GROUP BY social_status ORDER BY c DESC");
+        var rows = s.statuts;
         var total = 0;
         rows.forEach(function (r) { total += r.c; });
         if (!total) {
@@ -243,12 +200,12 @@
             var from = (acc / total) * 100;
             acc += r.c;
             var to = (acc / total) * 100;
-            var color = STATUS_COLORS[r.social_status] || '#95A5B8';
+            var color = STATUS_COLORS[r.social_status] || '#95A5A8';
             stops.push(color + ' ' + from + '% ' + to + '%');
         });
         donut.style.background = 'conic-gradient(' + stops.join(', ') + ')';
         legend.innerHTML = rows.slice(0, 6).map(function (r) {
-            var color = STATUS_COLORS[r.social_status] || '#95A5B8';
+            var color = STATUS_COLORS[r.social_status] || '#95A5A8';
             return '<li><span class="donut-dot" style="background:' + color + '"></span>' +
                 escapeHtml(STATUS_NAMES[r.social_status] || r.social_status) +
                 ' <strong>' + Math.round((r.c / total) * 100) + ' %</strong></li>';
@@ -258,7 +215,7 @@
     function renderChart(mode) {
         chartMode = mode || chartMode;
         var chart = document.getElementById('visitsChart');
-        if (!chart) return;
+        if (!chart || !stats) return;
         var chartCard = document.getElementById('visitsChartCard');
         if (chartCard) chartCard.removeAttribute('hidden');
         if (chartDaysBtn) chartDaysBtn.classList.toggle('active', chartMode === 'days');
@@ -276,10 +233,8 @@
                 label = d.toLocaleDateString('fr-BE', { day: '2-digit', month: '2-digit' });
                 buckets.push({ key: key, label: label });
             }
-            var rows = ADWDatabase.queryAll(
-                'SELECT visit_date, COUNT(*) c FROM visits WHERE visit_date >= date(\'now\', \'-13 days\') GROUP BY visit_date');
             var byKey = {};
-            rows.forEach(function (r) { byKey[r.visit_date] = r.c; });
+            stats.graph_jours.forEach(function (r) { byKey[r.visit_date] = r.c; });
             buckets.forEach(function (b) { b.count = byKey[b.key] || 0; });
         } else {
             for (i = 11; i >= 0; i--) {
@@ -288,11 +243,8 @@
                 label = m.toLocaleDateString('fr-BE', { month: 'short' });
                 buckets.push({ key: key, label: label });
             }
-            var rowsM = ADWDatabase.queryAll(
-                'SELECT strftime(\'%Y-%m\', visit_date) ym, COUNT(*) c FROM visits ' +
-                'WHERE visit_date >= date(\'now\', \'-11 months\', \'start of month\') GROUP BY ym');
             var byKeyM = {};
-            rowsM.forEach(function (r) { byKeyM[r.ym] = r.c; });
+            stats.graph_mois.forEach(function (r) { byKeyM[r.ym] = r.c; });
             buckets.forEach(function (b) { b.count = byKeyM[b.key] || 0; });
         }
 
@@ -316,18 +268,21 @@
 
     // ===== Init =====
     window.ADWDatabase.init().then(function () {
-        renderMembersStats();
-        renderRetention();
-        renderProfile();
-        renderVisitReasons();
-        renderInclusion();
-        renderStatusDonut();
+        return window.ADWDatabase.agregatsStats();
+    }).then(function (s) {
+        stats = s;
+        renderMembersStats(s);
+        renderRetention(s);
+        renderProfile(s);
+        renderVisitReasons(s);
+        renderInclusion(s);
+        renderStatusDonut(s);
         renderChart();
-        renderHeatmap();
+        renderHeatmap(s);
 
         if (chartDaysBtn) chartDaysBtn.addEventListener('click', function () { renderChart('days'); });
         if (chartMonthsBtn) chartMonthsBtn.addEventListener('click', function () { renderChart('months'); });
-        if (annualReportBtn) annualReportBtn.addEventListener('click', buildAnnualReport);
+        if (annualReportBtn) annualReportBtn.addEventListener('click', function () { buildAnnualReport(stats); });
 
         var cards = document.querySelectorAll('.stat-card, .kpi-card, .chart-card');
         cards.forEach(function (c) { c.removeAttribute('hidden'); });

@@ -91,7 +91,15 @@
             return POST('/api/membres/' + encodeURIComponent(id) + '/renouvellement', { nouveau_debut: debut, nouvelle_fin: fin });
         },
         // ---- Visites & impressions ----
-        pointerVisite: function (memberId, raison) { return POST('/api/visites', { member_id: memberId, reason: raison || null }); },
+        pointerVisite: function (memberId, raison) {
+            if (memberId === 'anon' || memberId === null) {
+                return POST('/api/visites', { anonyme: true, reason: raison || null });
+            }
+            return POST('/api/visites', { member_id: memberId, reason: raison || null });
+        },
+        agregatsFlot: function () { return GET('/api/agregats/flot'); },
+        rechercheGlobale: function (q) { return GET('/api/recherche?q=' + encodeURIComponent(q || '')); },
+        agregatsStats: function () { return GET('/api/agregats/stats'); },
         listerVisitesMembre: function (memberId) { return GET('/api/membres/' + encodeURIComponent(memberId) + '/visites'); },
         ajouterImpression: function (memberId, type, montant) {
             return POST('/api/impressions', { member_id: memberId, type: type, amount: montant === undefined ? undefined : montant });

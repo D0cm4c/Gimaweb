@@ -24,6 +24,13 @@ export const creerApiVisites = (db) => {
 
     // ---- Pointage (visite) ----
     api.post('/visites', (req, res) => {
+        // Visite anonyme (passage sans inscription — 1 €, motif baromètre FRB)
+        if (req.body && req.body.anonyme) {
+            const id = nouvelId('v-anon');
+            db.prepare('INSERT INTO visits (id, member_id, visit_date, amount, reason) VALUES (?, NULL, ?, ?, ?)')
+                .run(id, aujourdhui(), TARIFS.visite, req.body.reason ? String(req.body.reason) : null);
+            return res.status(201).json({ id, anonyme: true, visit_date: aujourdhui(), amount: TARIFS.visite, reason: req.body.reason || null });
+        }
         const membre = membreOu404(req, res);
         if (!membre) return;
         const jour = aujourdhui();

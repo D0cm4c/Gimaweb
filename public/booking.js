@@ -91,12 +91,14 @@
             lastMembers = [];
             setActive(-1);
             if (!q) { results.hidden = true; return; }
-            var members = window.ADWDatabase.queryAll(
-                'SELECT id, first_name, last_name, member_no, email FROM members WHERE (first_name LIKE ? OR last_name LIKE ? OR CAST(member_no AS TEXT) LIKE ?) ORDER BY last_name LIMIT 8',
-                ['%' + q + '%', '%' + q + '%', '%' + q + '%']
-            );
-            results.hidden = members.length === 0;
-            members.forEach(function (m) {
+            window.ADWDatabase.listerMembres().then(function (all) {
+                var members = (all || []).filter(function (m) {
+                    return ((m.first_name || '').toLowerCase().indexOf(q) !== -1) ||
+                           ((m.last_name || '').toLowerCase().indexOf(q) !== -1) ||
+                           (String(m.member_no || '').indexOf(q) !== -1);
+                }).sort(function (a, b) { return (a.last_name || '').localeCompare(b.last_name || ''); }).slice(0, 8);
+                results.hidden = members.length === 0;
+                members.forEach(function (m) {
                 lastMembers.push(m);
                 var li = document.createElement('div');
                 li.className = 'checkin-item';
@@ -108,8 +110,9 @@
                 li.addEventListener('click', function () { finish(m); });
                 li.addEventListener('mouseenter', function () { setActive(lastMembers.indexOf(m)); });
                 results.appendChild(li);
-            });
-            if (members.length) setActive(0); // premier resultat pre-selectionne
+                });
+                if (members.length) setActive(0); // premier resultat pre-selectionne
+            }).catch(function () { results.hidden = true; });
         }
 
         window.ADWBooking = {

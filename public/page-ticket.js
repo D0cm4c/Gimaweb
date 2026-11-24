@@ -81,21 +81,22 @@
             loading.hidden = true;
 
             // Assignation : menu déroulant depuis l'équipe technique (Paramètres)
-            var team = [];
-            try { team = window.ADWDatabase.listTeamMembers() || []; } catch (e) { team = []; }
             var assigneeSel = content.querySelector('#tAssignee');
-            var names = team.map(function (m) { return m.name; });
+            window.ADWDatabase.listTeamMembers().catch(function () { return []; }).then(function (team) {
+                team = team || [];
+                var names = team.map(function (m) { return m.name; });
             // Ancien ticket assigné à un nom absent de l'équipe : on le garde en option (données historiques)
-            if (t.assignee && names.indexOf(t.assignee) === -1) names.push(t.assignee);
-            assigneeSel.innerHTML = '<option value="">— Non assigné —</option>' +
-                names.map(function (n) {
-                    return '<option value="' + esc(n) + '"' + (n === t.assignee ? ' selected' : '') + '>' + esc(n) + '</option>';
-                }).join('');
+                if (t.assignee && names.indexOf(t.assignee) === -1) names.push(t.assignee);
+                assigneeSel.innerHTML = '<option value="">— Non assigné —</option>' +
+                    names.map(function (n) {
+                        return '<option value="' + esc(n) + '"' + (n === t.assignee ? ' selected' : '') + '>' + esc(n) + '</option>';
+                    }).join('');
+            });
 
             // Commentaires
             function renderComments() {
-                var comments = window.ADWDatabase.listTicketComments(t.id);
                 var cl = content.querySelector('#commentsList');
+                window.ADWDatabase.listTicketComments(t.id).then(function (comments) {
                 if (!comments.length) {
                     cl.innerHTML = '<p class="form-hint">Aucun commentaire pour le moment — documente le dépannage ici.</p>';
                     return;
@@ -109,6 +110,7 @@
                         '<div style="white-space:pre-wrap;">' + esc(c.message) + '</div>' +
                     '</div>';
                 }).join('');
+                }).catch(function () {});
             }
             renderComments();
 
@@ -117,17 +119,20 @@
                     status: content.querySelector('#tStatus').value,
                     priority: content.querySelector('#tPriority').value,
                     assignee: content.querySelector('#tAssignee').value || null
-                });
-                var fresh = window.ADWDatabase.getTicket(t.id);
-                render(fresh);
+                }).then(function () {
+                    return window.ADWDatabase.getTicket(t.id);
+                }).then(function (fresh) {
+                    render(fresh);
+                }).catch(function (e) { alert(e && e.message ? e.message : 'Erreur lors de l’enregistrement.'); });
             });
 
             content.querySelector('#tDelete').addEventListener('click', function () {
                 window.ADWAuth.ensureUnlocked('Supprimer un ticket — action réservée à l\u2019équipe.').then(function (ok) {
                     if (!ok) return;
                     if (confirm('Supprimer le ticket « ' + t.title + ' » et tous ses commentaires ?\n\nCette action est définitive.')) {
-                        window.ADWDatabase.deleteTicket(t.id);
-                        location.href = 'tickets.html';
+                        window.ADWDatabase.deleteTicket(t.id).then(function () {
+                            location.href = 'tickets.html';
+                        }).catch(function (e) { alert(e && e.message ? e.message : 'Erreur lors de la suppression.'); });
                     }
                 });
             });
@@ -135,18 +140,20 @@
             content.querySelector('#commentAdd').addEventListener('click', function () {
                 var msg = content.querySelector('#commentText').value.trim();
                 if (!msg) { content.querySelector('#commentText').focus(); return; }
-                window.ADWDatabase.addTicketComment(t.id, content.querySelector('#commentAuthor').value.trim(), msg);
-                content.querySelector('#commentText').value = '';
-                renderComments();
+                window.ADWDatabase.addTicketComment(t.id, content.querySelector('#commentAuthor').value.trim(), msg).then(function () {
+                    content.querySelector('#commentText').value = '';
+                    renderComments();
+                }).catch(function (e) { alert(e && e.message ? e.message : 'Erreur lors de l’envoi.'); });
             });
         }
 
         window.ADWDatabase.init().then(function () {
             if (window.ADWNotifications) window.ADWNotifications.refresh();
             if (!ticketId) { loading.hidden = true; notFound.hidden = false; return; }
-            var t = window.ADWDatabase.getTicket(ticketId);
-            if (!t) { loading.hidden = true; notFound.hidden = false; return; }
-            render(t);
+            window.ADWDatabase.getTicket(ticketId).then(render, function () {
+                loading.hidden = true;
+                notFound.hidden = false;
+            });
         }).catch(function () {
             loading.hidden = true;
             notFound.hidden = false;

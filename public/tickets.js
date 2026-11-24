@@ -103,10 +103,12 @@
     }
 
     function refresh() {
-        tickets = window.ADWDatabase.listTickets();
-        // Options d'assignation : membres de l'équipe technique (table team_members)
-        var team = [];
-        try { team = window.ADWDatabase.listTeamMembers() || []; } catch (e) { team = []; }
+        Promise.all([
+            window.ADWDatabase.listTickets().catch(function () { return []; }),
+            window.ADWDatabase.listTeamMembers().catch(function () { return []; })
+        ]).then(function (sources) {
+        tickets = sources[0] || [];
+        var team = sources[1] || [];
         var tkAssignee = document.getElementById('tkAssignee');
         if (tkAssignee) {
             tkAssignee.innerHTML = '<option value="">— Non assigné —</option>' +
@@ -124,6 +126,7 @@
             }).join('');
         assigneeSelect.value = names[cur] ? cur : '';
         applyFilters();
+        });
     }
 
     // ============ Interactions ============
@@ -131,8 +134,7 @@
     list.addEventListener('change', function (e) {
         var sel = e.target.closest('select[data-act="status"]');
         if (!sel) return;
-        window.ADWDatabase.updateTicket(sel.getAttribute('data-id'), { status: sel.value });
-        refresh();
+        window.ADWDatabase.updateTicket(sel.getAttribute('data-id'), { status: sel.value }).then(refresh).catch(function (err) { alert('Erreur : ' + err.message); });
     });
 
     list.addEventListener('click', function (e) {
@@ -196,12 +198,13 @@
             priority: document.getElementById('tkPriority').value,
             assignee: document.getElementById('tkAssignee').value || null,
             created_by: null
-        });
-        if (window.ADWNotifications) {
-            window.ADWNotifications.push('ticket_created', '🛠️ Nouvel incident signalé : « ' + title + ' »', 'info');
-        }
-        closeModal();
-        refresh();
+        }).then(function () {
+            if (window.ADWNotifications) {
+                window.ADWNotifications.push('ticket_created', '🛠️ Nouvel incident signalé : « ' + title + ' »', 'info');
+            }
+            closeModal();
+            refresh();
+        }).catch(function (err) { alert('Erreur : ' + err.message); });
     });
 
     // ============ Init ============
@@ -209,13 +212,15 @@
     window.ADWDatabase.init().then(function () {
         // Rappel : tickets urgents de plus de 48h sans résolution (règle projet : toute alerte est notifiée)
         if (window.ADWNotifications) {
-            var urgentOld = window.ADWDatabase.queryAll(
-                'SELECT title FROM tickets WHERE priority = \'urgent\' AND status IN (\'open\', \'in_progress\') AND created_at < datetime(\'now\', \'-2 days\')'
-            );
-            urgentOld.forEach(function (t) {
-                window.ADWNotifications.push('ticket_urgent',
-                    '🚨 Ticket urgent sans résolution depuis plus de 48h : « ' + t.title + ' »', 'warning');
-            });
+            window.ADWDatabase.listTickets().then(function (tous) {
+                (tous || []).filter(function (t) {
+                    return t.priority === 'urgent' && (t.status === 'open' || t.status === 'in_progress') &&
+                        (t.created_at || '') < new Date(Date.now() - 2 * 86400000).toISOString().slice(0, 19).replace('T', ' ');
+                }).forEach(function (t) {
+                    window.ADWNotifications.push('ticket_urgent',
+                        '🚨 Ticket urgent sans résolution depuis plus de 48h : « ' + t.title + ' »', 'warning');
+                });
+            }).catch(function () {});
         }
         refresh();
     }).catch(function () {

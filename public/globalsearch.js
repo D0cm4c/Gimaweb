@@ -43,67 +43,43 @@
         }
 
         function search(q) {
-            q = (q || '').trim().toLowerCase();
+            q = (q || '').trim();
             if (!q || q.length < 2) { close(); return; }
             results = [];
-            var like = '%' + q + '%';
-
-            // Membres
-            try {
-                var members = window.ADWDatabase.queryAll(
-                    'SELECT id, first_name, last_name, member_no, email FROM members ' +
-                    'WHERE (first_name LIKE ? OR last_name LIKE ? OR CAST(member_no AS TEXT) LIKE ? OR email LIKE ?) ' +
-                    'ORDER BY last_name LIMIT 5', [like, like, like, like]);
-                members.forEach(function (m) {
+            // Gimawec : la recherche vit côté serveur (GET /api/recherche)
+            window.ADWDatabase.rechercheGlobale(q).then(function (r) {
+                (r.membres || []).forEach(function (m) {
                     results.push({
                         icon: '👥', label: m.first_name + ' ' + m.last_name + (m.member_no ? ' (#' + m.member_no + ')' : ''),
-                        hint: m.email || 'membre', url: 'membre.html?id=' + encodeURIComponent(m.id)
+                        hint: 'membre', url: 'membre.html?id=' + encodeURIComponent(m.id)
                     });
                 });
-            } catch (e) { /* table absente */ }
-
-            // Formations
-            try {
-                var formations = window.ADWDatabase.queryAll(
-                    'SELECT id, title, event_id, date_text FROM formations ' +
-                    'WHERE (title LIKE ? OR categories LIKE ?) ORDER BY start_date LIMIT 5', [like, like]);
-                formations.forEach(function (f) {
+                (r.formations || []).forEach(function (f) {
                     results.push({
-                        icon: '🎓', label: f.title,
-                        hint: 'formation' + (f.date_text ? ' · ' + f.date_text : ''),
+                        icon: '🎓', label: f.title, hint: 'formation',
                         url: 'formation.html?id=' + encodeURIComponent(f.event_id)
                     });
                 });
-            } catch (e) { /* table absente */ }
-
-            // Suggestions
-            try {
-                var suggs = window.ADWDatabase.queryAll(
-                    "SELECT id, message FROM suggestions WHERE message LIKE ? AND status = 'open' LIMIT 3", [like]);
-                suggs.forEach(function (sg) {
+                (r.suggestions || []).forEach(function (sg) {
                     results.push({
                         icon: '💡', label: (sg.message || '').slice(0, 60),
                         hint: 'à faire', url: 'suggestions.html'
                     });
                 });
-            } catch (e) { /* table absente */ }
-
-            // Tickets (incidents) — titre, mat\u00e9riel, description
-            try {
-                var tickets = window.ADWDatabase.queryAll(
-                    'SELECT id, title, equipment, status FROM tickets ' +
-                    'WHERE (title LIKE ? OR equipment LIKE ? OR description LIKE ?) ' +
-                    'AND status NOT IN (\'closed\') ORDER BY created_at DESC LIMIT 3', [like, like, like]);
-                tickets.forEach(function (t) {
+                (r.tickets || []).forEach(function (t) {
                     results.push({
-                        icon: '\ud83d\udee0\ufe0f',
-                        label: t.title,
-                        hint: (t.equipment ? t.equipment + ' \u00b7 ' : '') + 'incident' + (t.status === 'resolved' ? ' r\u00e9solu' : ''),
+                        icon: '🛠', label: t.title, hint: 'incident',
                         url: 'ticket.html?id=' + encodeURIComponent(t.id)
                     });
                 });
-            } catch (e) { /* table absente */ }
+                _afficher();
+            }).catch(function () {
+                drop.innerHTML = '<div class="gs-empty">Recherche indisponible (serveur injoignable).</div>';
+                drop.hidden = false;
+            });
+        }
 
+        function _afficher() {
             if (!results.length) {
                 drop.innerHTML = '<div class="gs-empty">Aucun résultat dans l\u2019app.</div>';
                 drop.hidden = false;
