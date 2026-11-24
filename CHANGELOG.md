@@ -39,3 +39,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Mise en page signalée** : le bouton « Supprimer » chevauchait le n° de membre en filigrane — les 4 boutons passent sur leur propre rangée (`.detail-head-actions`) sous le bloc identité, avec réserve horizontale pour le filigrane + hauteur mini du hero.
 - Bumps cache : page-membre v24, styles v92.
 - Test DOM étendu : clic RÉEL sur « Renouveler l'abo » (alerte de confirmation attendue) + structure des boutons groupés. Régression : 321/321.
+## v1.2.5 — formations.html : cartes cliquables réparées
+- **Fix signalé** : les cartes formations n'étaient pas cliquables — les deux listeners de la maquette (clic carte → `formation.html?id=…`, clic « Réserver sur le site » → sélecteur de membre présaisi) avaient été perdus lors de la migration serveur M5a. Réintégrés en délégué sur la grille (la réservation MEC reste un lien/bouton : le clic carte ne la déclenche pas).
+- `<script src="booking.js?v=3">` restauré dans formations.html (le sélecteur de membre n'était même pas chargé).
+- M7 étendu : mock WP dans le test DOM, clic réel sur une carte (navigation vérifiée via VirtualConsole) + clic Réserver (modale du sélecteur ouverte). 30/30. Régression : 322/322.

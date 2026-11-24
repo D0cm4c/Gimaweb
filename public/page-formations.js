@@ -235,6 +235,24 @@
             });
         }
 
+        // Carte cliquable -> fiche formation ; bouton Réserver -> sélecteur de membre (booking.js)
+        // (réintégré de la maquette — perdus lors de la migration serveur, v1.2.5)
+        grid.addEventListener('click', function (e) {
+            if (e.target.closest('.bk-open, a, button')) return;
+            var card = e.target.closest('.f-card-link');
+            if (!card) return;
+            var evid = card.getAttribute('data-goto-evid');
+            if (evid) location.href = 'formation.html?id=' + encodeURIComponent(evid);
+        });
+
+        grid.addEventListener('click', function (e) {
+            var btn = e.target.closest('.bk-open');
+            if (!btn) return;
+            window.ADWDatabase.getFormationByEventId(btn.getAttribute('data-evid')).then(function (f) {
+                if (f && window.ADWBooking) window.ADWBooking.openPicker(f);
+            }).catch(function (err) { alert('Erreur : ' + err.message); });
+        });
+
         function loadEvents() {
             // Gimaweb : la synchro avec atelierduweb.be vit côté SERVEUR (GET /api/formations,
             // auto-sync 15 min) — le navigateur lit la base unique, il ne fetch plus le site.
