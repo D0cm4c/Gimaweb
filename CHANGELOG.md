@@ -19,3 +19,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 ## v1.2.1 — correctif import XML volumineux (413)
 - **Fix** : l'import du fichier des 3 806 membres échouait en « HTTP 413 » — `express.json({ limit: '2mb' })` rejetait le body **avant** d'atteindre l'endpoint (la garde 50 Mo côté route ne servait jamais). Limite dédiée `64mb` sur `/api/membres/import` uniquement ; le reste de l'API reste à 2 Mo.
 - Test étendu : XML de 8+ Mo analysé en mode essai (50 fiches), plus de 413. Régression : 313/313.
+## v1.2.2 — correctif « session admin requise » à l'import XML
+- **Fix** : après un redémarrage du serveur, les sessions (en mémoire) sont purgées — mais le navigateur gardait sa mémoire locale « déverrouillé 25 min » sans re-vérifier côté serveur : les actions gardées partaient au 401 (« session admin requise ») sans jamais redemander le mot de passe.
+- `GET /api/auth/verification` : le navigateur consulte la session serveur avant de considérer l'app déverrouillée ; si la session est morte, la modale de mot de passe RE-apparaît.
+- `auth.js?v=4` dans les 12 pages (bump cache).
+- Scénario rejoué dans `tests/m7-dom.js` (déconnexion forcée = purge, puis clic : re-modale, re-déverrouillage, import OK). Régression : 323/323.

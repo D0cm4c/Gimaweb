@@ -81,12 +81,29 @@
         });
     }
 
+    // La mémoire locale n'est PAS la vérité : un redémarrage du serveur purge les sessions.
+    // Donc même «déverrouillé» en local, on vérifie la session côté serveur.
+    function verifierSessionServeur() {
+        return fetch('/api/auth/verification', { credentials: 'same-origin' })
+            .then(function (res) { return res.json(); })
+            .then(function (r) { return Boolean(r && r.valide); })
+            .catch(function () { return false; });
+    }
+
     var Auth = {
         ensureUnlocked: function (label) {
-            if (estDeverrouille()) return Promise.resolve(true);
-            if (enCours) return enCours;
-            enCours = ouvrirModale(label).then(function (ok) { enCours = null; return ok; });
-            return enCours;
+            if (!estDeverrouille()) {
+                if (enCours) return enCours;
+                enCours = ouvrirModale(label).then(function (ok) { enCours = null; return ok; });
+                return enCours;
+            }
+            return verifierSessionServeur().then(function (valide) {
+                if (valide) return true;
+                try { localStorage.removeItem(CLE); } catch (e) { /* ignore */ }
+                if (enCours) return enCours;
+                enCours = ouvrirModale(label).then(function (ok) { enCours = null; return ok; });
+                return enCours;
+            });
         },
         isUnlocked: function () { return estDeverrouille(); },
         lock: function () {
