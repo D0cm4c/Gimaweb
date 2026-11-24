@@ -139,9 +139,16 @@
 
     list.addEventListener('click', function (e) {
         var btn = e.target.closest('button[data-act="delete"]');
-        if (!btn) return;
-        var t = window.ADWDatabase.getTicket(btn.getAttribute('data-id'));
-        if (!t) return;
+        if (!btn) return;            window.ADWDatabase.getTicket(btn.getAttribute('data-id')).then(function (t) {
+            if (!t) return;
+        // Suppression : garde admin (décision utilisateur) + confirmation
+        window.ADWAuth.ensureUnlocked('Supprimer un ticket — action réservée à l’équipe.').then(function (ok) {
+            if (!ok) return;
+            if (confirm('Supprimer l’incident « ' + t.title + ' » ?\n\nCette action est définitive.')) {
+                window.ADWDatabase.deleteTicket(t.id).then(refresh);
+            }
+        });
+        });
         // Suppression : garde admin (décision utilisateur) + confirmation
         window.ADWAuth.ensureUnlocked('Supprimer un ticket — action réservée à l\u2019équipe.').then(function (ok) {
             if (!ok) return;

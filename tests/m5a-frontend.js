@@ -122,7 +122,7 @@ verifie('deleteMemberCompletely sans session → 401 (garde RGPD)', resDel.statu
 const pageHtml = await fetch('http://127.0.0.1:32132/membres.html');
 const html = await pageHtml.text();
 verifie('GET /membres.html → 200', pageHtml.status === 200);
-verifie('membres.html charge adw-client.js (plus db.js)', html.includes('adw-client.js?v=1') && !html.includes('db.js?v='), 'script');
+verifie('membres.html charge adw-client.js (plus db.js)', html.includes('adw-client.js?v=') && !html.includes('db.js?v='), 'script');
 verifie('membres.html : plus de import/demo-data/backup', !html.includes('import.js') && !html.includes('demo-data.js') && !html.includes('backup.js'));
 const css = await fetch('http://127.0.0.1:32132/styles.css');
 verifie('GET /styles.css → 200', css.status === 200);

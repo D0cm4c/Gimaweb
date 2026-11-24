@@ -495,8 +495,8 @@
             if (!e.target.closest('#printSheetBtn')) return;
             var f = currentFormation;
             if (!f) return;
-            var attendees = [];
-            try { attendees = ADWDatabase.getFormationAttendees(f.id) || []; } catch (err) { attendees = []; }
+            ADWDatabase.getFormationAttendees(f.id).catch(function () { return []; }).then(function (attendees) {
+            attendees = attendees || [];
             var today = new Date().toLocaleDateString('fr-BE', { day: 'numeric', month: 'long', year: 'numeric' });
             var rows = attendees.map(function (m) {
                 return '<tr>' +
@@ -534,6 +534,7 @@
             }
             holder.innerHTML = sheet;
             window.print();
+            });
         });
 
         // ===== Resynchroniser (fiche) : sync SERVEUR -> miroir inscriptions -> re-rendu =====

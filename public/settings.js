@@ -52,14 +52,11 @@
                 deleteBtn.textContent = '🗑️';
                 deleteBtn.title = 'Supprimer la salle';
                 deleteBtn.addEventListener('click', function () {
-                    var res = window.ADWDatabase.deleteRoom(r.id);
-                    if (!res.ok) {
-                        alert('Impossible de supprimer « ' + r.name + ' » : ' + res.blocked.length +
-                            ' formation(s) y sont attribuée(s) (ex. « ' + res.blocked[0].title + ' »).\n' +
+                    window.ADWDatabase.deleteRoom(r.id).then(render).catch(function (err) {
+                        alert('Impossible de supprimer « ' + r.name + ' » : ' +
+                            (err && err.message ? err.message : err) + '\n' +
                             'Réattribue-les depuis la page Salles d’abord.');
-                        return;
-                    }
-                    render();
+                    });
                 });
 
                 li.appendChild(renameBtn);
