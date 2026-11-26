@@ -361,3 +361,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Versions cache : dashboard.js v46, styles v93, page-locations.js v2.
 - M7 : 111/111 (chips modale \u00e0 base de clics r\u00e9els, doublon, \u2715, 3 s\u00e9ances JOURNEE+PM en base, flot + dashboard). R\u00e9gression 431/431.
 - Le\u00e7on (r\u00e9currente) : les ancres python doivent matcher les \u00e9chappements LITT\u00c9RAUX \\uXXXX du fichier (s\u00e9quences) \u2014 chercher par fragment non-accentu\u00e9 quand l'ancre \u00e9choue ; et \u00e9viter les d\u00e9coupages s[a:b] sur bornes de blocs (g\u00e9n\u00e8re des accolades cass\u00e9es) \u2014 pr\u00e9f\u00e9rer l'insertion par ligne.
+
+## ✨ v1.5.4 — retrait carte dashboard + carte Locations dans stats.html
+
+- Retrait (demande du porteur) : carte \u00ab Prochaines locations \u00bb du dashboard (fonction renderNextLocations, section #nextLocations d'index.html, champ prochaines_locations du flot) \u2014 l'info vit dans locations.html. L'agenda \u00ab Aujourd'hui \u00e0 l'Atelier \u00bb garde ses items location du jour.
+- Ajout : carte \u00ab \U0001F511 Locations \u00bb sur stats.html (3 KPI : cr\u00e9neaux lou\u00e9s ce mois, locataires \u00e0 venir, salle la plus lou\u00e9e) \u2014 /api/agregats/stats expose `locations` ; page-stats.js renderLocationsStats.
+- M7 : 112/112. R\u00e9gression 432/432.
+- INCIDENT \u00e9vit\u00e9 de justesse : un write python contenant des surrogates \u00e9chapp\u00e9s (\ud83d\udd11 \u00e9crit en paires \u00e9chapp\u00e9es) a TRONQU\u00c9 stats.html \u00e0 0 octet \u2014 restaur\u00e9 par git checkout puis r\u00e9\u00e9crit avec le vrai caract\u00e8re (U0001F511). LE\u00c7ON (d\u00e9j\u00e0 connue, v\u00e9rifier \u00e0 chaque fois) : jamais de s\u00e9quences surrogate \u00e9chapp\u00e9es dans un write utf-8 \u2014 et v\u00e9rifier la taille du fichier apr\u00e8s chaque edit python.

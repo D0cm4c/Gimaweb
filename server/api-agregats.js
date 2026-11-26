@@ -36,16 +36,6 @@ export const creerApiAgregats = (db) => {
              WHERE fd.date = ?
              ORDER BY fd.slot ASC, l.titre ASC`
         ).all(ajd).map((r) => ({ ...r, type: 'location' }));
-        // v1.5.3 : prochaines locations à venir (dashboard — c'est leur utilité majeure)
-        const prochainesLocations = db.prepare(
-            `SELECT ld.date, ld.slot, l.titre, l.id AS location_id, l.animateur,
-             (SELECT name FROM rooms r WHERE r.id = l.room_id) AS room_name
-             FROM location_dates ld JOIN locations l ON l.id = ld.location_id
-             WHERE ld.date >= date('now')
-             ORDER BY ld.date ASC, ld.slot ASC
-             LIMIT 8`
-        ).all();
-
         // Visites récentes (6 dernières, avec identités et motifs)
         const visitesRecentes = db.prepare(
             `SELECT v.visit_date, v.reason, m.first_name, m.last_name, m.member_no, v.amount
@@ -101,7 +91,6 @@ export const creerApiAgregats = (db) => {
                 impressions_dues_debiteurs: impCompte
             },
             agenda: agenda.concat(locationsJour),
-        prochaines_locations: prochainesLocations,
             visites_recentes: visitesRecentes,
             impressions: { total: impTotal, compte: impCompte, top: impTop },
             date: ajd
@@ -170,6 +159,21 @@ export const creerApiAgregats = (db) => {
             sans_abonnement: un("SELECT COUNT(*) v FROM members WHERE subscription = 'none' OR subscription IS NULL")
         };
 
+        // v1.5.4 : locations de salles (carte Statistiques) — 3 KPI :
+        // créneaux loués ce mois, locataires à venir, salle la plus louée (historique complet)
+        const locTopSalle = db.prepare(
+            `SELECT r.name, COUNT(*) c FROM location_dates ld
+             JOIN locations l ON l.id = ld.location_id
+             LEFT JOIN rooms r ON r.id = l.room_id
+             GROUP BY r.id ORDER BY c DESC LIMIT 1`
+        ).all();
+        const locations_stats = {
+            creneaux_mois: un("SELECT COUNT(*) v FROM location_dates WHERE strftime('%Y-%m', date) = ?", [moi]),
+            locataires_a_venir: un("SELECT COUNT(DISTINCT location_id) v FROM location_dates WHERE date >= date('now')"),
+            creneaux_total: un('SELECT COUNT(*) v FROM location_dates'),
+            top_salle: locTopSalle.length ? locTopSalle[0] : null
+        };
+
         const statuts = db.prepare(
             "SELECT social_status, COUNT(*) c FROM members WHERE social_status IS NOT NULL AND social_status != '' GROUP BY social_status ORDER BY c DESC"
         ).all();
@@ -203,7 +207,7 @@ export const creerApiAgregats = (db) => {
         ).all();
 
         res.json({
-            membres, visites, retention: ret, profil, motifs, inclusion,
+            membres, visites, retention: ret, profil, motifs, inclusion, locations: locations_stats,
             statuts, cp_top10: cpTop10, genres, rapport,
             heatmap, graph_jours: graphJours, graph_mois: graphMois,
             date: aujourdhui()

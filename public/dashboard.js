@@ -157,31 +157,6 @@
         el.hidden = false;
     }
 
-    // v1.5.3 : Prochaines locations à venir — c'est leur utilité majeure (dashboard)
-    function renderNextLocations() {
-        var el = document.getElementById('nextLocations');
-        if (!el) return;
-        var rows = flot.prochaines_locations || [];
-        if (!rows.length) { el.hidden = true; el.innerHTML = ''; return; }
-        var fmtLoc = function (d) { return new Date(d + 'T12:00:00').toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' }); };
-        var html = '<div class="stat-card today-agenda" style="border-left:4px solid #7A5230;">' +
-            '<h3>\uD83D\uDD11 Prochaines locations <span class="members-count">' + rows.length + ' cr\u00e9neau' + (rows.length > 1 ? 'x' : '') + '</span></h3>' +
-            '<div class="agenda-list">';
-        rows.forEach(function (o) {
-            html += '<a class="agenda-item" href="location.html?id=' + encodeURIComponent(o.location_id) + '" style="text-decoration:none;">' +
-                '<span class="agenda-slot ' + (o.slot === 'AM' ? 'am' : 'pm') + '">' + (o.slot === 'AM' ? 'Matin' : 'A-midi') + '</span>' +
-                '<span class="agenda-bar" style="background:#7A5230;"></span>' +
-                '<span class="agenda-title">\uD83D\uDD11 ' + escapeHtml(o.titre) + '</span>' +
-                '<span class="agenda-time">' + fmtLoc(o.date) + '</span>' +
-                (o.animateur ? '<span class="agenda-count has-attendees">' + escapeHtml(o.animateur) + '</span>' : '') +
-                (o.room_name ? '<span class="agenda-room">' + escapeHtml(o.room_name) + '</span>' : '<span class="badge badge-full">sans salle</span>') +
-                '</a>';
-        });
-        html += '</div></div>';
-        el.innerHTML = html;
-        el.hidden = false;
-    }
-
     function renderTodayAgenda() {
         var el = document.getElementById('todayAgenda');
         if (!el) return;
@@ -300,7 +275,6 @@
     function render() {
         obtenirFlot().then(function () {
         renderNextClosure();
-        renderNextLocations();
         renderTodayAgenda();
         renderMostWaited();
         renderLastNotifs();
