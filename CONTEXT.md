@@ -332,3 +332,13 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Nouveauté : carte Formateurs/Animateurs \u2014 endpoint /api/formations/organisateurs (GROUP BY organizer, séances à venir >= today, fermetures exclues), rendu auto dans settings.js (badge « N à venir » + « dès le J mois »). Donn\u00e9e source : champ organizer de la sync (labels du site aujourd hui, plugin WP demain).
 - Séparateur « Affichage » (fût vide) retiré.
 - M7 : ajout réel de membre d équipe, carte formateurs avec l organisateur, plus de séparateur \u2014 79/79, régression **380/380**.
+
+## ✨ v1.5.0 — locations de salles (PR #41)
+
+- **Fonctionnalité (validée par le porteur, passage en minor confirmé)** : location des salles à des tiers, avec ou sans animateur. Entraînée par l'info « organisateur » des events du site (carte Formateurs v1.4.11).
+- Schéma : `locations` (id, titre, room_id, animateur, contact, notes) + `location_dates` (location_id→CASCADE, date, slot CHECK AM/PM, UNIQUE(location_id,date,slot)) — APPEND dans schema.sql, appliqué par `db.exec` à chaque boot.
+- `server/api-locations.js` : GET/POST/PUT/DELETE + `/locations/:id/conflits` (location×location ET location×formation). **Les locations ne remontent JAMAIS vers le site public** — le mock WP du test m8 trace toutes les requêtes sortantes et l'affirme.
+- Planning salles : UNION formations + locations (`type:'formation'|'location'` côté serveur ; `byCell` de page-salles.js garde `type`, cellule rendue avec 🔑 si location, lien vers location.html). Limite connue et acceptée : un occupant par cellule (formation prioritaire) — le conflit complet reste visible sur les fiches.
+- Frontend : locations.html (modale : mode unique/récurrente, créneau AM/PM/JOURNEE=AM+PM, salles + organisateurs dans les selects), location.html (fiche), adw-client v3 (listLocations/getLocation/createLocation/updateLocation/deleteLocation/conflitsLocation + listOrganisateurs), layout cache v12 (+ nav Locations sous Salles, Suggestions dans `.side-extra` épinglé bas), styles (.loc-banner, .slot-location hachures brunes, .side-extra).
+- Tests : **m8-locations.js** (port 32137, 25/25 — CRUD garde admin, validations, journée, récurrence, conflits croisés, planning, cascade, zéro fuite wp-json). m7-dom : locations.html + location.html dans la liste des pages chargées, création réelle via la modale (seed localStorage gimaweb_deverrouille_jusquau + injection du cookie session dans etatCookies), fiche, cellule salles, sidebar. **97/97. Régression 417/417 (13 suites).**
+- Leçon :  les crash d'une suite jsdom laissent le serveur spawné fantôme (EADDRINUSE au run suivant) — toujours `pkill -f "node server/serveur.js"` entre deux runs après un crash.

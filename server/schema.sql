@@ -194,3 +194,26 @@ CREATE TABLE IF NOT EXISTS team_members (
 
 -- Salles par défaut (seed, premier démarrage seulement — à faire côté code applicatif)
 -- Grande salle (15), Petite salle (8), Cyber-espace (25)
+
+-- ==== v1.5.0 : locations de salles (locations.html / location.html) ====
+-- L'Atelier loue ses salles (avec ou sans animateur). Interne à Gimaweb uniquement :
+-- ces locations n'existent PAS sur le site public (pas d'inscriptions, pas de sync ascendante).
+-- Elles occupent les créneaux horaires de l'Atelier (AM 9h30-12h30 / PM 13h30-16h30) et
+-- interagissent avec les conflits du planning des salles.
+CREATE TABLE IF NOT EXISTS locations (
+    id TEXT PRIMARY KEY,
+    titre TEXT NOT NULL,
+    room_id TEXT REFERENCES rooms(id),
+    animateur TEXT,
+    contact TEXT,
+    notes TEXT,
+    created_at TEXT
+);
+CREATE TABLE IF NOT EXISTS location_dates (
+    id TEXT PRIMARY KEY,
+    location_id TEXT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+    date TEXT NOT NULL,
+    slot TEXT NOT NULL CHECK (slot IN ('AM', 'PM')),
+    UNIQUE (location_id, date, slot)
+);
+CREATE INDEX IF NOT EXISTS idx_location_dates_date ON location_dates(date);

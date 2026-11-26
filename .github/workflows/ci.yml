@@ -26,3 +26,4 @@ jobs:
       - run: node tests/m5d-import-xml.js
       - run: node tests/m6-parcours.js
       - run: node tests/m7-dom.js
+      - run: node tests/m8-locations.js

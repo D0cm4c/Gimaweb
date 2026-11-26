@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locations — Gimaweb</title>
+    <link rel="stylesheet" href="styles.css?v=92">
+    <link rel="icon" href="assets/icons/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+</head>
+<body>
+    <a class="skip-link" href="#main">Aller au contenu principal</a>
+
+    <div class="app-layout">
+        <div data-layout-sidebar></div>
+        <div class="app-main">
+            <div data-layout-topbar data-title="Locations de salles"></div>
+
+    <main id="main">
+        <section class="filters-bar" aria-label="Filtres">
+            <div class="filter-group">
+                <div class="segmented" role="group" aria-label="Filtrer par période">
+                    <button class="seg-btn active" data-period="upcoming">À venir</button>
+                    <button class="seg-btn" data-period="all">Toutes</button>
+                </div>
+            </div>
+            <div class="filter-group" style="margin-left:auto;">
+                <button class="btn btn-primary" id="newLocationBtn">🔑 Nouvelle location</button>
+            </div>
+        </section>
+
+        <div id="statusBox" class="status-box" hidden><p></p></div>
+
+        <div id="locationsGrid" class="f-cards" style="grid-template-columns:repeat(auto-fill,minmax(290px,1fr));"></div>
+
+        <div id="emptyState" class="empty-state" hidden style="margin:2rem 0;">
+            <p>Aucune location pour le moment. Les locations de salles (prives, sans inscription) se saisissent ici et apparaissent dans le planning des salles.</p>
+        </div>
+
+        <!-- Modale : nouvelle location -->
+        <div class="modal-overlay" id="locationModal" hidden>
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="locationModalTitle" style="max-width:640px;">
+                <h3 id="locationModalTitle">🔑 Nouvelle location de salle</h3>
+                <p class="form-hint">Location interne — elle n'apparaît jamais sur le site public (pas d'inscriptions). Elle occupe des créneaux de l'Atelier (Matin 9h30–12h30 / Après-midi 13h30–16h30) et interagit avec le planning des salles.</p>
+                <div class="form-group">
+                    <label for="locTitre">Locataire / intitulé *</label>
+                    <input type="text" id="locTitre" placeholder="Ex. : Association XYZ — atelier photo">
+                </div>
+                <div class="form-group">
+                    <label for="locSalle">Salle *</label>
+                    <select id="locSalle"></select>
+                </div>
+                <div class="form-group">
+                    <label for="locAnimateur">Animateur / formateur</label>
+                    <select id="locAnimateur"></select>
+                </div>
+                <div class="form-group">
+                    <label for="locContact">Contact (téléphone / email — interne)</label>
+                    <input type="text" id="locContact" placeholder="Optionnel">
+                </div>
+                <div class="form-group">
+                    <label for="locNotes">Notes</label>
+                    <input type="text" id="locNotes" placeholder="Optionnel (clé, matériel, consignes…)">
+                </div>
+                <fieldset style="border:none;padding:0;margin:0.9rem 0;">
+                    <legend class="form-hint" style="padding:0;">Créneaux</legend>
+                    <div class="filter-group" style="padding:0;">
+                        <label for="locMode">Type</label>
+                        <select id="locMode">
+                            <option value="unique">Date unique</option>
+                            <option value="recurrent">Récurrente (chaque semaine)</option>
+                        </select>
+                        <label for="locCreneau">Créneau</label>
+                        <select id="locCreneau">
+                            <option value="AM">Matin (9h30–12h30)</option>
+                            <option value="PM">Après-midi (13h30–16h30)</option>
+                            <option value="JOURNEE">Journée (les deux créneaux)</option>
+                        </select>
+                        <span id="locUniqueWrap">
+                            <label for="locDate">Date</label>
+                            <input type="date" id="locDate">
+                        </span>
+                        <span id="locRecurWrap" style="display:none;">
+                            <label for="locJour">Jour de la semaine</label>
+                            <select id="locJour">
+                                <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
+                                <option value="4">Jeudi</option><option value="5">Vendredi</option>
+                            </select>
+                            <label for="locDu">Du</label>
+                            <input type="date" id="locDu">
+                            <label for="locAu">Au</label>
+                            <input type="date" id="locAu">
+                        </span>
+                    </div>
+                </fieldset>
+                <div class="modal-actions" style="display:flex;gap:0.7rem;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" id="locCancel">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="locSave">Créer la location</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="app-footer" style="margin-top:2rem;">
+            <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
+        </footer>
+    </main>
+    </div>
+    </div>
+
+    <script src="layout.js?v=12"></script>
+    <script src="escape.js?v=1"></script>
+    <script src="auth.js?v=4"></script>
+    <script src="adw-client.js?v=3"></script>
+    <script src="theme.js?v=15"></script>
+    <script src="nav.js?v=2"></script>
+    <script src="openstatus.js?v=3"></script>
+    <script src="notifications.js?v=7"></script>
+    <script src="suggestions.js?v=2"></script>
+    <script src="globalsearch.js?v=3"></script>
+    <script src="page-locations.js?v=1"></script>
+</body>
+</html>

@@ -63,13 +63,20 @@ export const creerApiSalles = (db, { sessionValide = () => false, notifier = () 
         if (!/^\d{4}-\d{2}$/.test(mois)) return res.status(400).json({ erreur: 'mois : AAAA-MM.' });
         const debut = `${mois}-01`;
         const fin = `${mois}-31`;
-        const planning = db.prepare(
+        const formations = db.prepare(
             `SELECT fd.date, fd.slot, fd.formation_id AS fid, f.title, f.event_id, f.categories, f.room_id
              FROM formation_dates fd JOIN formations f ON f.id = fd.formation_id
              WHERE fd.date >= ? AND fd.date <= ? AND lower(coalesce(f.categories, '')) NOT LIKE '%fermeture%'
              ORDER BY fd.date ASC, fd.slot ASC`
-        ).all(debut, fin);
-        res.json(planning);
+        ).all(debut, fin).map((r) => ({ ...r, type: 'formation' }));
+        // v1.5.0 : les LOCATIONS de salles occupent aussi des créneaux du planning
+        const locations = db.prepare(
+            `SELECT ld.date, ld.slot, ld.location_id AS fid, l.titre AS title, l.id AS event_id, NULL AS categories, l.room_id
+             FROM location_dates ld JOIN locations l ON l.id = ld.location_id
+             WHERE ld.date >= ? AND ld.date <= ?
+             ORDER BY ld.date ASC, ld.slot ASC`
+        ).all(debut, fin).map((r) => ({ ...r, type: 'location' }));
+        res.json(formations.concat(locations));
     });
 
     // Conflits : même salle × même date × même créneau (non bloquants — notifications côté client, décision maquette)

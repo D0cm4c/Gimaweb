@@ -154,6 +154,12 @@
             return GET('/api/formations/' + encodeURIComponent(formationId) + '/conflits' + (roomId ? '?salle=' + encodeURIComponent(roomId) : ''));
         },
         formationsWithoutRoom: function () { return GET('/api/formations/sans-salle'); },
+        listLocations: function () { return GET('/api/locations'); },
+        getLocation: function (id) { return GET('/api/locations/' + encodeURIComponent(id)); },
+        createLocation: function (l) { return POST('/api/locations', l); },
+        updateLocation: function (id, l) { return PUT('/api/locations/' + encodeURIComponent(id), l); },
+        deleteLocation: function (id) { return DEL('/api/locations/' + encodeURIComponent(id)); },
+        conflitsLocation: function (id) { return GET('/api/locations/' + encodeURIComponent(id) + '/conflits'); },
         listOrganisateurs: function () { return GET('/api/formations/organisateurs'); },
 
         // ---- Listes d'attente ----
