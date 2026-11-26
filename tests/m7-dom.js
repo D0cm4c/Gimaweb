@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.4', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.5', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -479,6 +479,9 @@ for (const p of PAGES) {
     const carteS = ws3.document.querySelectorAll('#statLocMonth, #statLocUpcoming, #statLocTopRoom');
     verifie('stats.html : carte Locations rendue (3 KPI)', carteS.length === 3 && ws3.document.getElementById('statLocMonth').textContent.indexOf('cr') !== -1, ws3.document.getElementById('statLocMonth') && ws3.document.getElementById('statLocMonth').textContent);
     verifie('stats.html : salle top affichée (Grande salle)', ws3.document.getElementById('statLocTopRoom').textContent.includes('Grande salle'), ws3.document.getElementById('statLocTopRoom').textContent);
+    const titresCartes = [...ws3.document.querySelectorAll('#statsMosaic .stat-card h2')].map((h) => h.textContent.trim());
+    const iTitres = { ret: titresCartes.findIndex((t) => t.includes('R')), loc: titresCartes.findIndex((t) => t.includes('Locations')), mot: titresCartes.findIndex((t) => t.includes('Motifs')) };
+    verifie('stats.html : carte Locations rang\u00e9e 4e, apr\u00e8s R\u00e9tention et avant Motifs', iTitres.ret !== -1 && iTitres.loc === iTitres.ret + 1 && iTitres.mot === iTitres.loc + 1, titresCartes.join(' | '));
     verifie('stats.html : aucune erreur JS', erreursStats.length === 0, erreursStats.join(' | '));
 
     const { window: wnav } = await chargerPage('membres.html');
