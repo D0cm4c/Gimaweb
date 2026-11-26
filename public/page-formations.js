@@ -148,6 +148,18 @@
             return h % 10;
         }
 
+        // Couleur par CATEGORIE (charte, v1.4.5) : tablette/smartphone = vert #18A55F,
+        // trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 ;
+        // les autres categories gardent le ton deterministe par hash.
+        function couleurCategorie(cat) {
+            var s = (cat || '').toLowerCase();
+            if (s.indexOf('tablette') !== -1 || s.indexOf('smartphone') !== -1 || s.indexOf('mobile') !== -1) return '#18A55F';
+            if (s.indexOf('truc') !== -1) return '#B26A00';
+            if (s.indexOf('formation') === 0) return '#2F9BE4';
+            var tone = toneFor(cat);
+            return tone >= 0 ? TONE_SOLID[tone] : '#2F9BE4';
+        }
+
         function render() {
             grid.innerHTML = '';
             emptyState.hidden = filtered.length > 0;
@@ -175,7 +187,7 @@
                 } else {
                     var label = new Date(monthKey + '-01T12:00:00').toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' });
                     var dotCat = (byMonth[monthKey][0].categories && byMonth[monthKey][0].categories[0]) || '';
-                    var dot = dotCat ? '<span class="month-dot" style="background:' + TONE_SOLID[toneFor(dotCat)] + '"></span>' : '';
+                    var dot = dotCat ? '<span class="month-dot" style="background:' + couleurCategorie(dotCat) + '"></span>' : '';
                     header.innerHTML = dot + esc(label) + ' <span class="month-count">' + byMonth[monthKey].length + '</span>';
                 }
                 group.appendChild(header);
@@ -203,7 +215,8 @@
                     if (tone >= 0) li.setAttribute('data-tone', tone);
                     li.setAttribute('data-goto-evid', esc(ev.id));
                     li.innerHTML =
-                        '<div class="f-card-banner' + (ev.startDate ? '' : ' no-date') + '">' +
+                        '<div class="f-card-banner' + (ev.startDate ? '' : ' no-date') + '"'
+                        + (mainCat ? ' style="background:' + couleurCategorie(mainCat) + '"' : '') + '>' +
                         '<div class="f-card-date">' +
                         (ev.startDate
                             ? '<span class="day">' + day + '</span><span class="mon">' + esc(mon) + '</span>'

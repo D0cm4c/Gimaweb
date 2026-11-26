@@ -11,14 +11,18 @@ fs.rmSync('data-tests', { recursive: true, force: true });
 
 import http from 'http';
 const FLUX = [{ id: 301, title: { rendered: 'Secret de mot de passe solide' }, link: 'https://atelierduweb.be/formation/motdepasse/',
-    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Matin\u00e9e \uD83D\uDCC5 Dates : Le 15 f\u00e9vrier 2027 \u23f0 Horaires : De 9h30 \u00e0 12h30</p>' }, mec_category: [9] }];
+    excerpt: { rendered: '<p>⏳ Durée : 1 Matinée 📅 Dates : Le 15 février 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [11] }];
+FLUX.push({ id: 305, title: { rendered: 'Trucs et astuces : gérer sa boîte mail' }, link: 'https://atelierduweb.be/formation/trucs-mail/',
+    excerpt: { rendered: '<p>⏳ Durée : 1 Après-midi 📅 Dates : Le 20 septembre 2027 ⏰ Horaires : De 13h30 à 16h30</p>' }, mec_category: [12] });
+FLUX.push({ id: 307, title: { rendered: 'Formation découverte de l’informatique' }, link: 'https://atelierduweb.be/formation/decouverte/',
+    excerpt: { rendered: '<p>⏳ Durée : 2 Matinées 📅 Dates : Le 3 octobre 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [13] });
 FLUX.push({ id: 302, title: { rendered: 'Fermeture annuelle de l\u2019Atelier' }, link: 'https://atelierduweb.be/fermeture/',
     excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Les 15 et 16 ao\u00fbt 2027 \u23f0 Horaires : De 9h00 \u00e0 18h00</p>' }, mec_category: [10] });
 
 const mock = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.url.startsWith('/wp-json/wp/v2/mec-events')) res.end(JSON.stringify(FLUX));
-    else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }]));
+    else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }, { id: 11, name: 'Utilisation d\u2019une tablette ou d\u2019un smartphone' }, { id: 12, name: 'Trucs et astuces' }, { id: 13, name: 'Formation' }]));
     else { res.statusCode = 404; res.end('{}'); }
 });
 await new Promise((r) => mock.listen(32993, '127.0.0.1', r));
@@ -113,7 +117,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.4 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.4', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.5 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.5', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -251,7 +255,9 @@ for (const p of PAGES) {
     verifie('planning salles : la fermeture n\u2019appara\u00eet pas', !planFer.some((l) => (l.title || '').indexOf('Fermeture') !== -1), planFer.length);
 
     const fav = await (await fetch(`${origine}/assets/icons/icon-192.png`));
+    const favIco = await (await fetch(`${origine}/assets/icons/favicon.ico`));
     verifie('favicon servi (200)', fav.status === 200, fav.status);
+    verifie('favicon.ico servi (200)', favIco.status === 200, favIco.status);
     const idxHtml = await (await fetch(`${origine}/index.html`)).text();
     verifie('page : <link rel=\"icon\"> pr\u00e9sent', idxHtml.includes('rel="icon"'));
 }
@@ -288,6 +294,27 @@ for (const p of PAGES) {
     verifie('salles.html : colonne Grande salle pr\u00e9sente', tete.some((t) => t.indexOf('Grande') !== -1), tete.join(' | '));
     verifie('salles.html : grille jours du mois rendue', ws.document.querySelectorAll('.room-planning tbody tr').length >= 28);
     verifie('salles.html : aucune erreur JS', erreursS.length === 0, erreursS.join(' | '));
+}
+
+// ---- 1douzes) couleurs par catégorie (charte v1.4.5) : tablette=vert, trucs=ambre, formation=bleu
+{
+    const { window: wc } = await chargerPage('formations.html');
+    await new Promise((r) => setTimeout(r, 1800));
+    const d = wc.document;
+    const couleurDeCarte = (titre) => {
+        const carte = [...d.querySelectorAll('.f-card')].find((c) => (c.querySelector('.f-card-title')||{textContent:''}).textContent.indexOf(titre) !== -1);
+        if (!carte) return '';
+        const banner = carte.querySelector('.f-card-banner');
+        return (banner && banner.getAttribute('style')) || '';
+    };
+    verifie('carte tablette/smartphone : bandeau vert #18A55F', couleurDeCarte('Secret').includes('#18A55F'), couleurDeCarte('Secret'));
+    verifie('carte trucs et astuces : bandeau ambre #B26A00', couleurDeCarte('Trucs').includes('#B26A00'), couleurDeCarte('Trucs'));
+    verifie('carte formation : bandeau bleu #2F9BE4', couleurDeCarte('découverte').includes('#2F9BE4'), couleurDeCarte('découverte'));
+    // hero de la fiche : meme regle
+    const { window: wh } = await chargerPage('formation.html?id=305');
+    await new Promise((r) => setTimeout(r, 1200));
+    const hero = wh.document.querySelector('.hero');
+    verifie('hero fiche (trucs) : fond ambre #B26A00', Boolean(hero) && (hero.getAttribute('style')||'').includes('#B26A00'), hero && hero.getAttribute('style'));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
