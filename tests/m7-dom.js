@@ -12,7 +12,7 @@ fs.rmSync('data-tests', { recursive: true, force: true });
 import http from 'http';
 const FLUX = [{ id: 301, title: { rendered: 'Secret de mot de passe solide' }, link: 'https://atelierduweb.be/formation/motdepasse/',
     excerpt: { rendered: '<p>⏳ Durée : 1 Matinée 📅 Dates : Le 15 février 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 11] }];
-FLUX.push({ id: 305, title: { rendered: 'Trucs et astuces : gérer sa boîte mail' }, link: 'https://atelierduweb.be/formation/trucs-mail/',
+FLUX.push({ id: 305, title: { rendered: 'Trucs et astuces : boîte mail &amp; spam &#8211; bien gérer' }, link: 'https://atelierduweb.be/formation/trucs-mail/',
     excerpt: { rendered: '<p>⏳ Durée : 1 Après-midi 📅 Dates : Le 20 septembre 2027 ⏰ Horaires : De 13h30 à 16h30</p>' }, mec_category: [22, 12] });
 FLUX.push({ id: 307, title: { rendered: 'Formation découverte de l’informatique' }, link: 'https://atelierduweb.be/formation/decouverte/',
     excerpt: { rendered: '<p>⏳ Durée : 2 Matinées 📅 Dates : Le 3 octobre 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 13] });
@@ -117,7 +117,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.6 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.6', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.7 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.7', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -310,6 +310,12 @@ for (const p of PAGES) {
     verifie('carte tablette/smartphone : bandeau vert #18A55F', couleurDeCarte('Secret').includes('#18A55F'), couleurDeCarte('Secret'));
     verifie('carte trucs et astuces : bandeau ambre #B26A00', couleurDeCarte('Trucs').includes('#B26A00'), couleurDeCarte('Trucs'));
     verifie('carte formation : bandeau bleu #2F9BE4', couleurDeCarte('découverte').includes('#2F9BE4'), couleurDeCarte('découverte'));
+    // v1.4.7 : les entites HTML du site (&amp; &#8211; &rsquo;) doivent etre DECODEES
+    const fl = await (await fetch(`${origine}/api/formations`)).json();
+    const f305 = fl.find((x) => String(x.event_id) === '305');
+    const cartesTxt = d.body.textContent || '';
+    verifie('API : titre d\u00e9cod\u00e9 (& et \u2013, pas d\u2019entit\u00e9s)', f305 && f305.title.indexOf('& ') !== -1 && f305.title.indexOf('\u2013') !== -1 && f305.title.indexOf('&amp;') === -1, f305 && f305.title);
+    verifie('page : le titre affich\u00e9 est propre (pas de &amp; visible)', !cartesTxt.includes('&amp;') && cartesTxt.includes('bo\u00eete mail & spam'), (cartesTxt.match(/Trucs[^\n]{0,40}/) || [''])[0]);
     // hero de la fiche : meme regle
     const { window: wh } = await chargerPage('formation.html?id=305');
     await new Promise((r) => setTimeout(r, 1200));

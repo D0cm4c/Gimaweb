@@ -297,3 +297,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Mock M7 aligné sur le site réel (Ateliers en tête) : « bandeau vert/ambre/bleu » toujours verts — le test ANCIEN (cats uniques) passait sans couvrir le cas réel.
 - ⚠ Leçon : quand un mock invente des données, vérifier sa forme contre les DONNÉES RÉELLES de la source (ici : wp-json du site en prod, consultable directement) avant d'en tirer fierté de tests verts.
 - Régression **366/366**.
+
+## 🚨 v1.4.7 — entités HTML dans les titres de formations (PR #36)
+
+- **Symptôme** : caractères spéciaux buggués dans les noms de formations (guillemets, apostrophes, &amp; visibles ou avalés).
+- **Cause** : wp-json renvoie titres/extraits encodés (contenu « rendered ») ; l'ancien stripHtml ne décodait que 5 entités (amp, eacute…) et remplaçait les NUMÉRIQUES (&#8211;/&#8217;) par une ESPACE. Les données réelles du site en contiennent partout (aspelé vu en interrogeant le vrai wp-json).
+- **Fix serveur** : decodeEntites (numériques déc/hex + 25 entités nommées) branché dans stripHtml → titres, extraits, dates parses propres. Correction auto des lignes DB à la prochaine sync (mise à jour non-COALESCE au sync).
+- Test M7 : mock avec &amp; + &#8211; dans un titre → décodage vérifié côté API et à l'affichage. **68/68**, régression **368/368**.
+- ⚠ Leçon : WP « rendered » = HTML encodé — toute chaîne issue de wp-json doit passer par decodeEntites/stripHtml AVANT stockage ou affichage.
