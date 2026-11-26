@@ -1,6 +1,6 @@
 {
   "name": "gimaweb",
-  "version": "1.4.8",
+  "version": "1.4.9",
   "description": "Gimaweb — app serveur de gestion des membres, formations et inscriptions de l'Atelier du web (base SQLite unique, HTTP LAN). v1.0.0 = première mise en production.",
   "type": "module",
   "main": "server/serveur.js",

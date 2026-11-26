@@ -36,7 +36,10 @@ export function parseFrDates(texte) {
     const months = { janvier: 1, 'f\u00e9vrier': 2, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, 'ao\u00fbt': 8, aout: 8, septembre: 9, octobre: 10, novembre: 11, 'd\u00e9cembre': 12, decembre: 12 };
     // Plage « du 27 juillet au 08 ao\u00fbt inclus » (v1.4.8) : on \u00e9num\u00e8re chaque jour ferm\u00e9
     // Formes admises : « du 27 juillet au 08 ao\u00fbt » ET « du 14 au 17 ao\u00fbt 2027 » (mois apr\u00e8s la 2e date)
-    const pl = clean.toLowerCase().match(/du\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?\s+(?:au|jusqu(?:'|\u2019)?au)\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?/);
+    // (v1.4.9) la plage peut vivre APRES le bloc horaires « De 9h à … » que le clean
+    // tronque — on la cherche donc aussi sur le texte brut.
+    let pl = clean.toLowerCase().match(/du\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?\s+(?:au|jusqu(?:'|\u2019)?au)\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?/);
+    if (!pl) pl = texte.toLowerCase().match(/du\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?\s+(?:au|jusqu(?:'|\u2019)?au)\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?/);
     if (pl) {
         const moisDep = months[pl[2]] || months[pl[5]] || 0;
         const moisFin = months[pl[5]] || moisDep;
@@ -115,6 +118,13 @@ async function fetchViaWpRest() {
             const fields = parseExcerptFields(excerptText);
             let evDates = parseFrDates(fields.dateText);
             if (!evDates.length && fields.startDate) evDates = [fields.startDate];
+            // v1.4.9 : si le champ « Dates » n'a qu'une seule date mais que la description
+            // donne la période complète (« ferme ses portes du 27 juillet au 08 août inclus »),
+            // on prend la plage de la description.
+            if (evDates.length <= 1) {
+                const plage = parseFrDates(excerptText);
+                if (plage.length > 1) evDates = plage;
+            }
             events.push({
                 id: item.id,
                 title: stripHtml(item.title?.rendered),
