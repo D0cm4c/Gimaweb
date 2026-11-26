@@ -648,7 +648,7 @@
         if (e.target === checkinModal) closeCheckin();
     });
     if (checkinSearch) checkinSearch.addEventListener('input', function () {
-        displayCheckinResults(searchMembers(checkinSearch.value));
+        searchMembers(checkinSearch.value, afficherResultatsPointage);
     });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && checkinModal && !checkinModal.hidden) closeCheckin();

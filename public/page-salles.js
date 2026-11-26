@@ -52,7 +52,7 @@
             monthLabel.textContent = view.toLocaleDateString('fr-BE', { month: 'long', year: 'numeric' });
             Promise.all([
                 window.ADWDatabase.listRooms().catch(function () { return []; }),
-                window.ADWDatabase.getRoomPlanning(bounds[0], bounds[1]).catch(function () { return []; }),
+                window.ADWDatabase.getRoomPlanning(view.getFullYear() + '-' + String(view.getMonth() + 1).padStart(2, '0')).catch(function () { return []; }),
                 window.ADWDatabase.formationsWithoutRoom().catch(function () { return []; })
             ]).then(function (sources) {
             var rooms = sources[0] || [];

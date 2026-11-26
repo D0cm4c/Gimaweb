@@ -277,3 +277,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Sans demander : **incrémenter UNIQUEMENT le 3e chiffre** (ex. 1.4.3 → 1.4.4), bugfix comme nouveauté.
 - **2e chiffre (minor) ou 1er (major) : TOUJOURS demander confirmation à l'utilisateur AVANT** le bump + PR.
 - S'applique à package.json (la sidebar suit via /api/sante) et au CHANGELOG.
+
+## 🚨 v1.4.4 — recherche pointage + grille salles (PR #33)
+
+- (1) Modale « Pointer une visite » : handler input appelait displayCheckinResults (nom disparu à la migration, devenu afficherResultatsPointage) → ReferenceError à chaque frappe. (2) salles.html : getRoomPlanning recevait (debut, fin) du temps de SQL navigateur ; l'API serveur attend un mois YYYY-MM → 400 silencieux avalé par .catch, page sans colonnes de salles. Les deux : reliquats de la migration M5c.
+- Checks M7 : frappe réelle dans checkinSearch (terme inexistant → « Aucun membre trouvé », terme réel → membre retrouvé, 0 erreur) ; salles.html chargée avec les 3 salles en colonnes + grille du mois. **61/61**, régression **352/352**.
+- ⚠ Leçon : les promesses avalées (catch → []) cachent des 400 de contrat — un test devrait AUSSI piquer /api/salles/planning directement avec ce que la page envoie. Les deux bugs ont été corrigés... puis testés par rendu réel de page.
