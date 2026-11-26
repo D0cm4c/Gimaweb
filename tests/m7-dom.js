@@ -26,7 +26,7 @@ const mock = http.createServer((req, res) => {
     if (req.url.startsWith('/wp-json/wp/v2/mec-events')) res.end(JSON.stringify(FLUX));
     else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }, { id: 11, name: 'Utilisation d\u2019une tablette ou d\u2019un smartphone' }, { id: 12, name: 'Truc et astuces' }, { id: 13, name: 'Formations' }, { id: 22, name: 'Ateliers' }, { id: 23, name: 'Ev\u00e8nement' }]));
     else if (req.url.startsWith('/plugin-labels')) res.end(JSON.stringify({
-        '301': { labels: [], location: 'GS - Atelier du web' },
+        '301': { labels: [], location: 'GS - Atelier du web', organizer: 'Nadia Franchi' },
         '307': { labels: [], location: 'PS - Atelier du web' }
     }));
     else { res.statusCode = 404; res.end('{}'); }
@@ -123,7 +123,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.10 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.10', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.11', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -347,6 +347,23 @@ for (const p of PAGES) {
     wfp.document.querySelector('[data-period="all"]').click();
     await new Promise((r) => setTimeout(r, 400));
     verifie('filtre « Toutes » : la formation passée est affichée', presente());
+}
+
+// ---- 1quatorzes) parametres.html : ajout d'un membre de l'equipe technique + carte formateurs (v1.4.10)
+{
+    const { errors: erreursP, window: wp2 } = await chargerPage('parametres.html');
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('parametres.html : aucune erreur JS', erreursP.length === 0, erreursP.join(' | '));
+    const inp = wp2.document.getElementById('newTeamMemberName');
+    const btn = wp2.document.getElementById('addTeamMemberBtn');
+    verifie('parametres.html : champ ajout equipe present', Boolean(inp && btn));
+    inp.value = 'Theo Modo';
+    btn.click();
+    await new Promise((r) => setTimeout(r, 800));
+    verifie('parametres.html : membre d\u00e9quipe ajout\u00e9 et list\u00e9', [...wp2.document.querySelectorAll('#teamList li')].some((li) => li.textContent.indexOf('Theo Modo') !== -1));
+    const formateurs = [...wp2.document.querySelectorAll('#formateursListe li')].map((li) => li.textContent);
+    verifie('parametres.html : carte Formateurs pr\u00e9sente avec l\u2019organisateur du site', formateurs.some((t) => t.indexOf('Nadia Franchi') !== -1), formateurs.join(' | '));
+    verifie('parametres.html : plus de s\u00e9parateur \u00ab Affichage \u00bb', !wp2.document.body.textContent.includes('Affichage'));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

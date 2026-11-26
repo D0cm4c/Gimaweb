@@ -169,9 +169,9 @@
     // ============ Équipe technique (page Paramètres → assignation des incidents) ============
 
     function initTeamAdmin() {
-        var list = document.getElementById('teamAdminList');
-        var nameInput = document.getElementById('newTeamName');
-        var addBtn = document.getElementById('addTeamBtn');
+        var list = document.getElementById('teamList');
+        var nameInput = document.getElementById('newTeamMemberName');
+        var addBtn = document.getElementById('addTeamMemberBtn');
         if (!list || !addBtn || !window.ADWDatabase) return;
 
         function esc(v) { return window.ADWEscape.html(v); }
@@ -210,8 +210,31 @@
         window.ADWDatabase.init().then(render).catch(function () { /* serveur indisponible */ });
     }
 
-    if (document.readyState !== 'loading') initTeamAdmin();
-    else document.addEventListener('DOMContentLoaded', initTeamAdmin);
+    // Formateurs / animateurs : liste automatique des organisateurs des \u00e9v\u00e9nements du site (\u00e0 venir)
+    function initFormateurs() {
+        var list = document.getElementById('formateursListe');
+        if (!list || !window.ADWDatabase) return;
+        function esc(v) { return window.ADWEscape ? window.ADWEscape.html(v) : v; }
+        window.ADWDatabase.listOrganisateurs().then(function (organisateurs) {
+            organisateurs = organisateurs || [];
+            list.innerHTML = '';
+            if (!organisateurs.length) {
+                list.innerHTML = '<li class="form-hint" style="padding:0.5rem 0;">Aucun organisateur pour l\u2019instant \u2014 la liste se remplit avec les \u00e9v\u00e9nements \u00e0 venir du site.</li>';
+                return;
+            }
+            organisateurs.forEach(function (o) {
+                var li = document.createElement('li');
+                var d = o.prochaine ? new Date(o.prochaine + 'T12:00:00').toLocaleDateString('fr-BE', { day: 'numeric', month: 'long' }) : '';
+                li.innerHTML = '<span class="grow" style="font-weight:600;">' + esc(o.nom) + '</span>' +
+                    '<span class="badge badge-ok">' + o.seances + ' \u00e0 venir' + (o.seances > 1 ? 's' : '') + '</span>' +
+                    (d ? '<span class="form-hint" style="margin-left:0.5rem;">d\u00e8s le ' + d + '</span>' : '');
+                list.appendChild(li);
+            });
+        }).catch(function () { list.innerHTML = '<li class="form-hint">Organisateurs indisponibles.</li>'; });
+    }
+
+    if (document.readyState !== 'loading') { initTeamAdmin(); initFormateurs(); }
+    else document.addEventListener('DOMContentLoaded', function () { initTeamAdmin(); initFormateurs(); });
 
     // ============ Sauvegarde de la base — SERVEUR (chiffrée AES-GCM, timer nocturne) ============
     function initBackupCard() {

@@ -65,7 +65,19 @@
                 </div>
                 <button class="btn btn-primary" id="addTeamMemberBtn">+ Ajouter</button>
             </div>
-        </section>
+        
+
+        <section class="settings-card" aria-labelledby="formateursTitle">
+            <div class="settings-head">
+                <span class="settings-ico green" aria-hidden="true">🎤</span>
+                <div>
+                    <h2 id="formateursTitle">Formateurs / Animateurs</h2>
+                    <p>Issus de l’info « organisateur » des événements du site</p>
+                </div>
+            </div>
+            <p class="settings-note">Liste automatique, alimentée par la synchronisation du site (atelierduweb.be) — elle suit les événements à venir. Rien à gérer ici : les organisateurs apparaissent quand ils animent une session programmée.</p>
+            <ul class="settings-list" id="formateursListe"></ul>
+        </section></section>
                 <section class="settings-card" aria-labelledby="roomsTitle">
             <div class="settings-head">
                 <span class="settings-ico blue" aria-hidden="true">🏫</span>
@@ -87,10 +99,6 @@
             </div>
         </section>
         </div>
-
-        <h2 class="settings-group-title">🎨 Affichage</h2>
-        <div class="settings-group">
-                </div>
 
         <h2 class="settings-group-title">🔌 Intégrations</h2>
         <div class="settings-group">
@@ -186,7 +194,7 @@
     <script src="layout.js?v=11"></script>
     <script src="escape.js?v=1"></script>
     <script src="auth.js?v=4"></script>
-    <script src="adw-client.js?v=2"></script>
+    <script src="adw-client.js?v=3"></script>
     <script src="theme.js?v=15"></script>
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
@@ -194,7 +202,7 @@
     <script src="openstatus.js?v=3"></script>
     <script src="nav.js?v=2"></script>
     <script src="page-parametres.js?v=1"></script>
-    <script src="settings.js?v=33"></script>
+    <script src="settings.js?v=34"></script>
 <script>
         // PWA : enregistrement du service worker (silencieux si non supporté)
         if ('serviceWorker' in navigator) {

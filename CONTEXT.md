@@ -325,3 +325,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - Demande : bouton/lien vers l evement du site dans la carte Prochaine fermeture (controle humain quand la saisie des editeurs ou le parsing decev). Flot : url incluse dans prochaine_fermeture ; dashboard : lien <a target=_blank> affiche si url presente.
 - M7 : assertion du lien href atelierduweb.be/fermeture/ dans la carte. **74/74**, regression **375/375**.
+
+## 🚨 v1.4.11 — parametres : ids techniques desalignés + carte Formateurs (PR #40)
+
+- Bug : le HTML gardait les ids de la maquette (teamList/newTeamMemberName/addTeamMemberBtn) mais settings.js (reécrit en M5c) cherchait teamAdminList/newTeamName/addTeamBtn \u2192 bouton Ajouter jamais câblé. Règle : les ids UI restent ceux du HTML maquette ; on adapte le JS, pas l inverse.
+- Nouveauté : carte Formateurs/Animateurs \u2014 endpoint /api/formations/organisateurs (GROUP BY organizer, séances à venir >= today, fermetures exclues), rendu auto dans settings.js (badge « N à venir » + « dès le J mois »). Donn\u00e9e source : champ organizer de la sync (labels du site aujourd hui, plugin WP demain).
+- Séparateur « Affichage » (fût vide) retiré.
+- M7 : ajout réel de membre d équipe, carte formateurs avec l organisateur, plus de séparateur \u2014 79/79, régression **380/380**.
