@@ -22,6 +22,62 @@
         <div id="notFound" class="empty-state" hidden><p>Location introuvable.</p></div>
         <div id="locationContent" hidden></div>
 
+        <!-- v1.5.7 : modale Modifier la location -->
+        <div class="modal-overlay" id="locEditModal" hidden>
+            <div class="modal" role="dialog" aria-modal="true" aria-labelledby="locEditModalTitle" style="max-width:640px;">
+                <h3 id="locEditModalTitle">✏️ Modifier la location</h3>
+                <p class="form-hint">Les changements prennent effet dans le planning des salles immédiatement.</p>
+                <div class="form-group">
+                    <label for="editLocTitre">Locataire / intitulé *</label>
+                    <input type="text" id="editLocTitre">
+                </div>
+                <div class="form-group">
+                    <label for="editLocAnimateur">Animateur / formateur</label>
+                    <select id="editLocAnimateur"></select>
+                </div>
+                <div class="form-group">
+                    <label for="editLocContact">Contact (téléphone / email — interne)</label>
+                    <input type="text" id="editLocContact">
+                </div>
+                <div class="form-group">
+                    <label for="editLocNotes">Notes</label>
+                    <input type="text" id="editLocNotes">
+                </div>
+                <fieldset style="border:none;padding:0;margin:0.9rem 0;">
+                    <legend class="form-hint" style="padding:0;">Occurrences (dates &amp; créneaux) — <span id="editLocOccCount">0</span></legend>
+                    <div class="loc-grid">
+                        <div class="form-group" style="margin:0;">
+                            <label for="editLocDate">Date</label>
+                            <input type="date" id="editLocDate">
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="editLocSalleOcc">Salle</label>
+                            <select id="editLocSalleOcc"></select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="editLocCreneau">Créneau</label>
+                            <select id="editLocCreneau">
+                                <option value="AM">Matin (9h30–12h30)</option>
+                                <option value="PM">Après-midi (13h30–16h30)</option>
+                                <option value="JOURNEE">Journée (les deux créneaux)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label style="visibility:hidden;" aria-hidden="true">·</label>
+                            <button type="button" class="btn btn-primary" id="editLocAddDate">+ Ajouter</button>
+                        </div>
+                    </div>
+                    <p class="form-hint" id="editLocOccErreur" style="display:none;color:var(--danger, #b33);margin:0.4rem 0 0;"></p>
+                    <ul id="editLocChips" class="loc-chips"></ul>
+                    <p class="form-hint" style="margin:0.5rem 0 0;">Retire (✕) ou ajoute des occurrences — la salle reste présélectionnée d’un ajout à l’autre.</p>
+                </fieldset>
+                <div class="modal-actions" style="display:flex;gap:0.7rem;justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" id="editLocCancel">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="editLocSave">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
         <footer class="app-footer" style="margin-top:2rem;">
             <p>© 2024 Atelier du Web — Espace Public Numérique de Saint-Gilles — <a href="https://atelierduweb.be">atelierduweb.be</a></p>
         </footer>
@@ -39,6 +95,6 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="page-location.js?v=1"></script>
+    <script src="page-location.js?v=2"></script>
 </body>
 </html>

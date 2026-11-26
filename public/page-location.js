@@ -77,15 +77,9 @@
     function brancherActions(loc) {
         var editBtn = document.getElementById('locEditBtn');
         if (editBtn) editBtn.addEventListener('click', function () {
-            var salle = prompt('Salle (id) — salle actuelle : ' + (loc.room_name || '?') + ' :', loc.room_id || '');
-            if (salle === null) return;
-            var animateur = prompt('Animateur (nom, ou vide pour salle seule) :', loc.animateur || '');
-            if (animateur === null) return;
-            window.ADWDatabase.updateLocation(loc.id, {
-                room_id: salle || null,
-                animateur: animateur || null
-            }).then(function () { return charge(loc.id); })
-              .catch(function (err) { alert('Erreur : ' + err.message); });
+            window.ADWAuth.ensureUnlocked('Modifier une location \u2014 action r\u00e9serv\u00e9e \u00e0 l\u2019\u00e9quipe.').then(function (ok) {
+                if (ok) ouvrirModaleEdition(loc);
+            });
         });
         var delBtn = document.getElementById('locDeleteBtn');
         if (delBtn) delBtn.addEventListener('click', function () {
@@ -99,6 +93,120 @@
             });
         });
     }
+
+    // ---- v1.5.7 : modale d'\u00e9dition (titre, animateur, contact, notes + occurrences) ----
+    var editSeances = [];
+    var editCreneauLabel = { AM: 'Matin', PM: 'Apr\u00e8s-midi', JOURNEE: 'Journ\u00e9e' };
+    var editModal = document.getElementById('locEditModal');
+    var editSelSalle = document.getElementById('editLocSalleOcc');
+
+    function rendEditChips() {
+        var ul = document.getElementById('editLocChips');
+        ul.innerHTML = '';
+        editSeances.sort(function (a, b) { return a.date === b.date ? String(a.creneau).localeCompare(String(b.creneau)) : a.date.localeCompare(b.date); });
+        editSeances.forEach(function (occ, i) {
+            var li = document.createElement('li');
+            li.className = 'loc-chip';
+            var salleNom = occ.salle;
+            var optS = editSelSalle && editSelSalle.querySelector('option[value="' + esc(occ.salle) + '"]');
+            if (optS) salleNom = optS.textContent;
+            li.innerHTML = '<strong>' + new Date(occ.date + 'T12:00:00').toLocaleDateString('fr-BE', { day: 'numeric', month: 'short' }) + '</strong> ' + esc(salleNom) + ' \u00b7 ' + editCreneauLabel[occ.creneau] +
+                ' <button type="button" class="loc-chip-x" title="Retirer cette occurrence">\u2715</button>';
+            li.querySelector('.loc-chip-x').addEventListener('click', function () {
+                editSeances.splice(i, 1);
+                rendEditChips();
+            });
+            ul.appendChild(li);
+        });
+        document.getElementById('editLocOccCount').textContent = editSeances.length;
+    }
+
+    function ouvrirModaleEdition(loc) {
+        Promise.all([
+            window.ADWDatabase.listRooms().catch(function () { return []; }),
+            window.ADWDatabase.listOrganisateurs().catch(function () { return []; })
+        ]).then(function (sources) {
+            var salles = sources[0] || [];
+            var organisateurs = sources[1] || [];
+            editSelSalle.innerHTML = salles.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>'; }).join('');
+            var selA = document.getElementById('editLocAnimateur');
+            selA.innerHTML = '<option value="">\u2014 Sans animateur (salle seule) \u2014</option>' +
+                organisateurs.map(function (org) { return '<option value="' + esc(org.nom) + '">' + esc(org.nom) + '</option>'; }).join('');
+            document.getElementById('editLocTitre').value = loc.titre || '';
+            if (loc.animateur) {
+                var deja = selA.querySelector('option[value="' + esc(loc.animateur) + '"]');
+                if (!deja) { var o = document.createElement('option'); o.value = loc.animateur; o.textContent = loc.animateur; selA.appendChild(o); }
+            }
+            selA.value = loc.animateur || '';
+            document.getElementById('editLocContact').value = loc.contact || '';
+            document.getElementById('editLocNotes').value = loc.notes || '';
+            document.getElementById('editLocDate').value = new Date().toISOString().slice(0, 10);
+            // occurrences existantes : AM+PM m\u00eame date+m\u00eame salle \u2192 JOURNEE
+            editSeances = [];
+            var vus = {};
+            (loc.dates || []).forEach(function (d) {
+                var key = d.date + '|' + d.room_id;
+                if (vus[key] === 'AM' && d.slot === 'PM') {
+                    vus[key] = 'JOURNEE';
+                    editSeances = editSeances.map(function (o) { return (o.date === d.date && o.salle === d.room_id) ? { date: o.date, salle: o.salle, creneau: 'JOURNEE' } : o; });
+                } else {
+                    vus[key] = d.slot;
+                    editSeances.push({ date: d.date, salle: d.room_id, creneau: d.slot });
+                }
+            });
+            rendEditChips();
+            editModal.hidden = false;
+            document.getElementById('editLocTitre').focus();
+        });
+    }
+
+    document.getElementById('editLocCancel').addEventListener('click', function () { editModal.hidden = true; });
+    editModal.addEventListener('click', function (e) { if (e.target === editModal) editModal.hidden = true; });
+
+    document.getElementById('editLocAddDate').addEventListener('click', function () {
+        var err = document.getElementById('editLocOccErreur');
+        err.style.display = 'none';
+        var d = document.getElementById('editLocDate').value;
+        var c = document.getElementById('editLocCreneau').value;
+        var r = editSelSalle.value;
+        if (!r) { err.textContent = 'Choisis une salle avant d\u2019ajouter une occurrence.'; err.style.display = ''; return; }
+        if (!d) { err.textContent = 'Choisis une date.'; err.style.display = ''; return; }
+        if (editSeances.some(function (o) { return o.date === d && o.creneau === c && o.salle === r; })) {
+            err.textContent = 'Cette occurrence existe d\u00e9j\u00e0 (m\u00eame date, m\u00eame cr\u00e9neau, m\u00eame salle).';
+            err.style.display = '';
+            return;
+        }
+        editSeances.push({ date: d, salle: r, creneau: c });
+        rendEditChips();
+        var plus = new Date(d + 'T12:00:00');
+        plus.setDate(plus.getDate() + 1);
+        document.getElementById('editLocDate').value = plus.toISOString().slice(0, 10);
+    });
+
+    document.getElementById('editLocSave').addEventListener('click', function () {
+        var titre = document.getElementById('editLocTitre').value.trim();
+        if (!titre) { document.getElementById('editLocTitre').focus(); return; }
+        if (!editSeances.length) { alert('Ajoute au moins une occurrence, ou supprime la location.'); return; }
+        var dates = [];
+        editSeances.forEach(function (occ) {
+            var slots = occ.creneau === 'JOURNEE' ? ['AM', 'PM'] : [occ.creneau];
+            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle }); });
+        });
+        window.ADWDatabase.updateLocation(courante.id, {
+            titre: titre,
+            room_id: editSeances[0].salle,
+            animateur: document.getElementById('editLocAnimateur').value || null,
+            contact: document.getElementById('editLocContact').value.trim() || null,
+            notes: document.getElementById('editLocNotes').value.trim() || null,
+            dates: dates
+        }).then(function () {
+            editModal.hidden = true;
+            if (window.ADWNotifications) {
+                window.ADWNotifications.push('location_modifiee', '\uD83D\uDD11 Location modifi\u00e9e : \u00AB ' + titre + ' \u00BB.', 'info');
+            }
+            charge(courante.id);
+        }).catch(function (err) { alert('Erreur : ' + err.message); });
+    });
 
     function charge(id) {
         Promise.all([

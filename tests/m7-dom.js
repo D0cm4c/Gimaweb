@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.6', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.7', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -450,6 +450,27 @@ for (const p of PAGES) {
     const heroL = wf2.document.querySelector('.hero');
     verifie('location.html?id : fiche rendue sans erreur (hero + titre)', erreursF2.length === 0 && Boolean(heroL) && heroL.textContent.includes('Asso Test DOM'), erreursF2.join(' | '));
     verifie('location.html?id : 4 séances affichées (salle par séance)', (wf2.document.body.textContent || '').includes('4 séances') || wf2.document.querySelectorAll('#locationContent li').length === 4, wf2.document.querySelectorAll('#locationContent li').length);
+
+    // v1.5.7 : modale « Modifier » de la fiche (champs + occurrences pré-remplies)
+    wf2.localStorage.setItem('gimaweb_deverrouille_jusquau', String(Date.now() + 25 * 60 * 1000));
+    wf2.document.getElementById('locEditBtn').click();
+    await new Promise((r) => setTimeout(r, 700));
+    const modEdit = wf2.document.getElementById('locEditModal');
+    verifie('location.html : clic « Modifier » ouvre la modale d\u2019édition', Boolean(modEdit) && !modEdit.hidden);
+    verifie('location.html : titre pré-rempli', wf2.document.getElementById('editLocTitre').value === 'Asso Test DOM', wf2.document.getElementById('editLocTitre').value);
+    const chipsEdit = wf2.document.querySelectorAll('#editLocChips .loc-chip');
+    verifie('location.html : occurrences pré-remplies (3 chips, AM+PM fusionn\u00e9s en Journ\u00e9e)', chipsEdit.length === 3, [...chipsEdit].map((c) => c.textContent.trim()).join(' | '));
+    wf2.document.getElementById('editLocTitre').value = 'Asso Test DOM v2';
+    // retirer l'occurrence PM (Après-midi isolée)
+    [...chipsEdit].find((c) => c.textContent.includes('Apr') && c.textContent.includes('midi')).querySelector('.loc-chip-x').click();
+    await new Promise((r) => setTimeout(r, 200));
+    verifie('location.html : ✕ retire une occurrence dans la modale (2 chips)', wf2.document.querySelectorAll('#editLocChips .loc-chip').length === 2);
+    wf2.document.getElementById('editLocSave').click();
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('location.html : Enregistrer ferme la modale et rafraîchit la fiche', modEdit.hidden === true && wf2.document.querySelector('.hero').textContent.includes('v2'), wf2.document.querySelector('.hero') && wf2.document.querySelector('.hero').textContent.slice(0, 60));
+    const ficheV2 = await (await fetch(`${origine}/api/locations/${creee.id}`)).json();
+    verifie('location.html : PUT par la modale — 3 séances en base et titre v2', ficheV2.titre === 'Asso Test DOM v2' && ficheV2.dates.length === 3, { titre: ficheV2.titre, n: ficheV2.dates.length });
+
 
     // salles.html : la cellule location occupe la grille (class slot-location + lien location.html)
     const { errors: erreursS2, window: ws2 } = await chargerPage('salles.html');

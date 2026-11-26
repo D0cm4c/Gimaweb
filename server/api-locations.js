@@ -92,12 +92,10 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
             if (!room) return res.status(400).json({ erreur: 'Salle inconnue.' });
             roomId = room.id;
         }
+        // IMPORTANT : une propri\u00e9t\u00e9 pr\u00e9sente (m\u00eame null) = remplacement ; absente = conserv\u00e9e.
+        const champ = (nom, ancien) => (req.body && nom in req.body) ? (String(req.body[nom] ?? '').trim() || null) : ancien;
         db.prepare('UPDATE locations SET titre = ?, room_id = ?, animateur = ?, contact = ?, notes = ? WHERE id = ?')
-            .run(titre, roomId,
-                String(req.body?.animateur ?? l.animateur ?? '').trim() || null,
-                String(req.body?.contact ?? l.contact ?? '').trim() || null,
-                String(req.body?.notes ?? l.notes ?? '').trim() || null,
-                l.id);
+            .run(titre, roomId, champ('animateur', l.animateur), champ('contact', l.contact), champ('notes', l.notes), l.id);
         if (req.body?.dates) {
             const probleme = validerDates(req.body.dates);
             if (probleme) return res.status(400).json(probleme);
