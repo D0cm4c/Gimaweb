@@ -320,3 +320,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Champ « Dates : » du site = souvent UNE date seule (la borne de fin) ; la plage vit dans la description (« ferme ses portes du X au Y inclus »). Sync : si dates <= 1, on scanne la description ; la plage est cherchée aussi sur le texte brut (elle peut suivre le bloc « De 9h à 18h » que le clean tronque).
 - Contre-vérifié sur le vrai atelierduweb.be : Fermeture Annuelle => 2026-07-27 → 2026-08-08. La carte dashboard affiche « du … au … ».
 - M7 : mock 302 reformatté comme le site réel (Dates seul + plage dans la description après les horaires), bornes 14→17 août vérifiées dans le flot. **73/73**, régression **374/374**.
+
+## ✨ v1.4.10 — lien vers l_evenement dans la carte fermeture (PR #39)
+
+- Demande : bouton/lien vers l evement du site dans la carte Prochaine fermeture (controle humain quand la saisie des editeurs ou le parsing decev). Flot : url incluse dans prochaine_fermeture ; dashboard : lien <a target=_blank> affiche si url presente.
+- M7 : assertion du lien href atelierduweb.be/fermeture/ dans la carte. **74/74**, regression **375/375**.

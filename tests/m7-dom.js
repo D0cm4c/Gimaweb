@@ -123,7 +123,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.9 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.9', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.10 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.10', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -253,6 +253,7 @@ for (const p of PAGES) {
     await new Promise((r) => setTimeout(r, 900));
     const fem = wd.document.getElementById('nextClosure');
     verifie('dashboard : carte \u00ab Prochaine fermeture \u00bb visible avec la date', Boolean(fem) && !fem.hidden && fem.textContent.indexOf(' ao\u00fbt') !== -1 && fem.textContent.indexOf('17 ao\u00fbt') !== -1 , fem && fem.textContent.slice(0, 120));
+    verifie('dashboard : lien vers l\\u2019\\u00e9v\\u00e9nement du site dans la carte fermeture', fem && fem.querySelector('a[href*="atelierduweb.be/fermeture/"]') !== null);
     verifie('dashboard : la carte est AU-DESSUS de l\u2019agenda du jour', wd.document.getElementById('nextClosure').compareDocumentPosition(wd.document.getElementById('todayAgenda')) & wd.Node.DOCUMENT_POSITION_FOLLOWING);
     // v1.4.3 : les fermetures n'ont pas besoin de salle — hors planning et hors liste sans-salle
     const sansSalle = await (await fetch(`${origine}/api/formations/sans-salle`)).json();
