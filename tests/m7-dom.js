@@ -19,7 +19,7 @@ FLUX.push({ id: 307, title: { rendered: 'Formation découverte de l’informatiq
 FLUX.push({ id: 309, title: { rendered: 'Formation passee de janvier' }, link: 'https://atelierduweb.be/formation/passee/',
     excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Matin\u00e9e \uD83D\uDCC5 Dates : Le 5 janvier 2026 \u23f0 Horaires : De 9h30 \u00e0 12h30</p>' }, mec_category: [22] });
 FLUX.push({ id: 302, title: { rendered: 'Fermeture annuelle de l\u2019Atelier' }, link: 'https://atelierduweb.be/fermeture/',
-    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Du 14 au 17 ao\u00fbt 2027 inclus \u23f0 Horaires : De 9h00 \u00e0 18h00</p>' }, mec_category: [10] });
+    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Le 17 ao\u00fbt 2027 \u23f0 Horaires : De 9h00 \u00e0 18h00 \u2014 l\u2019Atelier ferme ses portes du 14 au 17 ao\u00fbt 2027 inclus</p>' }, mec_category: [10] });
 
 const mock = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
@@ -123,7 +123,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.8 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.8', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.9 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.9', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur

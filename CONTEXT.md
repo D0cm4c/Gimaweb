@@ -314,3 +314,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Parseur : plages « du X au Y » (mois après 1re ou 2e date, année unique partagée) — la fermeture annuelle réelle du site (« du 27 juillet au 08 août inclus ») parse ses 13 jours.
 - M7 : labels mockés avec GS/PS (attributions en base vérifiées), event passé masqué/affiché selon filtre, plage août 14→17. **73/73**, régression **374/374**.
 - Note : quand le plugin WP exposerait tout proprement, le parsing d'excerpt pourra être simplifié.
+
+## ✨ v1.4.9 — période de fermeture réelle affichée (PR #38)
+
+- Champ « Dates : » du site = souvent UNE date seule (la borne de fin) ; la plage vit dans la description (« ferme ses portes du X au Y inclus »). Sync : si dates <= 1, on scanne la description ; la plage est cherchée aussi sur le texte brut (elle peut suivre le bloc « De 9h à 18h » que le clean tronque).
+- Contre-vérifié sur le vrai atelierduweb.be : Fermeture Annuelle => 2026-07-27 → 2026-08-08. La carte dashboard affiche « du … au … ».
+- M7 : mock 302 reformatté comme le site réel (Dates seul + plage dans la description après les horaires), bornes 14→17 août vérifiées dans le flot. **73/73**, régression **374/374**.

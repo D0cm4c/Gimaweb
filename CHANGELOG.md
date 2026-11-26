@@ -95,3 +95,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Marges du dashboard (demande précédente)** : la marge interne des cartes (1,3rem) doublait le gap de la grille (1,1rem) — marges externes trop grandes sur « Prochaine fermeture » et « Aujourd'hui à l'Atelier » ; corrigé.
 - **Plages de dates (suite v1.4.1)** : le parseur gère maintenant « du 27 juillet au 08 août inclus » et « du 14 au 17 août 2027 » (mois après la 2e date, année unique pour les deux bornes) — la vraie fermeture annuelle du site affiche enfin sa date de fin.
 - M7 : lieux GS/PS mockés (attributions vérifiées en base), formation passée masquée avec « À venir » et affichée avec « Toutes », plage de fermeture parsée (14→17 août). 73/73. Régression : 374/374.
+## v1.4.9 — la vraie période de fermeture s'affiche (plage cherchée aussi dans la description)
+- **Complément demandé** : le champ « Dates : » des événements du site ne donne qu'une date (ex. « samedi 08 août ») pour la Fermeture Annuelle — la période complète (« ferme ses portes du 27 juillet au 08 août inclus ») vit dans la description. La sync scanne désormais la description en repli quand le champ Dates est seul, et la plage est cherchée aussi après le bloc horaires. Vérifié sur le vrai site : 27 juillet → 08 août (13 jours).
+- La carte « Prochaine fermeture » du dashboard affiche donc bien « du … au … » avec les vraies bornes de la fermeture réelle.
+- Mock aligné sur le schéma du site réel ; 73/73, régression 374/374.
