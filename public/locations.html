@@ -65,32 +65,47 @@
                 </div>
                 <fieldset style="border:none;padding:0;margin:0.9rem 0;">
                     <legend class="form-hint" style="padding:0;">Créneaux</legend>
-                    <div class="filter-group" style="padding:0;">
-                        <label for="locMode">Type</label>
-                        <select id="locMode">
-                            <option value="unique">Date unique</option>
-                            <option value="recurrent">Récurrente (chaque semaine)</option>
-                        </select>
-                        <label for="locCreneau">Créneau</label>
-                        <select id="locCreneau">
-                            <option value="AM">Matin (9h30–12h30)</option>
-                            <option value="PM">Après-midi (13h30–16h30)</option>
-                            <option value="JOURNEE">Journée (les deux créneaux)</option>
-                        </select>
+                    <!-- Grille qui s'enroule (v1.5.2 : l'ancien .filter-group flex sans wrap faisait
+                         déborder les champs dates hors de la modale). Les wrappers unique/récurrente
+                         sont en display:contents — leurs champs participent à la grille. -->
+                    <div class="loc-grid">
+                        <div class="form-group" style="margin:0;">
+                            <label for="locMode">Type</label>
+                            <select id="locMode">
+                                <option value="unique">Date unique</option>
+                                <option value="recurrent">Récurrente (chaque semaine)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="locCreneau">Créneau</label>
+                            <select id="locCreneau">
+                                <option value="AM">Matin (9h30–12h30)</option>
+                                <option value="PM">Après-midi (13h30–16h30)</option>
+                                <option value="JOURNEE">Journée (les deux créneaux)</option>
+                            </select>
+                        </div>
                         <span id="locUniqueWrap">
-                            <label for="locDate">Date</label>
-                            <input type="date" id="locDate">
+                            <span class="form-group" style="margin:0;display:block;">
+                                <label for="locDate">Date</label>
+                                <input type="date" id="locDate">
+                            </span>
                         </span>
                         <span id="locRecurWrap" style="display:none;">
-                            <label for="locJour">Jour de la semaine</label>
-                            <select id="locJour">
-                                <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
-                                <option value="4">Jeudi</option><option value="5">Vendredi</option>
-                            </select>
-                            <label for="locDu">Du</label>
-                            <input type="date" id="locDu">
-                            <label for="locAu">Au</label>
-                            <input type="date" id="locAu">
+                            <span class="form-group" style="margin:0;display:block;">
+                                <label for="locJour">Jour de la semaine</label>
+                                <select id="locJour">
+                                    <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
+                                    <option value="4">Jeudi</option><option value="5">Vendredi</option>
+                                </select>
+                            </span>
+                            <span class="form-group" style="margin:0;display:block;">
+                                <label for="locDu">Du</label>
+                                <input type="date" id="locDu">
+                            </span>
+                            <span class="form-group" style="margin:0;display:block;">
+                                <label for="locAu">Au</label>
+                                <input type="date" id="locAu">
+                            </span>
                         </span>
                     </div>
                 </fieldset>

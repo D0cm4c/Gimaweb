@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.1', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.2', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -397,6 +397,17 @@ for (const p of PAGES) {
     const modaleL = wl.document.getElementById('locationModal');
     verifie('locations.html : clic \u00ab Nouvelle location \u00bb ouvre la modale', Boolean(modaleL) && !modaleL.hidden);
     verifie('locations.html : le s\u00e9lecteur de salles est rempli', wl.document.getElementById('locSalle').options.length >= 3, wl.document.getElementById('locSalle').options.length);
+    // v1.5.2 : les champs dates ne doivent plus sortir de la modale (grille qui s'enroule,
+    // pas de .filter-group flex sans wrap) + bascule unique/récurrente fonctionnelle
+    verifie('locations.html : créneaux en grille .loc-grid (plus de flex non-enroulable)', Boolean(wl.document.querySelector('#locationModal .loc-grid')) && wl.document.querySelector('#locationModal .filter-group') === null);
+    verifie('locations.html : champ Date visible en mode unique', wl.document.getElementById('locUniqueWrap').style.display !== 'none' && wl.document.getElementById('locRecurWrap').style.display === 'none');
+    wl.document.getElementById('locMode').value = 'recurrent';
+    wl.document.getElementById('locMode').dispatchEvent(new wl.Event('change', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
+    verifie('locations.html : bascule récurrente → Jour/Du/Au affichés, Date masquée', wl.document.getElementById('locRecurWrap').style.display !== 'none' && wl.document.getElementById('locUniqueWrap').style.display === 'none');
+    wl.document.getElementById('locMode').value = 'unique';
+    wl.document.getElementById('locMode').dispatchEvent(new wl.Event('change', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 200));
     wl.document.getElementById('locTitre').value = 'Asso Test DOM';
     wl.document.getElementById('locCreneau').value = 'JOURNEE';
     // date = demain (la modale pr\u00e9-remplit aujourd'hui, on force demain pour \u00eatre \u00c0 venir)
