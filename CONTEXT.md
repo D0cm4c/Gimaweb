@@ -389,3 +389,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Les 2 modales : select Animateur dans le picker (sticky, optionnel), champ Animateur global retir\u00e9, location.animateur = celui de la 1\u00e8re occurrence. Fusion JOURNEE \u00e0 l'\u00e9dition : date+salle+animateur identiques.
 - Le\u00e7on : la virgule apr\u00e8s la derni\u00e8re colonne AVANT une contrainte UNIQUE dans schema.sql — oubli = SQLITE_ERROR au boot, toutes les suites en \u00ab serveur injoignable \u00bb (attrap\u00e9 par boot manuel).
 - m8 : 37/37, m7 : 125/125. R\u00e9gression 457/457. Cache : page-locations.js v4, page-location.js v3.
+
+## ✨ v1.5.9 — HTTPS LAN (certificat auto-signé)
+
+- serveur.js : si TLS_CERT+TLS_KEY existent \u2192 https.createServer (import dynamique node:https), sinon http. Log de boot annonce le sch\u00e9me + \u00ab TLS OK \u00bb. Fichiers TLS introuvables \u2192 repli HTTP + avertissement.
+- tools/generer-certificat.sh (SAN : localhost, gimaweb.local, 127.0.0.1, IP LAN) ; certs dans data/certs/ (gitignor\u00e9). .env.exemple document\u00e9. ADMINISTRATION.md section d\u00e9di\u00e9e.
+- tests/m9-https.js (9/9) : NODE_TLS_REJECT_UNAUTHORIZED=0 (undici fetch ignore l'option agent sous Node 22 \u2014 LE\u00c7ON), sortie du spawn retourn\u00e9e en GETTER (les strings sont des copies fig\u00e9es \u2014 LE\u00c7ON), serveurs tu\u00e9s \u00e0 la fin.
+- R\u00e9gression 466/466 (14 suites). m9 dans package.json + ci.yml.

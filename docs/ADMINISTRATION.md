@@ -106,3 +106,23 @@ sudo systemctl restart gimaweb
    Ou passer par l'app : `POST /api/base/remplacement {fichier_base64}` (session admin).
 2. Le serveur **valide** d'abord (`integrity_check`, jamais de base cassée en place), dépose le candidat, et **l'adopte au redémarrage suivant** : `sudo systemctl restart gimaweb`.
 3. Les fichiers WAL/SHM résiduels sont purgés à l'adoption (sinon l'ancienne base rejouerait ses transactions par-dessus la restaurée).
+
+## HTTPS sur le LAN (v1.5.9)
+
+L'app est servie aux postes en WiFi : sans HTTPS, le mot de passe admin et les
+données membres circulent en clair sur le réseau. Le serveur écoute donc en
+**HTTPS dès que le certificat existe**.
+
+Mise en place (une fois, sur la machine serveur) :
+
+1. `./tools/generer-certificat.sh` — génère `data/certs/gimaweb-cert.pem` + `gimaweb-key.pem`
+   (auto-signé, 10 ans, SAN : localhost + l'IP LAN de la machine ; jamais committés).
+2. Dans `.env` : `TLS_CERT=data/certs/gimaweb-cert.pem` et `TLS_KEY=data/certs/gimaweb-key.pem`.
+3. `systemctl restart gimaweb` — le log de boot doit annoncer `https://… TLS OK`.
+
+Sur les postes : accepter l'avertissement « certificat auto-signé » (ou importer
+`data/certs/gimaweb-cert.pem` dans les autorités de confiance du poste pour ne
+plus le voir). Renouvellement : relancer le script puis redémarrer.
+
+Sans certificat (ou fichiers introuvables), le serveur reste en HTTP et le
+signale au boot — utile en développement, à éviter en production WiFi.
