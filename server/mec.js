@@ -7,11 +7,24 @@ const WP_BASE = process.env.WP_BASE || WP_BASE_DEFAUT;
 const LABELS_URL = (process.env.ADW_LABELS_URL || WP_BASE.replace(/\/wp\/v2\/?$/, '/adw-mec/v1/labels'));
 const RSS_URL = process.env.ADW_RSS_URL || 'https://atelierduweb.be/feed/';
 
-export const stripHtml = (html) => String(html || '')
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&').replace(/&eacute;/gi, 'é').replace(/&egrave;/gi, 'è').replace(/&agrave;/gi, 'à')
-    .replace(/&#\d+;/g, ' ')
+// Décodeur d'entités HTML (WP renvoie titres et extraits encodés : &amp; &rsquo; &#8211; «…).
+// Correctif v1.4.7 : l'ancien stripHtml écrasait les entités numériques par une ESPACE
+// et ignorait la plupart des entités nommées — guillemets, apostrophes, tirets cassés.
+const ENTITES_NOMMEES = {
+    amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ',
+    hellip: '…', rsquo: '’', lsquo: '‘', rdquo: '”', ldquo: '“',
+    laquo: '«', raquo: '»', ndash: '–', mdash: '—',
+    eacute: 'é', egrave: 'è', agrave: 'à', ecirc: 'ê', ccedil: 'ç',
+    ugrave: 'ù', ocirc: 'ô', icirc: 'î', acirc: 'â', uuml: 'ü', ouml: 'ö', auml: 'ä'
+};
+export function decodeEntites(txt) {
+    return String(txt || '')
+        .replace(/&#x([0-9a-f]+);/gi, (m, h) => { try { return String.fromCodePoint(parseInt(h, 16)); } catch { return ' '; } })
+        .replace(/&#(\d+);/g, (m, d) => { try { return String.fromCodePoint(parseInt(d, 10)); } catch { return ' '; } })
+        .replace(/&([a-zA-Z]+);/g, (m, n) => (Object.prototype.hasOwnProperty.call(ENTITES_NOMMEES, n.toLowerCase()) ? ENTITES_NOMMEES[n.toLowerCase()] : m));
+}
+export const stripHtml = (html) => decodeEntites(String(html || '')
+    .replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
 
