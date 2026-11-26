@@ -28,6 +28,24 @@ export const creerApiAgregats = (db) => {
              ORDER BY fd.slot ASC, f.title ASC`
         ).all(ajd);
 
+        // v1.5.3 : les LOCATIONS d'aujourd'hui occupent aussi l'agenda du jour (interne)
+        const locationsJour = db.prepare(
+            `SELECT l.titre AS title, l.id AS location_id, l.animateur, fd.slot,
+             (SELECT name FROM rooms r WHERE r.id = l.room_id) AS room_name
+             FROM location_dates fd JOIN locations l ON l.id = fd.location_id
+             WHERE fd.date = ?
+             ORDER BY fd.slot ASC, l.titre ASC`
+        ).all(ajd).map((r) => ({ ...r, type: 'location' }));
+        // v1.5.3 : prochaines locations à venir (dashboard — c'est leur utilité majeure)
+        const prochainesLocations = db.prepare(
+            `SELECT ld.date, ld.slot, l.titre, l.id AS location_id, l.animateur,
+             (SELECT name FROM rooms r WHERE r.id = l.room_id) AS room_name
+             FROM location_dates ld JOIN locations l ON l.id = ld.location_id
+             WHERE ld.date >= date('now')
+             ORDER BY ld.date ASC, ld.slot ASC
+             LIMIT 8`
+        ).all();
+
         // Visites récentes (6 dernières, avec identités et motifs)
         const visitesRecentes = db.prepare(
             `SELECT v.visit_date, v.reason, m.first_name, m.last_name, m.member_no, v.amount
@@ -82,7 +100,8 @@ export const creerApiAgregats = (db) => {
                 impressions_dues_total: impTotal,
                 impressions_dues_debiteurs: impCompte
             },
-            agenda,
+            agenda: agenda.concat(locationsJour),
+        prochaines_locations: prochainesLocations,
             visites_recentes: visitesRecentes,
             impressions: { total: impTotal, compte: impCompte, top: impTop },
             date: ajd

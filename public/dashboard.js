@@ -157,6 +157,31 @@
         el.hidden = false;
     }
 
+    // v1.5.3 : Prochaines locations à venir — c'est leur utilité majeure (dashboard)
+    function renderNextLocations() {
+        var el = document.getElementById('nextLocations');
+        if (!el) return;
+        var rows = flot.prochaines_locations || [];
+        if (!rows.length) { el.hidden = true; el.innerHTML = ''; return; }
+        var fmtLoc = function (d) { return new Date(d + 'T12:00:00').toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' }); };
+        var html = '<div class="stat-card today-agenda" style="border-left:4px solid #7A5230;">' +
+            '<h3>\uD83D\uDD11 Prochaines locations <span class="members-count">' + rows.length + ' cr\u00e9neau' + (rows.length > 1 ? 'x' : '') + '</span></h3>' +
+            '<div class="agenda-list">';
+        rows.forEach(function (o) {
+            html += '<a class="agenda-item" href="location.html?id=' + encodeURIComponent(o.location_id) + '" style="text-decoration:none;">' +
+                '<span class="agenda-slot ' + (o.slot === 'AM' ? 'am' : 'pm') + '">' + (o.slot === 'AM' ? 'Matin' : 'A-midi') + '</span>' +
+                '<span class="agenda-bar" style="background:#7A5230;"></span>' +
+                '<span class="agenda-title">\uD83D\uDD11 ' + escapeHtml(o.titre) + '</span>' +
+                '<span class="agenda-time">' + fmtLoc(o.date) + '</span>' +
+                (o.animateur ? '<span class="agenda-count has-attendees">' + escapeHtml(o.animateur) + '</span>' : '') +
+                (o.room_name ? '<span class="agenda-room">' + escapeHtml(o.room_name) + '</span>' : '<span class="badge badge-full">sans salle</span>') +
+                '</a>';
+        });
+        html += '</div></div>';
+        el.innerHTML = html;
+        el.hidden = false;
+    }
+
     function renderTodayAgenda() {
         var el = document.getElementById('todayAgenda');
         if (!el) return;
@@ -173,6 +198,17 @@
             '<h3>📆 Aujourd\u2019hui à l\u2019Atelier <span class="members-count">' + rows.length + ' formation' + (rows.length > 1 ? 's' : '') + '</span></h3>' +
             '<div class="agenda-list">';
         rows.forEach(function (f) {
+            if (f.type === 'location') { // v1.5.3 : location de salle — interne, pas d'inscrits
+                html += '<a class="agenda-item" href="location.html?id=' + encodeURIComponent(f.location_id) + '" style="text-decoration:none;">' +
+                    '<span class="agenda-slot ' + (f.slot === 'AM' ? 'am' : 'pm') + '">' + (f.slot === 'AM' ? 'Matin' : 'A-midi') + '</span>' +
+                    '<span class="agenda-bar" style="background:#7A5230;"></span>' +
+                    '<span class="agenda-title">\uD83D\uDD11 ' + escapeHtml(f.title) + '</span>' +
+                    (f.animateur ? '<span class="agenda-time">' + escapeHtml(f.animateur) + '</span>' : '') +
+                    '<span class="agenda-count">location</span>' +
+                    (f.room_name ? '<span class="agenda-room">' + escapeHtml(f.room_name) + '</span>' : '<span class="badge badge-full">sans salle</span>') +
+                    '</a>';
+                return;
+            }
             var mainCat = (f.categories || '').split(',').map(function (c) { return c.trim(); }).filter(function (c) { return c && !/^\d+$/.test(c); })[0] || '';
             var tone = mainCat ? toneFor(mainCat) : -1;
             var bg = mainCat ? couleurCategorie(f.categories) : 'var(--primary)';
@@ -264,6 +300,7 @@
     function render() {
         obtenirFlot().then(function () {
         renderNextClosure();
+        renderNextLocations();
         renderTodayAgenda();
         renderMostWaited();
         renderLastNotifs();

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Locations — Gimaweb</title>
-    <link rel="stylesheet" href="styles.css?v=92">
+    <link rel="stylesheet" href="styles.css?v=93">
     <link rel="icon" href="assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
@@ -64,17 +64,14 @@
                     <input type="text" id="locNotes" placeholder="Optionnel (clé, matériel, consignes…)">
                 </div>
                 <fieldset style="border:none;padding:0;margin:0.9rem 0;">
-                    <legend class="form-hint" style="padding:0;">Créneaux</legend>
-                    <!-- Grille qui s'enroule (v1.5.2 : l'ancien .filter-group flex sans wrap faisait
-                         déborder les champs dates hors de la modale). Les wrappers unique/récurrente
-                         sont en display:contents — leurs champs participent à la grille. -->
+                    <legend class="form-hint" style="padding:0;">Occurrences (dates &amp; créneaux) — <span id="locOccCount">0</span></legend>
+                    <!-- v1.5.3 : sélecteur date + créneau avec bouton « Ajouter » — certaines locations
+                         ont lieu plusieurs fois par semaine ou à des dates irrégulières : on construit la
+                         liste occurrence par occurrence (chips supprimables avant enregistrement). -->
                     <div class="loc-grid">
                         <div class="form-group" style="margin:0;">
-                            <label for="locMode">Type</label>
-                            <select id="locMode">
-                                <option value="unique">Date unique</option>
-                                <option value="recurrent">Récurrente (chaque semaine)</option>
-                            </select>
+                            <label for="locDate">Date</label>
+                            <input type="date" id="locDate">
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label for="locCreneau">Créneau</label>
@@ -84,30 +81,14 @@
                                 <option value="JOURNEE">Journée (les deux créneaux)</option>
                             </select>
                         </div>
-                        <span id="locUniqueWrap">
-                            <span class="form-group" style="margin:0;display:block;">
-                                <label for="locDate">Date</label>
-                                <input type="date" id="locDate">
-                            </span>
-                        </span>
-                        <span id="locRecurWrap" style="display:none;">
-                            <span class="form-group" style="margin:0;display:block;">
-                                <label for="locJour">Jour de la semaine</label>
-                                <select id="locJour">
-                                    <option value="1">Lundi</option><option value="2">Mardi</option><option value="3">Mercredi</option>
-                                    <option value="4">Jeudi</option><option value="5">Vendredi</option>
-                                </select>
-                            </span>
-                            <span class="form-group" style="margin:0;display:block;">
-                                <label for="locDu">Du</label>
-                                <input type="date" id="locDu">
-                            </span>
-                            <span class="form-group" style="margin:0;display:block;">
-                                <label for="locAu">Au</label>
-                                <input type="date" id="locAu">
-                            </span>
-                        </span>
+                        <div class="form-group" style="margin:0;">
+                            <label style="visibility:hidden;" aria-hidden="true">·</label>
+                            <button type="button" class="btn btn-primary" id="locAddDate">+ Ajouter</button>
+                        </div>
                     </div>
+                    <p class="form-hint" id="locOccErreur" style="display:none;color:var(--danger, #b33);margin:0.4rem 0 0;"></p>
+                    <ul id="locChips" class="loc-chips"></ul>
+                    <p class="form-hint" style="margin:0.5rem 0 0;">Ajoute chaque date nécessaire — plusieurs fois par semaine, dates irrégulières, tout est possible. Chaque occurrence est supprimable avant d’enregistrer.</p>
                 </fieldset>
                 <div class="modal-actions" style="display:flex;gap:0.7rem;justify-content:flex-end;">
                     <button type="button" class="btn btn-secondary" id="locCancel">Annuler</button>
@@ -133,6 +114,6 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="page-locations.js?v=1"></script>
+    <script src="page-locations.js?v=2"></script>
 </body>
 </html>
