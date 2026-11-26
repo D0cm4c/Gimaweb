@@ -41,6 +41,18 @@
             for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
             return h % 10;
         }
+        // Couleur par CATEGORIE (charte, v1.4.5) : tablette/smartphone = vert #18A55F,
+        // trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 ;
+        // les autres categories gardent le ton deterministe par hash.
+        function couleurCategorie(cat) {
+            var s = (cat || '').toLowerCase();
+            if (s.indexOf('tablette') !== -1 || s.indexOf('smartphone') !== -1 || s.indexOf('mobile') !== -1) return '#18A55F';
+            if (s.indexOf('truc') !== -1) return '#B26A00';
+            if (s.indexOf('formation') === 0) return '#2F9BE4';
+            var tone = toneFor(cat);
+            return tone >= 0 ? TONE_SOLID[tone] : '#2F9BE4';
+        }
+
         var TONE_SOLID = ['#0F3D5C', '#6C5CE7', '#2F9BE4', '#18A55F', '#E8734A', '#B26A00', '#D8434B', '#7A5230', '#556B2F', '#4A4E69'];
 
         var currentFormation = null;
@@ -141,7 +153,7 @@
             var cats = (f.categories || '').split(',').map(function (c) { return c.trim(); }).filter(function (c) { return c && !/^\d+$/.test(c); });
             var mainCat = cats[0] || '';
             var tone = mainCat ? toneFor(mainCat) : -1;
-            var bannerStyle = tone >= 0 ? ' style="background:' + TONE_SOLID[tone] + '"' : '';
+            var bannerStyle = mainCat ? ' style="background:' + couleurCategorie(mainCat) + '"' : '';
 
             var attendees = ctx.attendees || [];
             var moduleDates = ctx.moduleDates || [];
@@ -312,8 +324,8 @@
             // Catégories (bloc sous la carte Inscrits)
             html += '<div class="stats-container" style="margin-top:1.2rem;margin-bottom:1.3rem;"><div class="stat-card"><h3>🗂 Catégories</h3>' +
                 (cats.length ? '<ul style="display:flex;gap:0.4rem;list-style:none;flex-wrap:wrap;">' + cats.map(function (c) {
-                    var t = toneFor(c);
-                    return '<li style="background:none;padding:0;margin:0;border:none;"><span class="tag" style="background:' + TONE_SOLID[t] + ';color:#fff;"><span class="month-dot" style="display:inline-block;background:rgba(255,255,255,0.6);margin-right:0.35rem;"></span>' + esc(c) + '</span></li>';
+                    var t = -1;
+                    return '<li style="background:none;padding:0;margin:0;border:none;"><span class="tag" style="background:' + couleurCategorie(c) + ';color:#fff;"><span class="month-dot" style="display:inline-block;background:rgba(255,255,255,0.6);margin-right:0.35rem;"></span>' + esc(c) + '</span></li>';
                 }).join('') + '</ul>' : '<p class="form-hint">Aucune catégorie.</p>') +
                 '</div></div>';
 

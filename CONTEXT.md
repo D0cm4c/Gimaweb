@@ -283,3 +283,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - (1) Modale « Pointer une visite » : handler input appelait displayCheckinResults (nom disparu à la migration, devenu afficherResultatsPointage) → ReferenceError à chaque frappe. (2) salles.html : getRoomPlanning recevait (debut, fin) du temps de SQL navigateur ; l'API serveur attend un mois YYYY-MM → 400 silencieux avalé par .catch, page sans colonnes de salles. Les deux : reliquats de la migration M5c.
 - Checks M7 : frappe réelle dans checkinSearch (terme inexistant → « Aucun membre trouvé », terme réel → membre retrouvé, 0 erreur) ; salles.html chargée avec les 3 salles en colonnes + grille du mois. **61/61**, régression **352/352**.
 - ⚠ Leçon : les promesses avalées (catch → []) cachent des 400 de contrat — un test devrait AUSSI piquer /api/salles/planning directement avec ce que la page envoie. Les deux bugs ont été corrigés... puis testés par rendu réel de page.
+
+## 🎨 v1.4.5 — couleurs par catégorie + favicon bi-couleur (PR #34)
+
+- Demande utilisateur : couleurs de bandeau par catégorie — tablette/smartphone = vert #18A55F, trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 (règle couleurCategorie partagée page-formations/page-formation/dashboard, repli hash pour les autres catégories). Favicon refait : bordeaux #9f0c45 + AW crème + bande lime #bbcc6a (favicon.ico 16/32, png 32/192/512, apple-touch).
+- M7 : mock enrichi (cats 11-13 + events 305/307), 4 nouvelles vérifications couleurs (3 cartes + hero). **66/66**, régression **366/366**.
+- ⚠ Leçon technique : insertion de fonction APRÈS une fermeture `}` repérée par find() — fragile (le find peut tomber sur un `}` intérieur) ; insertion d'une fonction partag\u00e9e : la placer TOUJOURS entre deux fonctions complètes, jamais à l'intérieur d'un corps.

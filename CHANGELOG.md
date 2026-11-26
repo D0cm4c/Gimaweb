@@ -76,3 +76,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Fix signalé 2** : les salles ne s'affichaient pas dans salles.html — `getRoomPlanning(bounds[0], bounds[1])` passait une DATE alors que l'API serveur attend un MOIS (YYYY-MM) : planning rejeté en 400 (entrée de mois invalide), page vide. L'appel passe désormais le mois courant ; les 3 salles (Grande, Petite, Cyber-espace) s'affichent avec la grille du mois.
 - Bumps cache : dashboard v41, page-salles v3.
 - M7 étendu : frappe réelle dans le moteur de recherche de pointage (filtre + résultat retrouvé + zéro erreur) et rendu complet de salles.html (3 colonnes salles, grille jours). 61/61. Régression : 352/352.
+## v1.4.5 — couleurs par catégorie (charte) + nouveau favicon aux couleurs maîtresses
+- **Couleurs par catégorie** (cartes formations, hero des fiches, agenda dashboard) : « Utilisation d'une tablette ou d'un smartphone » → vert #18A55F ; « Trucs et astuces » → ambre #B26A00 ; « Formation » → bleu #2F9BE4. Les autres catégories gardent le ton déterministe par hash. Règle partagée par les 3 pages (couleurCategorie).
+- **Favicon refait** aux couleurs maîtresses de l'Atelier du web : fond bordeaux #9f0c45, monogramme AW crème, bande lime #bbcc6a en bas — servi en favicon.ico (16+32), PNG 32/192/512, apple-touch-icon ; liens mis à jour dans les 12 pages.
+- Bumps cache : page-formations v42, page-formation v3, dashboard v42.
+- M7 étendu : 3 événements de test (tablette/trucs/formation) → couleurs de bandeau vérifiées sur les cartes + hero ; favicon.ico servi. 66/66. Régression : 366/366.
