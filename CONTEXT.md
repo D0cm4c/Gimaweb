@@ -342,3 +342,8 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Frontend : locations.html (modale : mode unique/récurrente, créneau AM/PM/JOURNEE=AM+PM, salles + organisateurs dans les selects), location.html (fiche), adw-client v3 (listLocations/getLocation/createLocation/updateLocation/deleteLocation/conflitsLocation + listOrganisateurs), layout cache v12 (+ nav Locations sous Salles, Suggestions dans `.side-extra` épinglé bas), styles (.loc-banner, .slot-location hachures brunes, .side-extra).
 - Tests : **m8-locations.js** (port 32137, 25/25 — CRUD garde admin, validations, journée, récurrence, conflits croisés, planning, cascade, zéro fuite wp-json). m7-dom : locations.html + location.html dans la liste des pages chargées, création réelle via la modale (seed localStorage gimaweb_deverrouille_jusquau + injection du cookie session dans etatCookies), fiche, cellule salles, sidebar. **97/97. Régression 417/417 (13 suites).**
 - Leçon :  les crash d'une suite jsdom laissent le serveur spawné fantôme (EADDRINUSE au run suivant) — toujours `pkill -f "node server/serveur.js"` entre deux runs après un crash.
+
+## 🚨 v1.5.1 — formateurs imbriqu\u00e9s dans la carte \u00c9quipe (param\u00e8tres.html)
+
+- Bug : le `<section class="settings-card">` de l'\u00c9quipe technique n'\u00e9tait pas ferm\u00e9 avant celui des Formateurs (v1.4.11) \u2192 la carte formateurs vivait DANS la carte \u00e9quipe. Fix : `</section>` ajout\u00e9, doublon de fin retir\u00e9, appariement des balises valid\u00e9 par script Python.
+- M7 : nouveau test `!carteEquipe.contains(carteFormateurs)` (cartes s\u0153urs via `closest('.settings-card')`). 98/98, r\u00e9gression 418/418.

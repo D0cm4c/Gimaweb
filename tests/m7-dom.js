@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.0', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.1', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -365,6 +365,10 @@ for (const p of PAGES) {
     const formateurs = [...wp2.document.querySelectorAll('#formateursListe li')].map((li) => li.textContent);
     verifie('parametres.html : carte Formateurs pr\u00e9sente avec l\u2019organisateur du site', formateurs.some((t) => t.indexOf('Nadia Franchi') !== -1), formateurs.join(' | '));
     verifie('parametres.html : plus de s\u00e9parateur \u00ab Affichage \u00bb', !wp2.document.body.textContent.includes('Affichage'));
+    // v1.5.1 : la carte Formateurs doit etre SOEUR de la carte Équipe technique (pas imbriquée dedans)
+    const carteEquipe = wp2.document.getElementById('teamTitle').closest('.settings-card');
+    const carteFormateurs = wp2.document.getElementById('formateursTitle').closest('.settings-card');
+    verifie('parametres.html : Formateurs hors de la carte Équipe technique (cartes soeurs)', Boolean(carteEquipe) && Boolean(carteFormateurs) && !carteEquipe.contains(carteFormateurs));
 }
 
 // ---- 1quindedeces) v1.5.0 : locations de salles \u2014 modale, filtre, fiche, planning salles, sidebar ----

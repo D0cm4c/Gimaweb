@@ -180,5 +180,9 @@ try {
     console.log(e.stack.split('\n').slice(0, 3).join('\n'));
 }
 webdav.close();
+// Hygiene : le 2e serveur (apres remplacement de base) doit etre tue aussi,
+// sinon il survit au process.exit et le run suivant parle au fantome (base supprimee sous ses pieds).
+try { if (courant) courant.kill(); } catch (e) { /* deja mort */ }
+await new Promise(r => setTimeout(r, 200));
 console.log(`\n${ok}/${tout} vérifications réussies`);
 try { process.exit(ok === tout ? 0 : 1); } catch { process.exit(1); }
