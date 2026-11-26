@@ -154,6 +154,7 @@
             return GET('/api/formations/' + encodeURIComponent(formationId) + '/conflits' + (roomId ? '?salle=' + encodeURIComponent(roomId) : ''));
         },
         formationsWithoutRoom: function () { return GET('/api/formations/sans-salle'); },
+        listOrganisateurs: function () { return GET('/api/formations/organisateurs'); },
 
         // ---- Listes d'attente ----
         addToWaitlist: function (memberId, formationEventId, formationTitle) {

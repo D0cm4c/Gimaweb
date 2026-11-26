@@ -123,6 +123,19 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
         return f;
     };
 
+    // Formateurs/animateurs : distillé de l'organisateur des événements du site (prochaines séances)
+    api.get('/formations/organisateurs', (req, res) => {
+        const rows = db.prepare(
+            `SELECT organizer AS nom, COUNT(*) AS seances, MIN(fd.date) AS prochaine
+             FROM formations f JOIN formation_dates fd ON fd.formation_id = f.id
+             WHERE f.organizer IS NOT NULL AND TRIM(f.organizer) != ''
+               AND lower(coalesce(f.categories, '')) NOT LIKE '%fermeture%'
+               AND fd.date >= date('now')
+             GROUP BY f.organizer ORDER BY prochaine ASC`
+        ).all();
+        res.json(rows);
+    });
+
     api.get('/formations', async (req, res) => {
         // Auto-sync si les données sont périmées (> 15 min) — transparent pour le lecteur
         if (Date.now() - derniereSync > SYNC_TTL) {

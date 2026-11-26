@@ -102,3 +102,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 ## v1.4.10 — carte fermeture : lien direct vers l'événement du site
 - **Demande** : les éditeurs du site ne sont pas toujours fiables dans la saisie et le parsing ne marchera pas à tous les coups — la carte « Prochaine fermeture » affiche désormais un lien 🔗 « Voir l'événement sur atelierduweb.be » vers la page de l'événement (URL stockée à la sync, incluse dans prochaine_fermeture du flot).
 - Test : présence du lien vers l'URL de l'événement vérifiée dans la carte. 74/74. Régression : 375/375.
+## v1.4.11 — parametres.html : équipe technique réparée, carte Formateurs/Animateurs, séparateur Affichage retiré
+- **Fix signalé** : impossible d'ajouter un membre de l'équipe technique — le HTML avait les ids de la maquette (teamList, newTeamMemberName, addTeamMemberBtn) mais settings.js cherchait d'autres ids (teamAdminList…) : la section ne se câblait jamais. Ids réalignés.
+- **Nouveauté demandée** : carte « Formateurs / Animateurs » dans le même style que l'équipe technique — liste AUTOMATIQUE des organisateurs des événements du site à venir (nouvel endpoint GET /api/formations/organisateurs : nom, nombre de séances à venir, prochaine date ; fermetures exclues). Rien à gérer : elle suit la sync du site.
+- **Demande** : le séparateur « Affichage » (fût vide) est retiré de la page.
+- Bumps cache : settings v34, adw-client v3. Tests : ajout réel d'un membre d'équipe (saisie + clic), carte formateurs alimentée par l'organisateur du mock, absence du séparateur. 79/79. Régression : 380/380.
