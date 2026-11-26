@@ -271,3 +271,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Démo retirée : bouton « Charger 20 membres de démo » (membres.html + câblage app.js) — jamais souhaitable en production.
 - ⚠ Leçon : un `rmSync('data')` dans un test est une bombe à retardement si un jour quelqu'un lance les tests où vit la vraie base — les tests doivent vivre dans un espace étanche, et chaque suite doit avoir sa PROPRE base (les serveurs fantômes de la suite précédente provoquent sinon des contraintes UNIQUE).
 - Régression **347/347**. data/ de production inatteignable.
+
+## 📌 RÈGLE DE VERSIONNEMENT (directive utilisateur, v1.4.3)
+
+- Sans demander : **incrémenter UNIQUEMENT le 3e chiffre** (ex. 1.4.3 → 1.4.4), bugfix comme nouveauté.
+- **2e chiffre (minor) ou 1er (major) : TOUJOURS demander confirmation à l'utilisateur AVANT** le bump + PR.
+- S'applique à package.json (la sidebar suit via /api/sante) et au CHANGELOG.
