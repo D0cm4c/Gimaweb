@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // ---- Mock atelierduweb.be (API WP publique + plugin labels) — boucle locale uniquement ----
 const FORMATIONS_FLUX = [
@@ -49,6 +49,7 @@ await new Promise((r) => mock.listen(32999, '127.0.0.1', r));
 const srv = spawn('node', ['server/serveur.js'], {
     env: {
         ...process.env,
+        DB_PATH: 'data-tests/gimaweb-m2a-formations.db',
         PORT: '32126',
         ADMIN_HASH_SHA256: hash,
         WP_BASE: 'http://127.0.0.1:32999/wp-json/wp/v2',
@@ -96,7 +97,7 @@ try {
     const membre = await fetchApi('/api/membres', json('POST', { first_name: 'Ida', last_name: 'Cardoso' }));
     // Le membre attend la formation 101 ET le même sujet en générique → l'inscription les retire
     const Database = (await import('better-sqlite3')).default;
-    const dbDirect = new Database('data/gimaweb.db');
+    const dbDirect = new Database('data-tests/gimaweb-m2a-formations.db');
     dbDirect.prepare('INSERT INTO waitlist (id, member_id, formation_event_id, formation_title) VALUES (?, ?, ?, ?)').run('w1', membre.body.id, '101', 'Perfectionnement tableur');
     dbDirect.prepare('INSERT INTO waitlist (id, member_id, formation_title) VALUES (?, ?, ?)').run('w2', membre.body.id, 'perfectionnement    TABLEUR');
     dbDirect.close();
@@ -106,7 +107,7 @@ try {
     const double = await fetchApi('/api/formations/101/inscrits', json('POST', { member_id: membre.body.id }));
     verifie('ré-inscription → 409', double.status === 409);
 
-    const dbW = new Database('data/gimaweb.db');
+    const dbW = new Database('data-tests/gimaweb-m2a-formations.db');
     const attentesRestantes = dbW.prepare('SELECT COUNT(*) AS n FROM waitlist').get().n;
     dbW.close();
     verifie('l\u2019inscription vide les 2 listes d\u2019attente (event + sujet)', attentesRestantes === 0, attentesRestantes);
@@ -141,7 +142,7 @@ try {
     verifie('la formation disparue a bien disparu', liste2.body.length === 1 && String(liste2.body[0].event_id) === '101', liste2.body.length);
 
     // Journal de notifications : chaque sync a notifié
-    const dbN = new Database('data/gimaweb.db');
+    const dbN = new Database('data-tests/gimaweb-m2a-formations.db');
     const notifs = dbN.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'sync_formations'").get().n;
     dbN.close();
     verifie('actions automatiques journalisées (2 notifications sync)', notifs === 2, notifs);

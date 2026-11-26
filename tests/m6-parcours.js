@@ -6,7 +6,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // ---- Mock atelierduweb.be (WP + plugin labels) ----
 const FLUX = [{
@@ -33,7 +33,7 @@ const mock = http.createServer((req, res) => {
 await new Promise((r) => mock.listen(32995, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32135', ADMIN_HASH_SHA256: hash, BACKUP_PASSPHRASE: 'phrase-parcours-m6',
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m6-parcours.db', PORT: '32135', ADMIN_HASH_SHA256: hash, BACKUP_PASSPHRASE: 'phrase-parcours-m6',
         WP_BASE: 'http://127.0.0.1:32995/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32995/wp-json/adw-mec/v1/labels' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -216,7 +216,7 @@ verifie('recherche : Fatouma retrouvée', recherche.membres.length === 1 && rech
 // ---- 17h00 : sauvegarde chiffrée + restauration (fin de journée) ----
 const sauvegarde = await C.sauvegardeChiffree();
 verifie('sauvegarde chiffrée déposée', sauvegarde && sauvegarde.ok !== false && (sauvegarde.fichier || sauvegarde.chemin || true), sauvegarde);
-const dbBase64 = fs.readFileSync('data/gimaweb.db').toString('base64');
+const dbBase64 = fs.readFileSync('data-tests/gimaweb-m6-parcours.db').toString('base64');
 const remp = await C.remplacerBase(dbBase64);
 verifie('remplacement de base programmé (redémarrage)', remp && remp.redemarrage_requis !== false, remp);
 

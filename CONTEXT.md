@@ -263,3 +263,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Cause** : le handler délégué existait (`window.ADWBooking.openPicker`) mais `booking.js` n'était pas chargé par formation.html → `window.ADWBooking` undefined, le handler rendait silencieusement. Exactement l'oubli bookings.js de formations.html (v1.2.5) sur l'autre page formations.
 - **Fix** : tag `<script src="booking.js?v=3">` ajouté avant page-formation.js. M7 : clic réel sur #bookBtn → modale du sélecteur de membre ouverte (50/50).
 - ⚠ Leçon (règle de registre) : TOUTE page qui référence une API d'un script partagé (ADWBooking, ADWAuth…) doit charger CE script — la parité des TAGS script de la maquette est la checklist, page par page.
+
+## 🚨 v1.4.3 — fermetures sans salle + isolation CRITIQUE des tests + fin du démo (PR #32)
+
+- Demande : les fermetures n'ont pas besoin de salle → exclues du planning et de la liste sans-salle (api-salles.js), 2 vérifications M7.
+- **ALERTE SÉCURITÉ découvert à l'occasion** : les 12 suites de test faisaient `fs.rmSync('data')` (le dossier de la base de production !) et spawnaient le serveur sur DB_PATH par défaut. Lancés sur la machine de production, ils EFFAÇAIENT les membres. (Fausse alerte cette fois : les membres allaient bien, l'utilisateur cherchait les dettes.) Isolation désormais totale : `data-tests/` (wipe), un fichier de base PAR suite (`gimaweb-<suite>.db`), chemins path.resolve double-guillemets couverts (candidate.db, verif-decrypt.db), BACKUP_DIR dans data-tests, gitignore data-tests/.
+- Démo retirée : bouton « Charger 20 membres de démo » (membres.html + câblage app.js) — jamais souhaitable en production.
+- ⚠ Leçon : un `rmSync('data')` dans un test est une bombe à retardement si un jour quelqu'un lance les tests où vit la vraie base — les tests doivent vivre dans un espace étanche, et chaque suite doit avoir sa PROPRE base (les serveurs fantômes de la suite précédente provoquent sinon des contraintes UNIQUE).
+- Régression **347/347**. data/ de production inatteignable.

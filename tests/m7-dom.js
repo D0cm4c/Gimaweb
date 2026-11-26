@@ -7,7 +7,7 @@ import path from 'path';
 import { JSDOM, VirtualConsole } from 'jsdom';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 import http from 'http';
 const FLUX = [{ id: 301, title: { rendered: 'Secret de mot de passe solide' }, link: 'https://atelierduweb.be/formation/motdepasse/',
@@ -24,7 +24,7 @@ const mock = http.createServer((req, res) => {
 await new Promise((r) => mock.listen(32993, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32136', ADMIN_HASH_SHA256: hash,
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m7-dom.db', PORT: '32136', ADMIN_HASH_SHA256: hash,
         WP_BASE: 'http://127.0.0.1:32993/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32993/inconnu' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -113,7 +113,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.2 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.2', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.3 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.3', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -244,6 +244,12 @@ for (const p of PAGES) {
     const fem = wd.document.getElementById('nextClosure');
     verifie('dashboard : carte \u00ab Prochaine fermeture \u00bb visible avec la date', Boolean(fem) && !fem.hidden && fem.textContent.indexOf(' ao\u00fbt') !== -1 && fem.textContent.indexOf('16 ao\u00fbt') !== -1 , fem && fem.textContent.slice(0, 120));
     verifie('dashboard : la carte est AU-DESSUS de l\u2019agenda du jour', wd.document.getElementById('nextClosure').compareDocumentPosition(wd.document.getElementById('todayAgenda')) & wd.Node.DOCUMENT_POSITION_FOLLOWING);
+    // v1.4.3 : les fermetures n'ont pas besoin de salle — hors planning et hors liste sans-salle
+    const sansSalle = await (await fetch(`${origine}/api/formations/sans-salle`)).json();
+    verifie('sans-salle : la fermeture n\u2019appara\u00eet pas', !sansSalle.some((f) => (f.title || '').indexOf('Fermeture') !== -1), sansSalle.length);
+    const planFer = await (await fetch(`${origine}/api/salles/planning?mois=2027-08`)).json();
+    verifie('planning salles : la fermeture n\u2019appara\u00eet pas', !planFer.some((l) => (l.title || '').indexOf('Fermeture') !== -1), planFer.length);
+
     const fav = await (await fetch(`${origine}/assets/icons/icon-192.png`));
     verifie('favicon servi (200)', fav.status === 200, fav.status);
     const idxHtml = await (await fetch(`${origine}/index.html`)).text();

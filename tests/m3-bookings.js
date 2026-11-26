@@ -4,10 +4,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32128', ADMIN_HASH_SHA256: hash, BOOKINGS_SECRET: 's3cr3t-adw' },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m3-bookings.db', PORT: '32128', ADMIN_HASH_SHA256: hash, BOOKINGS_SECRET: 's3cr3t-adw' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';
@@ -37,7 +37,7 @@ try {
     const paul = await fetchApi('/api/membres', json('POST', { first_name: 'Paul', last_name: 'Lambert', email: 'paul@test.be' }));
     const maurice = await fetchApi('/api/membres', json('POST', { first_name: 'Maurice', last_name: 'Carlier', email: 'maurice@test.be' }));
     const Database = (await import('better-sqlite3')).default;
-    const dbD = new Database('data/gimaweb.db');
+    const dbD = new Database('data-tests/gimaweb-m3-bookings.db');
     dbD.prepare("INSERT INTO formations (id, event_id, title, start_date) VALUES ('f-wp', '301', 'WordPress débutant', '2027-03-10')").run();
     dbD.close();
     verifie('setup : 3 membres (#1000-1002) + formation', jean.body.member_no === 1000 && paul.body.member_no === 1001 && maurice.body.member_no === 1002, jean.body);
@@ -57,7 +57,7 @@ try {
     ])));
     verifie('upsert → 4 ajoutées + notification réception', upsert.status === 200 && upsert.body.ajoutes === 4, upsert.body);
 
-    const dbC = new Database('data/gimaweb.db');
+    const dbC = new Database('data-tests/gimaweb-m3-bookings.db');
     const notifRecu = dbC.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'info' AND message LIKE '%réservation(s) récupérée(s)%'").get().n;
     dbC.close();
     verifie('notification de réception journalisée', notifRecu === 1, notifRecu);
@@ -77,7 +77,7 @@ try {
     // ---- Auto-traitement des certains ----
     const auto = await fetchApi('/api/bookings/traitement-automatique', json('POST'));
     verifie('auto-traitement → 2 rattachés (bk-1, bk-2)', auto.status === 200 && auto.body.traites === 2, auto.body);
-    const dbA = new Database('data/gimaweb.db');
+    const dbA = new Database('data-tests/gimaweb-m3-bookings.db');
     const autoLinks = dbA.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'auto_link'").get().n;
     const inscritsAvant = dbA.prepare('SELECT COUNT(*) AS n FROM formations_members WHERE formation_id = ?').get('f-wp').n;
     dbA.close();
@@ -95,7 +95,7 @@ try {
 
     const cree = await fetchApi('/api/bookings/bk-3/traitement', json('PUT', { action: 'created' }));
     verifie('bk-3 → created : membre #1003 créé + inscrit', cree.status === 200 && cree.body.action === 'created' && cree.body.member_no === 1003, cree.body);
-    const dbM = new Database('data/gimaweb.db');
+    const dbM = new Database('data-tests/gimaweb-m3-bookings.db');
     const zoe = dbM.prepare('SELECT first_name, last_name, email FROM members WHERE member_no = 1003').get();
     const mcree = dbM.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'member_created'").get().n;
     dbM.close();
@@ -110,7 +110,7 @@ try {
         { id: 'bk-1', event_id: '301', member_no: 1000, first_name: 'Jean', last_name: 'Dupont', email: 'autre@test.be', booked_at: '2026-11-20 10:00:00', status: 'canceled' }
     ])));
     verifie('upsert annulation → 1 désinscription miroir', annulation.status === 200 && annulation.body.desinscriptions === 1, annulation.body);
-    const dbI = new Database('data/gimaweb.db');
+    const dbI = new Database('data-tests/gimaweb-m3-bookings.db');
     const jeanInscrit = dbI.prepare("SELECT COUNT(*) AS n FROM formations_members fm JOIN members m ON m.id = fm.member_id WHERE m.first_name = 'Jean'").get().n;
     const autoUnlink = dbI.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'auto_unlink'").get().n;
     const bk1 = dbI.prepare('SELECT processed, processed_action FROM bookings_remote WHERE id = ?').get('bk-1');
@@ -139,7 +139,7 @@ try {
     verifie('tout marquer lu', toutesLues.status === 204);
     const clearLues = await fetchApi('/api/notifications/lues', { method: 'DELETE' });
     verifie('effacer les lues → plus rien', clearLues.status === 204);
-    const dbN = new Database('data/gimaweb.db');
+    const dbN = new Database('data-tests/gimaweb-m3-bookings.db');
     const restantes = dbN.prepare('SELECT COUNT(*) AS n FROM notifications').get().n;
     dbN.close();
     verifie('base notifications vide après purge des lues', restantes === 0, restantes);

@@ -66,7 +66,7 @@ export const creerApiSalles = (db, { sessionValide = () => false, notifier = () 
         const planning = db.prepare(
             `SELECT fd.date, fd.slot, fd.formation_id AS fid, f.title, f.event_id, f.categories, f.room_id
              FROM formation_dates fd JOIN formations f ON f.id = fd.formation_id
-             WHERE fd.date >= ? AND fd.date <= ?
+             WHERE fd.date >= ? AND fd.date <= ? AND lower(coalesce(f.categories, '')) NOT LIKE '%fermeture%'
              ORDER BY fd.date ASC, fd.slot ASC`
         ).all(debut, fin);
         res.json(planning);
@@ -94,7 +94,9 @@ export const creerApiSalles = (db, { sessionValide = () => false, notifier = () 
     api.get('/formations/sans-salle', (req, res) => {
         const sansSalle = db.prepare(
             `SELECT f.*, (SELECT COUNT(*) FROM formation_dates fd WHERE fd.formation_id = f.id) AS date_count
-             FROM formations f WHERE f.room_id IS NULL ORDER BY f.start_date ASC`
+             FROM formations f WHERE f.room_id IS NULL
+                 AND lower(coalesce(f.categories, '')) NOT LIKE '%fermeture%'
+             ORDER BY f.start_date ASC`
         ).all();
         res.json(sansSalle);
     });
