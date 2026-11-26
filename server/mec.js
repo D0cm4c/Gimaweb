@@ -32,8 +32,28 @@ export const stripHtml = (html) => decodeEntites(String(html || '')
 // « Les 15, 16, 22, 23 juin de 13h30 à 16h30 » (on coupe avant « de 13h »)
 export function parseFrDates(texte) {
     if (!texte) return [];
-    const clean = texte.replace(/\s+de\s+\d{1,2}\s?h.*$/i, '').trim();
-    const months = { janvier: 1, 'février': 2, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, 'août': 8, aout: 8, septembre: 9, octobre: 10, novembre: 11, 'décembre': 12, decembre: 12 };
+    let clean = texte.replace(/\s+de\s+\d{1,2}\s?h.*$/i, '').trim();
+    const months = { janvier: 1, 'f\u00e9vrier': 2, fevrier: 2, mars: 3, avril: 4, mai: 5, juin: 6, juillet: 7, 'ao\u00fbt': 8, aout: 8, septembre: 9, octobre: 10, novembre: 11, 'd\u00e9cembre': 12, decembre: 12 };
+    // Plage « du 27 juillet au 08 ao\u00fbt inclus » (v1.4.8) : on \u00e9num\u00e8re chaque jour ferm\u00e9
+    // Formes admises : « du 27 juillet au 08 ao\u00fbt » ET « du 14 au 17 ao\u00fbt 2027 » (mois apr\u00e8s la 2e date)
+    const pl = clean.toLowerCase().match(/du\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?\s+(?:au|jusqu(?:'|\u2019)?au)\s+(\d{1,2})(?:\s+([a-z\u00e9\u00fb]+))?(?:\s+(\d{4}))?/);
+    if (pl) {
+        const moisDep = months[pl[2]] || months[pl[5]] || 0;
+        const moisFin = months[pl[5]] || moisDep;
+        if (moisDep && moisFin) {
+            // une seule anne\u00e9e mentionn\u00e9e ? elle vaut pour les deux bornes
+            let anneeDep = pl[3] ? parseInt(pl[3], 10) : (pl[6] ? parseInt(pl[6], 10) : new Date().getFullYear());
+            let anneeFin = pl[6] ? parseInt(pl[6], 10) : anneeDep;
+            if (moisFin < moisDep && anneeFin === anneeDep) anneeFin += 1;
+            const dep = new Date(Date.UTC(anneeDep, moisDep - 1, parseInt(pl[1], 10)));
+            const fin = new Date(Date.UTC(anneeFin, moisFin - 1, parseInt(pl[4], 10)));
+            const jours = [];
+            for (let d = new Date(dep); d <= fin && jours.length < 60; d.setUTCDate(d.getUTCDate() + 1)) {
+                jours.push(d.toISOString().slice(0, 10));
+            }
+            if (jours.length) return jours;
+        }
+    }
     const m = clean.toLowerCase().match(/(\d{1,2}(?:\s*(?:,|et|&)\s*\d{1,2})*)\s+([a-zéû]+)\s*(\d{4})?/);
     if (!m) return [];
     const mois = months[m[2]];
@@ -115,7 +135,12 @@ async function fetchViaWpRest() {
     const evs = await page(1);
     const todayStr = new Date().toISOString().slice(0, 10);
     const aVenir = evs.filter((ev) => ev.startDate && ev.startDate >= todayStr);
-    return resolveCategories(aVenir);
+    // v1.4.8 : garder aussi les 20 dernières formations PASSÉES (le filtre
+    // « Toutes » de formations.html peut enfin montrer l'historique récent)
+    const passees = evs.filter((ev) => ev.startDate && ev.startDate < todayStr)
+        .sort((x, y) => (y.startDate < x.startDate ? -1 : y.startDate > x.startDate ? 1 : 0))
+        .slice(0, 20);
+    return resolveCategories(aVenir.concat(passees));
 }
 
 // Résout les IDs de catégories en noms (jamais d'ID numérique en base — le leurre historique de la maquette)

@@ -148,7 +148,7 @@
             var dFin = new Date(fem.date_fin + 'T12:00:00');
             dateTxt += ' au ' + dFin.toLocaleDateString('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' });
         }
-        el.innerHTML = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;border-left:4px solid var(--warning, #EFA02C);">' +
+        el.innerHTML = '<div class="stat-card today-agenda" style="border-left:4px solid var(--warning, #EFA02C);">' +
             '<h3>\uD83D\uDD34 Prochaine fermeture</h3>' +
             '<p style="margin:0.2rem 0 0;font-weight:700;">\uD83D\uDCC5 ' + (fem.title ? fem.title.replace(/fermeture/i, 'Fermeture').trim() : 'Fermeture') + '</p>' +
             '<p class="form-hint" style="margin:0.25rem 0 0;">' + dateTxt + (fem.time_label ? ' \u00b7 ' + fem.time_label : '') + ' \u2014 pr\u00E9viens les usagers \u00E0 l\u2019accueil.</p>' +
@@ -162,13 +162,13 @@
         var rows = flot.agenda || [];
         if (!rows.length) {
             // Journée calme : carte discrète plutôt qu'un trou
-            el.innerHTML = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;opacity:0.75;">' +
+            el.innerHTML = '<div class="stat-card today-agenda" style="opacity:0.75;">' +
                 '<h3>\ud83d\udcc6 Aujourd\u2019hui \u00e0 l\u2019Atelier</h3>' +
                 '<p class="form-hint" style="margin:0;">Aucune formation programm\u00e9e aujourd\u2019hui \u2014 journ\u00e9e calme \ud83c\udf3f</p></div>';
             el.hidden = false;
             return;
         }
-        var html = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;">' +
+        var html = '<div class="stat-card today-agenda" style="">' +
             '<h3>📆 Aujourd\u2019hui à l\u2019Atelier <span class="members-count">' + rows.length + ' formation' + (rows.length > 1 ? 's' : '') + '</span></h3>' +
             '<div class="agenda-list">';
         rows.forEach(function (f) {
@@ -198,7 +198,7 @@
             rows = rows || [];
         if (!rows.length) { el.hidden = true; return; }
         var total = rows.reduce(function (s, r) { return s + r.waiting; }, 0);
-        var html = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;">' +
+        var html = '<div class="stat-card today-agenda" style="">' +
             '<h3>\u{1F3AF} Les formations les plus attendues <span class="members-count">' + total + ' en attente</span></h3>' +
             '<div class="agenda-list">';
         rows.forEach(function (r, i) {
@@ -242,7 +242,7 @@
         function icoOf(n) {
             return n.severity === 'success' ? '✅' : n.severity === 'warning' ? '⚠️' : n.severity === 'danger' ? '❌' : 'ℹ️';
         }
-        var html = '<div class="stat-card today-agenda" style="margin-bottom:1.3rem;">' +
+        var html = '<div class="stat-card today-agenda" style="">' +
             '<h3>🔔 Derni\u00e8res notifications <a href="notifications.html" class="btn btn-secondary btn-small" style="margin-left:auto;font-size:0.72rem;">Tout voir \u2192</a></h3>' +
             '<div class="agenda-list">';
         items.forEach(function (n) {

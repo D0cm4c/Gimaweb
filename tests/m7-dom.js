@@ -16,20 +16,26 @@ FLUX.push({ id: 305, title: { rendered: 'Trucs et astuces : boîte mail &amp; sp
     excerpt: { rendered: '<p>⏳ Durée : 1 Après-midi 📅 Dates : Le 20 septembre 2027 ⏰ Horaires : De 13h30 à 16h30</p>' }, mec_category: [22, 12] });
 FLUX.push({ id: 307, title: { rendered: 'Formation découverte de l’informatique' }, link: 'https://atelierduweb.be/formation/decouverte/',
     excerpt: { rendered: '<p>⏳ Durée : 2 Matinées 📅 Dates : Le 3 octobre 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 13] });
+FLUX.push({ id: 309, title: { rendered: 'Formation passee de janvier' }, link: 'https://atelierduweb.be/formation/passee/',
+    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Matin\u00e9e \uD83D\uDCC5 Dates : Le 5 janvier 2026 \u23f0 Horaires : De 9h30 \u00e0 12h30</p>' }, mec_category: [22] });
 FLUX.push({ id: 302, title: { rendered: 'Fermeture annuelle de l\u2019Atelier' }, link: 'https://atelierduweb.be/fermeture/',
-    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Les 15 et 16 ao\u00fbt 2027 \u23f0 Horaires : De 9h00 \u00e0 18h00</p>' }, mec_category: [10] });
+    excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Du 14 au 17 ao\u00fbt 2027 inclus \u23f0 Horaires : De 9h00 \u00e0 18h00</p>' }, mec_category: [10] });
 
 const mock = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.url.startsWith('/wp-json/wp/v2/mec-events')) res.end(JSON.stringify(FLUX));
     else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }, { id: 11, name: 'Utilisation d\u2019une tablette ou d\u2019un smartphone' }, { id: 12, name: 'Truc et astuces' }, { id: 13, name: 'Formations' }, { id: 22, name: 'Ateliers' }, { id: 23, name: 'Ev\u00e8nement' }]));
+    else if (req.url.startsWith('/plugin-labels')) res.end(JSON.stringify({
+        '301': { labels: [], location: 'GS - Atelier du web' },
+        '307': { labels: [], location: 'PS - Atelier du web' }
+    }));
     else { res.statusCode = 404; res.end('{}'); }
 });
 await new Promise((r) => mock.listen(32993, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
     env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m7-dom.db', PORT: '32136', ADMIN_HASH_SHA256: hash,
-        WP_BASE: 'http://127.0.0.1:32993/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32993/inconnu' },
+        WP_BASE: 'http://127.0.0.1:32993/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32993/plugin-labels' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreursServeur = '';
@@ -117,7 +123,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.7 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.7', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.8 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.8', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -232,8 +238,8 @@ for (const p of PAGES) {
 // ---- 1septies) fermetures (v1.4.0) : exclusion de la page formations + carte dashboard ----
 {
     const flotF = await (await fetch(`${origine}/api/agregats/flot`)).json();
-    verifie('flot : prochaine_fermeture d\u00e9tect\u00e9e (15 ao\u00fbt 2027)', flotF.prochaine_fermeture && flotF.prochaine_fermeture.date === '2027-08-15', flotF.prochaine_fermeture);
-    verifie('flot : date_fin de fermeture (16 ao\u00fbt)', flotF.prochaine_fermeture && flotF.prochaine_fermeture.date_fin === '2027-08-16', flotF.prochaine_fermeture);
+    verifie('flot : prochaine_fermeture d\u00e9tect\u00e9e (du 14 ao\u00fbt)', flotF.prochaine_fermeture && flotF.prochaine_fermeture.date === '2027-08-14', flotF.prochaine_fermeture);
+    verifie('flot : date_fin de fermeture (17 ao\u00fbt, plage du\u00bb au \u00bb pars\u00e9e)', flotF.prochaine_fermeture && flotF.prochaine_fermeture.date_fin === '2027-08-17', flotF.prochaine_fermeture);
 
     const { window: wff } = await chargerPage('formations.html');
     await new Promise((r) => setTimeout(r, 1500));
@@ -246,7 +252,7 @@ for (const p of PAGES) {
     const { window: wd } = await chargerPage('index.html');
     await new Promise((r) => setTimeout(r, 900));
     const fem = wd.document.getElementById('nextClosure');
-    verifie('dashboard : carte \u00ab Prochaine fermeture \u00bb visible avec la date', Boolean(fem) && !fem.hidden && fem.textContent.indexOf(' ao\u00fbt') !== -1 && fem.textContent.indexOf('16 ao\u00fbt') !== -1 , fem && fem.textContent.slice(0, 120));
+    verifie('dashboard : carte \u00ab Prochaine fermeture \u00bb visible avec la date', Boolean(fem) && !fem.hidden && fem.textContent.indexOf(' ao\u00fbt') !== -1 && fem.textContent.indexOf('17 ao\u00fbt') !== -1 , fem && fem.textContent.slice(0, 120));
     verifie('dashboard : la carte est AU-DESSUS de l\u2019agenda du jour', wd.document.getElementById('nextClosure').compareDocumentPosition(wd.document.getElementById('todayAgenda')) & wd.Node.DOCUMENT_POSITION_FOLLOWING);
     // v1.4.3 : les fermetures n'ont pas besoin de salle — hors planning et hors liste sans-salle
     const sansSalle = await (await fetch(`${origine}/api/formations/sans-salle`)).json();
@@ -321,6 +327,25 @@ for (const p of PAGES) {
     await new Promise((r) => setTimeout(r, 1200));
     const hero = wh.document.querySelector('.hero');
     verifie('hero fiche (trucs) : fond ambre #B26A00', Boolean(hero) && (hero.getAttribute('style')||'').includes('#B26A00'), hero && hero.getAttribute('style'));
+}
+
+// ---- 1treizes) salles auto-attribuées depuis le lieu du site + formations passées (v1.4.8)
+{
+    const fl2 = await (await fetch(`${origine}/api/formations`)).json();
+    const f301 = fl2.find((x) => String(x.event_id) === '301');
+    const f307 = fl2.find((x) => String(x.event_id) === '307');
+    const f309 = fl2.find((x) => String(x.event_id) === '309');
+    verifie('GS - Atelier du web → salle Grande attribuée automatiquement', f301 && f301.room_id === 'room-grande', f301 && f301.room_id);
+    verifie('PS - Atelier du web → salle Petite attribuée automatiquement', f307 && f307.room_id === 'room-petite', f307 && f307.room_id);
+    verifie('les 20 formations passées sont conservées par la sync', Boolean(f309), fl2.length);
+    // page : la passée n'apparait qu'avec le filtre « Toutes »
+    const { window: wfp } = await chargerPage('formations.html');
+    await new Promise((r) => setTimeout(r, 1800));
+    const presente = () => [...wfp.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.indexOf('passee de janvier') !== -1);
+    verifie('filtre « À venir » : la formation passée est masquée', !presente());
+    wfp.document.querySelector('[data-period="all"]').click();
+    await new Promise((r) => setTimeout(r, 400));
+    verifie('filtre « Toutes » : la formation passée est affichée', presente());
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
