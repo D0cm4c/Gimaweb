@@ -382,3 +382,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - location.html : nouvelle #locEditModal (m\u00eame picker que la cr\u00e9ation, pr\u00e9-fix : titre/animateur/contact/notes + occurrences recharg\u00e9es, AM+PM m\u00eame date+salle fusionn\u00e9s en JOURNEE). page-location.js v2 : ouvrirModaleEdition/rendEditChips/editLocSave \u2192 PUT {titre, room_id=seances[0].salle, animateur, contact, notes, dates[]} puis charge().
 - Fix s\u00e9mantique PUT /locations/:id : propri\u00e9t\u00e9 pr\u00e9sente (m\u00eame null) = remplacement, absente = conserv\u00e9e (helper champ()). Avant, animateur:null ne vidait pas.
 - M7 : 122/122 (modale rejou\u00e9e : pr\u00e9-remplissage, fusion JOURNEE, \u2715, PUT v\u00e9rifi\u00e9 en base). R\u00e9gression 449/449.
+
+## ✨ v1.5.8 — animateur PAR occurrence (locations.html + modale Modifier)
+
+- Mod\u00e8le : location_dates.animateur optionnel (NULL \u2192 animateur de la location), migration idempotente au boot (pragma_table_info). COALESCE servi par fiche (par s\u00e9ance) + agenda dashboard.
+- Les 2 modales : select Animateur dans le picker (sticky, optionnel), champ Animateur global retir\u00e9, location.animateur = celui de la 1\u00e8re occurrence. Fusion JOURNEE \u00e0 l'\u00e9dition : date+salle+animateur identiques.
+- Le\u00e7on : la virgule apr\u00e8s la derni\u00e8re colonne AVANT une contrainte UNIQUE dans schema.sql — oubli = SQLITE_ERROR au boot, toutes les suites en \u00ab serveur injoignable \u00bb (attrap\u00e9 par boot manuel).
+- m8 : 37/37, m7 : 125/125. R\u00e9gression 457/457. Cache : page-locations.js v4, page-location.js v3.

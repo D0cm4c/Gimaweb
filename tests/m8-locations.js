@@ -162,6 +162,20 @@ try {
     const delAutre = await fetchApi(`/api/locations/${autrePetite.body.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
     verifie('nettoyage locations mixtes supprim\u00e9es', delMixte.status === 204 && delAutre.status === 204);
 
+    // ---- v1.5.8 : animateur PAR DATE (fallback sur celui de la location si absent) ----
+    const animee = await fetchApi('/api/locations', avecCookie(cookie, json('POST', {
+        titre: 'Loc animee', room_id: 'room-grande', animateur: 'Marco Polo',
+        dates: [{ date: '2026-09-28', slot: 'AM' }, { date: '2026-09-29', slot: 'AM', animateur: 'Nadia Franchi' }]
+    })));
+    verifie('POST animateur par date \u2192 201', animee.status === 201, animee.body);
+    const ficheAn = await fetchApi(`/api/locations/${animee.body.id}`);
+    verifie('fiche : animateur h\u00e9rit\u00e9 de la location quand absent de la date', ficheAn.body.dates[0].animateur === 'Marco Polo', ficheAn.body.dates[0]);
+    verifie('fiche : animateur SURCHARG\u00c9 par date (Nadia le 29)', ficheAn.body.dates[1].animateur === 'Nadia Franchi', ficheAn.body.dates[1]);
+    const agendaJour = await fetchApi('/api/agregats/flot');
+    verifie('flot : agenda du jour sans location aujourd\u2019hui (aucun crash du COALESCE)', Array.isArray(agendaJour.body.agenda), agendaJour.body.agenda && agendaJour.body.agenda.length);
+    const delAn = await fetchApi(`/api/locations/${animee.body.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
+    verifie('nettoyage location anim\u00e9e supprim\u00e9e', delAn.status === 204);
+
     // ---- Aucune fuite vers le site public : le mock n'a re\u00e7u aucune requ\u00eate contenant nos locataires ----
     const fuite = requetesVersLeSite.some(u => /voisins|yoga|th\u00e9\u00e2tre|chorale|location/i.test(decodeURIComponent(u)));
     verifie('aucune donn\u00e9e de location envoy\u00e9e vers wp-json (pull-only)', !fuite, requetesVersLeSite);

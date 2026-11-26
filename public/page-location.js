@@ -111,6 +111,7 @@
             var optS = editSelSalle && editSelSalle.querySelector('option[value="' + esc(occ.salle) + '"]');
             if (optS) salleNom = optS.textContent;
             li.innerHTML = '<strong>' + new Date(occ.date + 'T12:00:00').toLocaleDateString('fr-BE', { day: 'numeric', month: 'short' }) + '</strong> ' + esc(salleNom) + ' \u00b7 ' + editCreneauLabel[occ.creneau] +
+                (occ.animateur ? ' <em style="font-style:normal;opacity:0.75;">' + esc(occ.animateur) + '</em>' : '') +
                 ' <button type="button" class="loc-chip-x" title="Retirer cette occurrence">\u2715</button>';
             li.querySelector('.loc-chip-x').addEventListener('click', function () {
                 editSeances.splice(i, 1);
@@ -129,7 +130,7 @@
             var salles = sources[0] || [];
             var organisateurs = sources[1] || [];
             editSelSalle.innerHTML = salles.map(function (r) { return '<option value="' + esc(r.id) + '">' + esc(r.name) + '</option>'; }).join('');
-            var selA = document.getElementById('editLocAnimateur');
+            var selA = document.getElementById('editLocAnimateurOcc');
             selA.innerHTML = '<option value="">\u2014 Sans animateur (salle seule) \u2014</option>' +
                 organisateurs.map(function (org) { return '<option value="' + esc(org.nom) + '">' + esc(org.nom) + '</option>'; }).join('');
             document.getElementById('editLocTitre').value = loc.titre || '';
@@ -145,13 +146,13 @@
             editSeances = [];
             var vus = {};
             (loc.dates || []).forEach(function (d) {
-                var key = d.date + '|' + d.room_id;
+                var key = d.date + '|' + d.room_id + '|' + (d.animateur || '');
                 if (vus[key] === 'AM' && d.slot === 'PM') {
                     vus[key] = 'JOURNEE';
-                    editSeances = editSeances.map(function (o) { return (o.date === d.date && o.salle === d.room_id) ? { date: o.date, salle: o.salle, creneau: 'JOURNEE' } : o; });
+                    editSeances = editSeances.map(function (o) { return (o.date === d.date && o.salle === d.room_id && (o.animateur || '') === (d.animateur || '')) ? { date: o.date, salle: o.salle, creneau: 'JOURNEE', animateur: o.animateur } : o; });
                 } else {
                     vus[key] = d.slot;
-                    editSeances.push({ date: d.date, salle: d.room_id, creneau: d.slot });
+                    editSeances.push({ date: d.date, salle: d.room_id, creneau: d.slot, animateur: d.animateur || null });
                 }
             });
             rendEditChips();
@@ -176,7 +177,8 @@
             err.style.display = '';
             return;
         }
-        editSeances.push({ date: d, salle: r, creneau: c });
+        var selAnimE = document.getElementById('editLocAnimateurOcc');
+        editSeances.push({ date: d, salle: r, creneau: c, animateur: selAnimE && selAnimE.value ? selAnimE.value : null });
         rendEditChips();
         var plus = new Date(d + 'T12:00:00');
         plus.setDate(plus.getDate() + 1);
@@ -190,12 +192,12 @@
         var dates = [];
         editSeances.forEach(function (occ) {
             var slots = occ.creneau === 'JOURNEE' ? ['AM', 'PM'] : [occ.creneau];
-            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle }); });
+            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle, animateur: occ.animateur || null }); });
         });
         window.ADWDatabase.updateLocation(courante.id, {
             titre: titre,
             room_id: editSeances[0].salle,
-            animateur: document.getElementById('editLocAnimateur').value || null,
+            animateur: editSeances[0].animateur || null,
             contact: document.getElementById('editLocContact').value.trim() || null,
             notes: document.getElementById('editLocNotes').value.trim() || null,
             dates: dates

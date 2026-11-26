@@ -58,8 +58,8 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
                 String(req.body?.contact || '').trim() || null,
                 String(req.body?.notes || '').trim() || null,
                 new Date().toISOString());
-        const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id) VALUES (?, ?, ?, ?, ?)');
-        for (const d of req.body.dates) ins.run(nouvelId('ld'), id, d.date, d.slot, d.room_id ? String(d.room_id) : null);
+        const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id, animateur) VALUES (?, ?, ?, ?, ?, ?)');
+        for (const d of req.body.dates) ins.run(nouvelId('ld'), id, d.date, d.slot, d.room_id ? String(d.room_id) : null, d.animateur ? String(d.animateur).trim() || null : null);
         notifier('location_creee', `\uD83D\uDD11 Location cr\u00e9\u00e9e : \u00ab ${titre} \u00bb en ${room.name} (${req.body.dates.length} cr\u00e9neau${req.body.dates.length > 1 ? 'x' : ''}).`,
             'success', JSON.stringify({ location_id: id }));
         res.status(201).json(db.prepare('SELECT * FROM locations WHERE id = ?').get(id));
@@ -71,7 +71,8 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
         if (!l) return res.status(404).json({ erreur: 'Location introuvable.' });
         l.dates = db.prepare(
             `SELECT ld.date, ld.slot, COALESCE(ld.room_id, l.room_id) AS room_id,
-             (SELECT name FROM rooms r WHERE r.id = COALESCE(ld.room_id, l.room_id)) AS room_name
+             (SELECT name FROM rooms r WHERE r.id = COALESCE(ld.room_id, l.room_id)) AS room_name,
+             COALESCE(ld.animateur, l.animateur) AS animateur
              FROM location_dates ld JOIN locations l ON l.id = ld.location_id
              WHERE ld.location_id = ? ORDER BY ld.date ASC, ld.slot ASC`
         ).all(l.id);
@@ -100,8 +101,8 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
             const probleme = validerDates(req.body.dates);
             if (probleme) return res.status(400).json(probleme);
             db.prepare('DELETE FROM location_dates WHERE location_id = ?').run(l.id);
-            const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id) VALUES (?, ?, ?, ?, ?)');
-            for (const d of req.body.dates) ins.run(nouvelId('ld'), l.id, d.date, d.slot, d.room_id ? String(d.room_id) : null);
+            const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id, animateur) VALUES (?, ?, ?, ?, ?, ?)');
+            for (const d of req.body.dates) ins.run(nouvelId('ld'), l.id, d.date, d.slot, d.room_id ? String(d.room_id) : null, d.animateur ? String(d.animateur).trim() || null : null);
         }
         notifier('location_modifiee', `\uD83D\uDD11 Location modifi\u00e9e : \u00ab ${titre} \u00bb.`, 'info', JSON.stringify({ location_id: l.id }));
         res.json(db.prepare('SELECT * FROM locations WHERE id = ?').get(l.id));

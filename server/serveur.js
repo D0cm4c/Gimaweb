@@ -45,6 +45,10 @@ db.exec(fs.readFileSync(path.join(RACINE, 'server', 'schema.sql'), 'utf8'));
 const ldRoomCol = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('location_dates') WHERE name = 'room_id'").get();
 if (ldRoomCol.n === 0) db.exec('ALTER TABLE location_dates ADD COLUMN room_id TEXT;');
 
+// Migration v1.5.8 : location_dates.gagne animateur optionnel (animateur par date) sur les bases existantes
+const ldAnimCol = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('location_dates') WHERE name = 'animateur'").get();
+if (ldAnimCol.n === 0) db.exec('ALTER TABLE location_dates ADD COLUMN animateur TEXT;');
+
 // Migration M5c : visits.member_id devient nullable (visites anonymes) sur les bases existantes
 const memberIdNullable = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('visits') WHERE name = 'member_id' AND [notnull] = 0").get();
 if (memberIdNullable.n === 0) {

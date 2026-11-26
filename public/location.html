@@ -32,10 +32,6 @@
                     <input type="text" id="editLocTitre">
                 </div>
                 <div class="form-group">
-                    <label for="editLocAnimateur">Animateur / formateur</label>
-                    <select id="editLocAnimateur"></select>
-                </div>
-                <div class="form-group">
                     <label for="editLocContact">Contact (téléphone / email — interne)</label>
                     <input type="text" id="editLocContact">
                 </div>
@@ -61,6 +57,10 @@
                                 <option value="PM">Après-midi (13h30–16h30)</option>
                                 <option value="JOURNEE">Journée (les deux créneaux)</option>
                             </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="editLocAnimateurOcc">Animateur</label>
+                            <select id="editLocAnimateurOcc"></select>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label style="visibility:hidden;" aria-hidden="true">·</label>
@@ -95,6 +95,6 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="page-location.js?v=2"></script>
+    <script src="page-location.js?v=3"></script>
 </body>
 </html>
