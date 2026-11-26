@@ -97,7 +97,7 @@
                 o.textContent = r.name;
                 selSalle.appendChild(o);
             });
-            var selA = document.getElementById('locAnimateur');
+            var selA = document.getElementById('locAnimateurOcc');
             selA.innerHTML = '<option value="">— Sans animateur (salle seule) —</option>';
             organisateurs.forEach(function (org) {
                 var o = document.createElement('option');
@@ -140,6 +140,7 @@
             if (optS) salleNom = optS.textContent;
             li.className = 'loc-chip';
             li.innerHTML = '<strong>' + fmtCourt(occ.date) + '</strong> ' + esc(salleNom) + ' · ' + creneauLabel[occ.creneau] +
+                (occ.animateur ? ' <em style="font-style:normal;opacity:0.75;">' + esc(occ.animateur) + '</em>' : '') +
                 ' <button type="button" class="loc-chip-x" title="Retirer cette occurrence" aria-label="Retirer l’occurrence du ' + esc(occ.date) + '">✕</button>';
             li.querySelector('.loc-chip-x').addEventListener('click', function () {
                 seances.splice(i, 1);
@@ -169,7 +170,9 @@
             err.style.display = '';
             return;
         }
-        seances.push({ date: d, salle: r, creneau: c });
+        var selAnim = document.getElementById('locAnimateurOcc');
+        var anim = selAnim && selAnim.value ? selAnim.value : null;
+        seances.push({ date: d, salle: r, creneau: c, animateur: anim });
         rendChips();
         // avancer d'un jour pour enchaîner les occurrences proches
         var plus = new Date(d + 'T12:00:00');
@@ -184,7 +187,7 @@
         var dates = [];
         seances.forEach(function (occ) {
             var slots = occ.creneau === 'JOURNEE' ? ['AM', 'PM'] : [occ.creneau];
-            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle }); });
+            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle, animateur: occ.animateur || null }); });
         });
         return { dates: dates };
     }
@@ -197,7 +200,7 @@
         window.ADWDatabase.createLocation({
             titre: titre,
             room_id: seances.length ? seances[0].salle : document.getElementById('locSalle').value,
-            animateur: document.getElementById('locAnimateur').value || null,
+            animateur: seances.length ? (seances[0].animateur || null) : null,
             contact: document.getElementById('locContact').value.trim() || null,
             notes: document.getElementById('locNotes').value.trim() || null,
             dates: gen.dates

@@ -30,7 +30,7 @@ export const creerApiAgregats = (db) => {
 
         // v1.5.3 : les LOCATIONS d'aujourd'hui occupent aussi l'agenda du jour (interne)
         const locationsJour = db.prepare(
-            `SELECT l.titre AS title, l.id AS location_id, l.animateur, fd.slot,
+            `SELECT l.titre AS title, l.id AS location_id, COALESCE(fd.animateur, l.animateur) AS animateur, fd.slot,
              (SELECT name FROM rooms r WHERE r.id = l.room_id) AS room_name
              FROM location_dates fd JOIN locations l ON l.id = fd.location_id
              WHERE fd.date = ?

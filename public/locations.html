@@ -48,10 +48,6 @@
                     <input type="text" id="locTitre" placeholder="Ex. : Association XYZ — atelier photo">
                 </div>
                 <div class="form-group">
-                    <label for="locAnimateur">Animateur / formateur</label>
-                    <select id="locAnimateur"></select>
-                </div>
-                <div class="form-group">
                     <label for="locContact">Contact (téléphone / email — interne)</label>
                     <input type="text" id="locContact" placeholder="Optionnel">
                 </div>
@@ -80,6 +76,10 @@
                                 <option value="PM">Après-midi (13h30–16h30)</option>
                                 <option value="JOURNEE">Journée (les deux créneaux)</option>
                             </select>
+                        </div>
+                        <div class="form-group" style="margin:0;">
+                            <label for="locAnimateurOcc">Animateur</label>
+                            <select id="locAnimateurOcc"></select>
                         </div>
                         <div class="form-group" style="margin:0;">
                             <label style="visibility:hidden;" aria-hidden="true">·</label>
@@ -114,6 +114,6 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="page-locations.js?v=3"></script>
+    <script src="page-locations.js?v=4"></script>
 </body>
 </html>
