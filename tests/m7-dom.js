@@ -113,7 +113,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.3 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.3', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.4 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.4', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -254,6 +254,40 @@ for (const p of PAGES) {
     verifie('favicon servi (200)', fav.status === 200, fav.status);
     const idxHtml = await (await fetch(`${origine}/index.html`)).text();
     verifie('page : <link rel=\"icon\"> pr\u00e9sent', idxHtml.includes('rel="icon"'));
+}
+
+// ---- 1octies) dashboard : moteur de recherche de la modale « Pointer une visite »
+// (bug v1.4.4 : displayCheckinResults inexistant — chaque frappe levait une ReferenceError silencieuse)
+{
+    const { errors: erreursD, window: wdash, alertes: alD } = await chargerPage('index.html');
+    await new Promise((r) => setTimeout(r, 900));
+    wdash.document.getElementById('quickCheckinBtn')?.click();
+    await new Promise((r) => setTimeout(r, 600));
+    const modaleOuverte = wdash.document.getElementById('checkinModal');
+    verifie('dashboard : modale Pointer une visite ouverte', Boolean(modaleOuverte) && !modaleOuverte.hidden);
+    const cs = wdash.document.getElementById('checkinSearch');
+    verifie('dashboard : liste initiale affichée (sans recherche)', wdash.document.querySelectorAll('#checkinResults li.checkin-item').length >= 1);
+    cs.value = 'zzzz-existe-pas';
+    cs.dispatchEvent(new wdash.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 600));
+    verifie('dashboard : recherche pointage filtre (« aucun membre trouvé »)', wdash.document.getElementById('checkinResults').textContent.indexOf('Aucun membre trouv') !== -1, wdash.document.getElementById('checkinResults').textContent.slice(0, 60));
+    cs.value = 'niqueur';
+    cs.dispatchEvent(new wdash.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 600));
+    verifie('dashboard : recherche pointage retrouve le membre', wdash.document.querySelectorAll('#checkinResults li.checkin-item').length >= 1);
+    verifie('dashboard : aucune erreur JS pendant la recherche', erreursD.length === 0, erreursD.join(' | '));
+}
+
+// ---- 1novies) salles.html : la grille affiche les salles (bug v1.4.4 : getRoomPlanning recevait
+// une DATE au lieu du MOIS attendu -> planning 400 -> page vide)
+{
+    const { errors: erreursS, window: ws } = await chargerPage('salles.html');
+    await new Promise((r) => setTimeout(r, 1200));
+    const tete = [...ws.document.querySelectorAll('th.room-h')].map((t) => t.textContent);
+    verifie('salles.html : les 3 salles s\u2019affichent en colonnes', tete.length === 3, tete.join(' | '));
+    verifie('salles.html : colonne Grande salle pr\u00e9sente', tete.some((t) => t.indexOf('Grande') !== -1), tete.join(' | '));
+    verifie('salles.html : grille jours du mois rendue', ws.document.querySelectorAll('.room-planning tbody tr').length >= 28);
+    verifie('salles.html : aucune erreur JS', erreursS.length === 0, erreursS.join(' | '));
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----
