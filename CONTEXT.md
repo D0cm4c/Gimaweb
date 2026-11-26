@@ -376,3 +376,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Le CSS de la grille doit maintenant accueillir 4 cellules (auto-fit minmax 140px, s'enroule).
 - m8 : 32/32 (salle par date), m7 : 116/116. R\u00e9gression 443/443.
 - Repos : page-locations.js?v=3, page-location.js (salle par s\u00e9ance sur la fiche).
+
+## ✨ v1.5.7 — modale Modifier sur la fiche location.html
+
+- location.html : nouvelle #locEditModal (m\u00eame picker que la cr\u00e9ation, pr\u00e9-fix : titre/animateur/contact/notes + occurrences recharg\u00e9es, AM+PM m\u00eame date+salle fusionn\u00e9s en JOURNEE). page-location.js v2 : ouvrirModaleEdition/rendEditChips/editLocSave \u2192 PUT {titre, room_id=seances[0].salle, animateur, contact, notes, dates[]} puis charge().
+- Fix s\u00e9mantique PUT /locations/:id : propri\u00e9t\u00e9 pr\u00e9sente (m\u00eame null) = remplacement, absente = conserv\u00e9e (helper champ()). Avant, animateur:null ne vidait pas.
+- M7 : 122/122 (modale rejou\u00e9e : pr\u00e9-remplissage, fusion JOURNEE, \u2715, PUT v\u00e9rifi\u00e9 en base). R\u00e9gression 449/449.
