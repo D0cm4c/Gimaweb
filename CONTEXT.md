@@ -305,3 +305,12 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Fix serveur** : decodeEntites (numériques déc/hex + 25 entités nommées) branché dans stripHtml → titres, extraits, dates parses propres. Correction auto des lignes DB à la prochaine sync (mise à jour non-COALESCE au sync).
 - Test M7 : mock avec &amp; + &#8211; dans un titre → décodage vérifié côté API et à l'affichage. **68/68**, régression **368/368**.
 - ⚠ Leçon : WP « rendered » = HTML encodé — toute chaîne issue de wp-json doit passer par decodeEntites/stripHtml AVANT stockage ou affichage.
+
+## ✨ v1.4.8 — salles auto depuis le lieu + 20 formations passées + marges dashboard (PR #37)
+
+- Demande : les lieux du site « GS/PS - Atelier du web » désignent Grande/Petite salle — attribution automatique dans la sync (api-formations.js), WHERE room_id IS NULL (la décision manuelle prime), fermetures exclues, comptée dans le journal de sync. Le lieu viendra du plugin WP quand installé (déjà lu via l'endpoint labels).
+- Demande : montrer le passé — sync garde les 20 dernières formations passées (passees triées desc, slice 20) ; le filtre « À venir/Toutes » de formations.html devient réellement utile ; les anciennes partent seules aux syncs suivantes.
+- Marges dashboard : margin-bottom inline 1.3rem supprimé (doublait le gap 1.1rem de .mosaic).
+- Parseur : plages « du X au Y » (mois après 1re ou 2e date, année unique partagée) — la fermeture annuelle réelle du site (« du 27 juillet au 08 août inclus ») parse ses 13 jours.
+- M7 : labels mockés avec GS/PS (attributions en base vérifiées), event passé masqué/affiché selon filtre, plage août 14→17. **73/73**, régression **374/374**.
+- Note : quand le plugin WP exposerait tout proprement, le parsing d'excerpt pourra être simplifié.

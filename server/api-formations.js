@@ -26,7 +26,7 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
         const events = await chargerFormations();
         const now = new Date().toISOString();
         const keptIds = [];
-        let ajoutees = 0, misesAJour = 0;
+        let ajoutees = 0, misesAJour = 0, attributionsAuto = 0;
         for (const ev of events) {
             const existing = db.prepare('SELECT id FROM formations WHERE event_id = ?').get(String(ev.id));
             const categories = (ev.categories || []).join(', ');
@@ -56,6 +56,20 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
                 ajoutees += 1;
                 keptIds.push(formationId);
             }
+            // Attribution automatique de salle depuis le « lieu » du site (v1.4.8) :
+            // « GS - Atelier du web » → Grande salle · « PS - Atelier du web » → Petite salle.
+            // Seulement si aucune salle attribuée (la décision manuelle prime) et hors fermetures.
+            const lieu = String(ev.location || '');
+            const estFermeture = /fermeture/i.test(categories || '');
+            if (!estFermeture) {
+                let cible = null;
+                if (/\bGS\b|grande/i.test(lieu)) cible = db.prepare("SELECT id FROM rooms WHERE lower(name) LIKE 'grande%'").get();
+                else if (/\bPS\b|petite/i.test(lieu)) cible = db.prepare("SELECT id FROM rooms WHERE lower(name) LIKE 'petite%'").get();
+                if (cible) {
+                    const res = db.prepare('UPDATE formations SET room_id = ? WHERE id = ? AND room_id IS NULL').run(cible.id, keptIds[keptIds.length - 1]);
+                    if (res.changes) attributionsAuto += 1;
+                }
+            }
             // Dates + créneaux pour le planning des salles (remplacées à chaque sync)
             if (ev.dates && ev.dates.length) {
                 const slot = ev.slot || 'AM';
@@ -78,7 +92,7 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
             db.prepare('INSERT INTO notifications (id, type, severity, message, details) VALUES (?, ?, ?, ?, ?)').run(
                 nouvelId('n'), 'sync_formations', 'success',
                 `🔄 Sync formations : ${events.length} dans le flux — ${ajoutees} ajoutée(s), ${misesAJour} mise(s) à jour, ${retirees} retirée(s).`,
-                JSON.stringify({ total: events.length, ajoutees, misesAJour, retirees })
+                JSON.stringify({ total: events.length, ajoutees, misesAJour, retirees, attributionsAuto })
             );
         }
         return { total: events.length, ajoutees, misesAJour, retirees };
