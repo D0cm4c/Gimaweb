@@ -171,6 +171,20 @@ app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encor
 // Rôle A : fichiers statiques du frontend (public/ — livré en M5)
 app.use(express.static(path.join(RACINE, 'public')));
 
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[gimaweb] http://0.0.0.0:${PORT} — base ${DB_PATH}`);
-});
+// ---- HTTPS (v1.5.9) : en WiFi LAN, le mot de passe admin ne doit JAMAIS partir en clair.
+// Si TLS_CERT + TLS_KEY sont fournis (cf. tools/generer-certificat.sh), le serveur écoute en HTTPS.
+// Sinon il reste en HTTP (développement / machine isolée) — le schéma est affiché au boot.
+const TLS_CERT = process.env.TLS_CERT || '';
+const TLS_KEY = process.env.TLS_KEY || '';
+if (TLS_CERT && TLS_KEY && fs.existsSync(TLS_CERT) && fs.existsSync(TLS_KEY)) {
+    const https = (await import('node:https')).createServer(
+        { cert: fs.readFileSync(TLS_CERT), key: fs.readFileSync(TLS_KEY) }, app
+    );
+    https.listen(PORT, '0.0.0.0', () => {
+        console.log(`[gimaweb] https://0.0.0.0:${PORT} — base ${DB_PATH} — TLS OK (${path.basename(TLS_CERT)})`);
+    });
+} else {
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`[gimaweb] http://0.0.0.0:${PORT} — base ${DB_PATH}${(TLS_CERT || TLS_KEY) ? ' — TLS configuré mais fichiers introuvables, repli HTTP' : ''}`);
+    });
+}
