@@ -2163,3 +2163,24 @@ select {
     border-radius: 3px;
     line-height: 1.4;
 }
+
+/* ============ v1.5.0 : Locations de salles (locations.html / location.html) ============ */
+.loc-banner { background: repeating-linear-gradient(45deg, #7A5230, #7A5230 12px, #8A5F3A 12px, #8A5F3A 24px) !important; }
+.loc-card .f-card-title { color: var(--text); }
+/* créneau occupé par une location dans le planning des salles */
+.slot-cell .slot-busy.slot-location {
+    background: repeating-linear-gradient(45deg, #7A5230, #7A5230 10px, #9C7350 10px, #9C7350 20px) !important;
+    color: #fff;
+}
+/* v1.5.0 : Suggestions sorti du flux métier — épinglé en bas de la sidebar */
+.side-extra {
+    margin-top: auto;
+    padding: 1rem 1.2rem 0.4rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.side-extra a {
+    display: flex; align-items: center; gap: 0.55rem;
+    color: var(--side-text); text-decoration: none;
+    font-size: 0.88rem; font-weight: 600; opacity: 0.85;
+}
+.side-extra a:hover { color: #fff; opacity: 1; }

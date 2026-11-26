@@ -105,6 +105,7 @@ async function chargerPage(page) {
 }
 
 const PAGES = ['index.html', 'membres.html', 'formations.html', 'formation.html', 'membre.html', 'salles.html',
+    'locations.html', 'location.html',
     'tickets.html', 'ticket.html', 'stats.html', 'notifications.html', 'suggestions.html', 'parametres.html'];
 
 // ---- 1) Chaque page se charge sans erreur JS ----
@@ -123,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.11', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.0', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -364,6 +365,76 @@ for (const p of PAGES) {
     const formateurs = [...wp2.document.querySelectorAll('#formateursListe li')].map((li) => li.textContent);
     verifie('parametres.html : carte Formateurs pr\u00e9sente avec l\u2019organisateur du site', formateurs.some((t) => t.indexOf('Nadia Franchi') !== -1), formateurs.join(' | '));
     verifie('parametres.html : plus de s\u00e9parateur \u00ab Affichage \u00bb', !wp2.document.body.textContent.includes('Affichage'));
+}
+
+// ---- 1quindedeces) v1.5.0 : locations de salles \u2014 modale, filtre, fiche, planning salles, sidebar ----
+{
+    // Une location "pass\u00e9e" (hier) et le filtre \u00c0 venir / Toutes
+    const coL = await fetch(`${origine}/api/auth/connexion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'chantier' }) });
+    const ckL = (coL.headers.get('set-cookie') || '').split(';')[0];
+    etatCookies.value = ckL; // les fetch de la page doivent porter la session admin
+    const hier = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+    await fetch(`${origine}/api/locations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: ckL },
+        body: JSON.stringify({ titre: 'Yoga de test pass\u00e9', room_id: 'room-petite', dates: [{ date: hier, slot: 'AM' }] }) });
+
+    const { errors: erreursLoc, window: wl, alertes: alLoc } = await chargerPage('locations.html');
+    await new Promise((r) => setTimeout(r, 800));
+    verifie('locations.html : aucune erreur JS', erreursLoc.length === 0, erreursLoc.join(' | '));
+    verifie('locations.html : la location pass\u00e9e est masqu\u00e9e (\u00c0 venir)', ![...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Yoga de test pass')), [...wl.document.querySelectorAll('.f-card-title')].map((t) => t.textContent).join(' | '));
+    wl.document.querySelector('[data-period="all"]').click();
+    await new Promise((r) => setTimeout(r, 400));
+    verifie('locations.html : filtre \u00ab Toutes \u00bb affiche la pass\u00e9e', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Yoga de test pass')));
+
+    // Modale de cr\u00e9ation : clic r\u00e9el + saisie + JOURN\u00c9E \u2192 2 s\u00e9ances AM+PM en base
+    wl.document.querySelector('[data-period="upcoming"]')?.click();
+    wl.localStorage.setItem('gimaweb_deverrouille_jusquau', String(Date.now() + 25 * 60 * 1000)); // d\u00e9verrouill\u00e9 (session cookie d\u00e9j\u00e0 \u00e9tablie)
+    wl.document.getElementById('newLocationBtn').click();
+    await new Promise((r) => setTimeout(r, 600));
+    const modaleL = wl.document.getElementById('locationModal');
+    verifie('locations.html : clic \u00ab Nouvelle location \u00bb ouvre la modale', Boolean(modaleL) && !modaleL.hidden);
+    verifie('locations.html : le s\u00e9lecteur de salles est rempli', wl.document.getElementById('locSalle').options.length >= 3, wl.document.getElementById('locSalle').options.length);
+    wl.document.getElementById('locTitre').value = 'Asso Test DOM';
+    wl.document.getElementById('locCreneau').value = 'JOURNEE';
+    // date = demain (la modale pr\u00e9-remplit aujourd'hui, on force demain pour \u00eatre \u00c0 venir)
+    const demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    wl.document.getElementById('locDate').value = demain;
+    wl.document.getElementById('locSave').click();
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('locations.html : soumission ferme la modale (cr\u00e9\u00e9e)', modaleL.hidden === true, alLoc.join(' | '));
+    const locsServeur = await (await fetch(`${origine}/api/locations`)).json();
+    const creee = locsServeur.find((l) => l.titre === 'Asso Test DOM');
+    verifie('locations.html : la location cr\u00e9\u00e9e est en base (via la modale)', Boolean(creee), locsServeur.map((l) => l.titre));
+    const ficheCreee = creee && await (await fetch(`${origine}/api/locations/${creee.id}`)).json();
+    verifie('locations.html : JOURN\u00c9E \u2192 2 s\u00e9ances AM+PM', Boolean(ficheCreee) && ficheCreee.dates.length === 2 && ficheCreee.dates.every((d) => d.date === demain) && ficheCreee.dates.map((d) => d.slot).join(',') === 'AM,PM', ficheCreee);
+    verifie('locations.html : la carte appara\u00eet dans la grille', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Asso Test DOM')));
+
+    // Fiche location.html?id \u2014 rendue sans erreur, hero + s\u00e9ances
+    const { errors: erreursF2, window: wf2, navigations: navL } = await chargerPage(`location.html?id=${encodeURIComponent(creee.id)}`);
+    await new Promise((r) => setTimeout(r, 900));
+    const heroL = wf2.document.querySelector('.hero');
+    verifie('location.html?id : fiche rendue sans erreur (hero + titre)', erreursF2.length === 0 && Boolean(heroL) && heroL.textContent.includes('Asso Test DOM'), erreursF2.join(' | '));
+    verifie('location.html?id : 2 s\u00e9ances affich\u00e9es', (wf2.document.body.textContent || '').includes('2 s\u00e9ances') || wf2.document.querySelectorAll('#locationContent li').length === 2, wf2.document.querySelectorAll('#locationContent li').length);
+
+    // salles.html : la cellule location occupe la grille (class slot-location + lien location.html)
+    const { errors: erreursS2, window: ws2 } = await chargerPage('salles.html');
+    await new Promise((r) => setTimeout(r, 1200));
+    const cellule = [...ws2.document.querySelectorAll('a.slot-location')].find((c) => c.textContent.includes('Asso Test DOM'));
+    verifie('salles.html : la location nouvelle occupe une cellule (class slot-location)', Boolean(cellule) && cellule.textContent.includes('\ud83d\udd11'), cellule && cellule.textContent);
+    verifie('salles.html : la cellule pointe vers location.html?id', Boolean(cellule) && cellule.getAttribute('href').startsWith('location.html?id='), cellule && cellule.getAttribute('href'));
+    verifie('salles.html : aucune erreur JS avec la location dans le planning', erreursS2.length === 0, erreursS2.join(' | '));
+
+    // Sidebar : Locations sous Salles, Suggestions \u00e9pingl\u00e9e en bas (hors nav m\u00e9tier)
+}
+{
+    const { window: wnav } = await chargerPage('membres.html');
+    await new Promise((r) => setTimeout(r, 500));
+    const nav = wnav.document.querySelector('nav.side-nav') || wnav.document.querySelector('nav');
+    const liens = nav ? [...nav.querySelectorAll('a')].map((a) => ({ href: a.getAttribute('href'), txt: a.textContent.trim() })) : [];
+    const idxSalles = liens.findIndex((l) => (l.href || '').includes('salles.html'));
+    const idxLoc = liens.findIndex((l) => (l.href || '').includes('locations.html'));
+    verifie('sidebar : \u00ab Locations \u00bb juste sous \u00ab Salles \u00bb dans la nav', idxSalles !== -1 && idxLoc === idxSalles + 1, liens.map((l) => l.href).join(' | '));
+    const extra = wnav.document.querySelector('.side-extra');
+    verifie('sidebar : Suggestions dans .side-extra (hors nav m\u00e9tier)', Boolean(extra) && extra.textContent.includes('Suggestions') && !(nav && nav.textContent.includes('Suggestions')), extra && extra.textContent.trim());
 }
 
 // ---- 2) membres.html : le bouton « Importer XML » fonctionne DE BOUT EN BOUT ----

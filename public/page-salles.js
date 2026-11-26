@@ -69,7 +69,7 @@
             var byCell = {};
             planning.forEach(function (p) {
                 var key = p.date + '|' + p.room_id + '|' + p.slot;
-                byCell[key] = { fid: p.fid, title: p.title, event_id: p.event_id, cat: mainCatOf(p.categories) };
+                byCell[key] = { fid: p.fid, title: p.title, event_id: p.event_id, cat: mainCatOf(p.categories), type: p.type || 'formation' };
             });
 
             var daysInMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
@@ -112,7 +112,8 @@
                             occupied++;
                             var tone = cell.cat ? toneFor(cell.cat) : -1;
                             var bg = tone >= 0 ? TONE_SOLID[tone] : 'var(--primary)';
-                            html += '<td class="slot-cell busy' + colClass + '"><a href="formation.html?id=' + encodeURIComponent(cell.event_id) + '" class="slot-busy" style="background:' + bg + ';" title="' + esc(cell.title) + '">' + esc(shortTitle(cell.title)) + '</a></td>';
+                            var estLoc = cell.type === 'location';
+                            html += '<td class="slot-cell busy' + colClass + '"><a href="' + (estLoc ? 'location.html?id=' : 'formation.html?id=') + encodeURIComponent(cell.event_id) + '" class="slot-busy' + (estLoc ? ' slot-location' : '') + '"' + (estLoc ? '' : ' style="background:' + bg + ';"') + ' title="' + esc(cell.title) + '">' + (estLoc ? '🔑 ' : '') + esc(shortTitle(cell.title)) + '</a></td>';
                         } else {
                             html += '<td class="slot-cell' + colClass + (isWeekend ? ' muted' : '') + '"></td>';
                         }

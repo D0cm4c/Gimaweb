@@ -13,6 +13,7 @@ import { creerApiSalles } from './api-salles.js';
 import { creerApiNotifications } from './api-notifications.js';
 import { creerApiBookings } from './api-bookings.js';
 import { creerApiTickets } from './api-tickets.js';
+import { creerApiLocations } from './api-locations.js';
 import { creerApiAgregats } from './api-agregats.js';
 import { creerApiSauvegarde, adopterRemplacementAuDemarrage } from './sauvegarde.js';
 import fs from 'fs';
@@ -152,6 +153,7 @@ const prochainNumero = () => {
 app.use('/api', creerApiNotifications(db));
 app.use('/api', creerApiBookings(db, { notifier, prochainNumero }));
 app.use('/api', creerApiTickets(db, { sessionValide, notifier }));
+app.use('/api', creerApiLocations(db, { sessionValide, notifier }));
 app.use('/api', creerApiAgregats(db));
 app.use('/api', creerApiSauvegarde({ sessionValide, notifier, dbPath: DB_PATH }));
 app.use('/api', salles.api);
