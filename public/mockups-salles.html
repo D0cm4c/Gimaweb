@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gimaweb — salles.html : comparaison de 4 pistes de lisibilité</title>
+<style>
+    :root {
+        --bordeaux: #9f0c45; --lime: #bbcc6a; --brun: #7A5230;
+        --bleu: #2F9BE4; --vert: #18A55F; --ambre: #B26A00;
+        --surface: #fff; --bg: #f0eee8; --text: #22303c; --soft: #6b7a87; --border: #dcd8cd;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
+    header { background: var(--bordeaux); color: #fff; padding: 1.2rem 2rem; }
+    header h1 { margin: 0; font-size: 1.4rem; }
+    header p { margin: 0.3rem 0 0; opacity: 0.85; font-size: 0.9rem; }
+    main { max-width: 1180px; margin: 0 auto; padding: 1.5rem 2rem 4rem; }
+    .nav { display: flex; gap: .5rem; flex-wrap: wrap; margin: 1.2rem 0; }
+    .nav a { text-decoration: none; font-size: .85rem; font-weight: 700; padding: .45rem .8rem; border-radius: 999px; background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .nav a:hover { border-color: var(--bordeaux); }
+    section.mock { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.4rem 1.6rem; margin: 1.4rem 0; }
+    section.mock h2 { margin: 0 0 .2rem; font-size: 1.15rem; }
+    section.mock .verdict { float: right; font-size: .8rem; font-weight: 800; padding: .25rem .7rem; border-radius: 999px; }
+    .v-plus { background: #e4f3e9; color: #175c39; }
+    .v-moins { background: #fae8e8; color: #8f1f2d; }
+    .v-mitige { background: #fbf3df; color: #7a5510; }
+    .pro { margin: .3rem 0 .9rem; color: var(--soft); font-size: .92rem; }
+    ul.pourquoi { font-size: .9rem; margin: .3rem 0 1rem 1.1rem; padding: 0; }
+    ul.pourquoi li { margin: .25rem 0; }
+
+    /* ===== cadres communs des mockups ===== */
+    .mk { border: 1px solid var(--border); border-radius: 10px; overflow: auto; padding: .8rem; background: #fbfaf6; }
+    .mk .mtitle { font-size: .78rem; text-transform: uppercase; letter-spacing: .5px; color: var(--soft); font-weight: 800; margin: 0 0 .5rem; }
+    .evt { display: inline-block; border-radius: 6px; color: #fff; font-size: .68rem; font-weight: 700; padding: .14rem .4rem; margin: 1px; }
+    .f1 { background: var(--bleu); } .f2 { background: var(--vert); } .f3 { background: var(--ambre); }
+    .loc { background: repeating-linear-gradient(45deg, var(--brun), var(--brun) 6px, #8d6337 6px, #8d6337 12px); color: #fff; }
+    .jour { color: var(--soft); font-weight: 700; font-size: .8rem; }
+    .today { background: #fdf2d9 !important; }
+
+    /* ===== M1 : semaine glissante ===== */
+    table.sem { border-collapse: collapse; width: 100%; min-width: 720px; }
+    table.sem th { font-size: .75rem; padding: .4rem; border-bottom: 2px solid var(--border); }
+    table.sem th.j { color: var(--soft); }
+    table.sem td { padding: .35rem .3rem; border-bottom: 1px solid #eee9dd; vertical-align: top; min-width: 110px; }
+    .salle-lbl { font-weight: 800; font-size: .82rem; color: var(--text); white-space: nowrap; }
+    .cren { display: block; font-size: .62rem; color: var(--soft); margin: .12rem 0 0; text-transform: uppercase; }
+
+    /* ===== M2 : grille mensuelle condensée ===== */
+    table.mens { border-collapse: collapse; width: 100%; min-width: 640px; }
+    table.mens th { font-size: .72rem; padding: .35rem; border-bottom: 2px solid var(--border); }
+    table.mens th.grp { border-left: 3px solid; }
+    table.mens td { padding: .18rem; border-bottom: 1px solid #efeade; border-left: 1px solid #efeade; min-width: 120px; }
+    .wk { color: #b9b3a4; font-size: .72rem; }
+    tr.dim td.day { color: #c0b9aa; }
+
+    /* ===== M3 : agenda chronologique ===== */
+    .agenda .ag-jour { margin: .35rem 0; padding: .5rem .7rem; background: #fff; border: 1px solid var(--border); border-radius: 9px; }
+    .agenda .ag-jour.hierci { background: #f6f4ec; opacity: .85; }
+    .ag-head { display: flex; gap: .6rem; align-items: baseline; }
+    .ag-head strong { font-size: .92rem; }
+    .ag-head span { color: var(--soft); font-size: .78rem; }
+    .ag-item { display: flex; gap: .55rem; align-items: center; margin: .3rem 0 0 .2rem; }
+    .ag-slot { font-size: .66rem; font-weight: 800; color: #fff; background: var(--text); border-radius: 5px; padding: .1rem .38rem; }
+    .ag-slot.pm { background: var(--soft); }
+    .ag-room { margin-left: auto; font-size: .75rem; color: var(--soft); font-weight: 700; }
+
+    /* ===== M4 : colonnes par salle ===== */
+    .salles3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: .8rem; min-width: 700px; }
+    .col-salle { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: .7rem .8rem; }
+    .col-salle h4 { margin: 0 0 .5rem; font-size: .85rem; border-left: 4px solid var(--bordeaux); padding-left: .5rem; }
+    .occ { font-size: .75rem; margin: .4rem 0; padding: .3rem .45rem; background: #f8f6f0; border-radius: 7px; }
+    .occ .d { font-weight: 800; color: var(--soft); font-size: .68rem; display: block; }
+    .bar { height: 7px; border-radius: 4px; background: #e7e2d4; margin: .35rem 0 .15rem; position: relative; }
+    .bar i { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: linear-gradient(90deg, var(--lime), var(--bordeaux)); }
+
+    table.compare { border-collapse: collapse; width: 100%; margin-top: .6rem; background: #fff; font-size: .88rem; }
+    table.compare th, table.compare td { border: 1px solid var(--border); padding: .55rem .7rem; text-align: left; }
+    table.compare th { background: var(--bordeaux); color: #fff; font-size: .8rem; }
+    .etoiles { color: var(--bordeaux); letter-spacing: 2px; }
+    .reco { background: #fff; border: 2px solid var(--bordeaux); border-radius: 12px; padding: 1.2rem 1.5rem; margin-top: 1.6rem; }
+    .reco h2 { margin-top: 0; color: var(--bordeaux); }
+    footer { text-align: center; color: var(--soft); font-size: .8rem; padding: 1.5rem; }
+</style>
+</head>
+<body>
+<header style="background:repeating-linear-gradient(45deg,#7A5230,#7A5230 18px,#8d6337 18px,#8d6337 36px)">
+    <h1>⚠️ MOCKUP — page de réflexion, hors app — à supprimer après choix &nbsp;·&nbsp; salles.html — 4 pistes pour plus de lisibilité</h1>
+    <p>Mockups statiques comparables (données fictives). Rien n'est encore codé — on choisit une piste, je l'implémente.</p>
+</header>
+<main>
+
+<nav class="nav">
+    <a href="#m1">M1 — Semaine glissante</a>
+    <a href="#m2">M2 — Grille mensuelle condensée</a>
+    <a href="#m3">M3 — Agenda chronologique</a>
+    <a href="#m4">M4 — Colonnes par salle</a>
+    <a href="#compare">Tableau + recommandation</a>
+</nav>
+
+<section class="mock" id="m1">
+    <span class="verdict v-plus">✓ ma préférée</span>
+    <h2>M1 — Semaine glissante (7 jours, une ligne par salle)</h2>
+    <p class="pro">Le mois entier en 31 lignes disparaît : on affiche <strong>la semaine en cours</strong> (7 colonnes journées × une ligne par salle), chaque cellule contenant ses créneaux AM/PM en puces. Navigation ◀ semaine précédente / semaine suivante ▶, retour à aujourd'hui. La vue tient TOUJOURS dans un écran.</p>
+    <ul class="pourquoi">
+        <li><strong>+ lecture horizontale naturelle</strong> : la journée se lit en colonne, la salle en ligne — les conflits d'une journée sautent aux yeux.</li>
+        <li><strong>+ une semaine = 21 cellules</strong> au lieu de ~186 : texte agrandi, puces cliquables confortables.</li>
+        <li><strong>+ répond à la vraie question de l'accueil : « cette semaine, qu'est-ce qui se passe ? »</strong></li>
+        <li>− il faut naviguer pour voir le mois entier (moins bon pour la planification à long terme).</li>
+    </ul>
+    <div class="mk">
+        <p class="mtitle">▶ Mockup — semaine du 16 au 22 novembre</p>
+        <table class="sem">
+            <tr><th class="salle-lbl">Salle</th><th class="j">lun 16</th><th class="j">mar 17</th><th class="j">mer 18 <span style="color:var(--bordeaux)">● aujourd'hui</span></th><th class="j">jeu 19</th><th class="j">ven 20</th><th class="j">sam 21</th><th class="j">dim 22</th></tr>
+            <tr>
+                <td class="salle-lbl">\U0001F3EB Grande salle</td>
+                <td></td>
+                <td><span class="evt f2">Tablette</span><span class="cren">matin</span></td>
+                <td class="today"><span class="evt f1">Mot de passe</span><span class="cren">matin</span></td>
+                <td><span class="evt loc">\U0001F511 Asso photo</span><span class="cren">journée</span></td>
+                <td><span class="evt f3">Trucs mail</span><span class="cren">a-midi</span></td>
+                <td colspan="2" style="color:#c9c2b2;font-size:.75rem;text-align:center">week-end</td>
+            </tr>
+            <tr>
+                <td class="salle-lbl">\U0001F3EB Petite salle</td>
+                <td><span class="evt loc">\U0001F511 Yoga</span><span class="cren">a-midi</span></td>
+                <td></td>
+                <td class="today"><span class="evt f1">Découverte</span><span class="cren">matin</span></td>
+                <td><span class="evt loc">\U0001F511 Chorale</span><span class="cren">matin</span></td>
+                <td></td>
+                <td colspan="2" style="color:#c9c2b2;font-size:.75rem;text-align:center">week-end</td>
+            </tr>
+            <tr>
+                <td class="salle-lbl">\U0001F4BB Cyber-espace</td>
+                <td><span class="evt f2">Smartphone</span><span class="cren">a-midi</span></td>
+                <td class="today"><span class="evt f2">Tablette 2</span><span class="cren">a-midi</span></td>
+                <td class="today"><span class="evt loc">\U0001F511 Réunion</span><span class="cren">a-midi</span></td>
+                <td></td>
+                <td><span class="evt f1">Excel</span><span class="cren">matin</span></td>
+                <td colspan="2" style="color:#c9c2b2;font-size:.75rem;text-align:center">week-end</td>
+            </tr>
+        </table>
+        <p style="margin:.7rem 0 0"><button style="font-weight:700">◀</button> <button style="font-weight:700">▶</button> <button style="font-weight:700">Aujourd'hui</button> &nbsp;<em style="color:var(--soft);font-size:.8rem">(semaine affichée : 16–22 nov. 2026)</em></p>
+    </div>
+</section>
+
+<section class="mock" id="m2">
+    <span class="verdict v-mitige">améliore l'existant sans le changer</span>
+    <h2>M2 — Grille mensuelle condensée (l'actuelle, resserrée)</h2>
+    <p class="pro">On garde le mois complet, mais : <strong>1 cellule par jour et par salle</strong> (les 2 créneaux empilés dedans au lieu de 2 colonnes séparées), entêtes groupés par salle avec liseré de couleur, week-ends fusionnés en une seule colonne grise, aujourd'hui surligné. Nombre de colonnes divisé par deux.</p>
+    <ul class="pourquoi">
+        <li><strong>+ planification longue</strong> : le mois d'un coup d'œil, idéal pour placer une location à J+3 semaines.</li>
+        <li><strong>+ familiarité</strong> : même logique qu'aujourd'hui, aucune réapprentissage.</li>
+        <li>− reste 30+ lignes : il faut scroller, les cellules restent petites.</li>
+        <li>− la lisibilité gagne 40 % mais ne se transforme pas.</li>
+    </ul>
+    <div class="mk">
+        <p class="mtitle">▶ Mockup — novembre 2026 (extrait)</p>
+        <table class="mens">
+            <tr><th></th><th class="grp" style="border-color:var(--bordeaux)" colspan="1">Grande salle</th><th class="grp" style="border-color:var(--vert)">Petite salle</th><th class="grp" style="border-color:var(--bleu)">Cyber-espace</th></tr>
+            <tr class="dim"><td class="day jour">dim 1</td><td class="wk" colspan="3">week-end</td></tr>
+            <tr><td class="jour">lun 2</td><td><span class="evt f2">Tablette</span></td><td></td><td><span class="evt f2">Smartphone</span></td></tr>
+            <tr><td class="jour">mar 3</td><td><span class="evt f1">Mot de passe</span><span class="cren">AM</span><span class="evt f3">Trucs</span><span class="cren">PM</span></td><td></td><td><span class="evt f1">Excel</span></td></tr>
+            <tr class="dim"><td class="day jour">mer 4</td><td class="wk" colspan="3">week-end</td></tr>
+            <tr class="today"><td class="jour">● mer 18</td><td><span class="evt f1">Mot de passe</span></td><td><span class="evt f1">Découverte</span></td><td><span class="evt loc">\U0001F511 Réunion</span></td></tr>
+            <tr><td class="jour">jeu 19</td><td><span class="evt loc">\U0001F511 Asso photo</span></td><td><span class="evt loc">\U0001F511 Chorale</span></td><td></td></tr>
+        </table>
+        <p style="margin:.7rem 0 0"><em style="color:var(--soft);font-size:.8rem">(extrait — la vraie grille montre tout le mois ; les week-ends passent en une colonne grise unie)</em></p>
+    </div>
+</section>
+
+<section class="mock" id="m3">
+    <span class="verdict v-moins">très lisible, mais on perd la vue d'ensemble</span>
+    <h2>M3 — Agenda chronologique (liste de jours)</h2>
+    <p class="pro">Fini la grille : une <strong>liste ordonnée des journées qui ont quelque chose</strong>, chaque jour avec ses créneaux en chips. Comme l'agenda du dashboard, mais complet et filtrable par salle.</p>
+    <ul class="pourquoi">
+        <li><strong>+ ultra lisible</strong> : gros texte, un événement par ligne, parfait pour très vieux écrans / gros zoom.</li>
+        <li><strong>+ les journées vides disparaissent</strong> : de la place pour l'info utile (animateur, inscrits).</li>
+        <li>− impossible de repérer visuellement un trou libre — il n'y a plus de « forme » de semaine.</li>
+        <li>− la comparaison de 3 salles côte à côte demande un filtre aller-retour.</li>
+    </ul>
+    <div class="mk agenda">
+        <p class="mtitle">▶ Mockup — extraits</p>
+        <div class="ag-jour hierci">
+            <div class="ag-head"><strong>lundi 16 novembre</strong><span>2 créneaux</span></div>
+            <div class="ag-item"><span class="ag-slot">PM</span><span class="evt loc">\U0001F511 Yoga — Nadia</span><span class="ag-room">Petite salle</span></div>
+        </div>
+        <div class="ag-jour">
+            <div class="ag-head"><strong>mercredi 18 novembre</strong><span>3 créneaux · aujourd'hui</span></div>
+            <div class="ag-item"><span class="ag-slot">AM</span><span class="evt f1">Secret de mot de passe — 8 inscrits</span><span class="ag-room">Grande salle</span></div>
+            <div class="ag-item"><span class="ag-slot">AM</span><span class="evt f1">Découverte informatique — 5 inscrits</span><span class="ag-room">Petite salle</span></div>
+            <div class="ag-item"><span class="ag-slot pm">PM</span><span class="evt loc">\U0001F511 Réunion asbl</span><span class="ag-room">Cyber-espace</span></div>
+        </div>
+        <div class="ag-jour">
+            <div class="ag-head"><strong>jeudi 19 novembre</strong><span>2 créneaux</span></div>
+            <div class="ag-item"><span class="ag-slot">AM → PM</span><span class="evt loc">\U0001F511 Asso photo — journée</span><span class="ag-room">Grande salle</span></div>
+            <div class="ag-item"><span class="ag-slot">AM</span><span class="evt loc">\U0001F511 Chorale</span><span class="ag-room">Petite salle</span></div>
+        </div>
+    </div>
+</section>
+
+<section class="mock" id="m4">
+    <span class="verdict v-mitige">joli, mais le mois se cache</span>
+    <h2>M4 — Colonnes par salle (3 cartes, barre d'occupation)</h2>
+    <p class="pro">Chaque salle devient une <strong>carte verticale</strong> avec ses prochains créneaux et une mini-barre « taux d'occupation du mois ». Pensé pour « quelle salle est dispo ? », pas pour « qui fait quoi ? ».</p>
+    <ul class="pourquoi">
+        <li><strong>+ chaque salle est un bloc net</strong> : idéal pour répondre au téléphone « la petite salle est libre jeudi ? »</li>
+        <li><strong>+ la barre d'occupation</strong> donne l'état de santé de chaque salle en un clin d'œil.</li>
+        <li>− le calendrier devient secondaire : on perd le repère « quelle date » (il faut lire la liste).</li>
+        <li>− les 3 cartes nécessitent de l'espace horizontal — moyen sur les vieux écrans de l'EPN.</li>
+    </ul>
+    <div class="mk">
+        <p class="mtitle">▶ Mockup — novembre 2026</p>
+        <div class="salles3">
+            <div class="col-salle">
+                <h4>Grande salle <small style="color:var(--soft)">(15)</small></h4>
+                <div class="bar"><i style="width:62%"></i></div>
+                <p style="margin:.1rem 0 .5rem;font-size:.7rem;color:var(--soft)">62 % d'occupation</p>
+                <div class="occ"><span class="d">mar 17 · AM</span><span class="evt f2">Tablette & smartphone</span></div>
+                <div class="occ"><span class="d">mer 18 · AM</span><span class="evt f1">Mot de passe</span></div>
+                <div class="occ"><span class="d">jeu 19 · journée</span><span class="evt loc">\U0001F511 Asso photo</span></div>
+            </div>
+            <div class="col-salle">
+                <h4>Petite salle <small style="color:var(--soft)">(8)</small></h4>
+                <div class="bar"><i style="width:41%"></i></div>
+                <p style="margin:.1rem 0 .5rem;font-size:.7rem;color:var(--soft)">41 % d'occupation</p>
+                <div class="occ"><span class="d">lun 16 · PM</span><span class="evt loc">\U0001F511 Yoga</span></div>
+                <div class="occ"><span class="d">mer 18 · AM</span><span class="evt f1">Découverte</span></div>
+            </div>
+            <div class="col-salle">
+                <h4>Cyber-espace <small style="color:var(--soft)">(25)</small></h4>
+                <div class="bar"><i style="width:28%"></i></div>
+                <p style="margin:.1rem 0 .5rem;font-size:.7rem;color:var(--soft)">28 % d'occupation</p>
+                <div class="occ"><span class="d">lun 16 · PM</span><span class="evt f2">Smartphone</span></div>
+                <div class="occ"><span class="d">ven 20 · AM</span><span class="evt f1">Excel initiation</span></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="mock" id="compare">
+    <h2>Tableau comparatif</h2>
+    <table class="compare">
+        <tr><th>Critère</th><th>M1 Semaine</th><th>M2 Mois condensé</th><th>M3 Agenda</th><th>M4 Colonnes</th></tr>
+        <tr><td>Tient dans un écran</td><td class="etoiles">★★★</td><td>★</td><td>★★</td><td>★★</td></tr>
+        <tr><td>Vue d'ensemble / conflits du jour</td><td class="etoiles">★★★</td><td>★★</td><td>★</td><td>★★</td></tr>
+        <tr><td>Planification à plusieurs semaines</td><td>★★</td><td class="etoiles">★★★</td><td>★★</td><td>★</td></tr>
+        <tr><td>Confort vieux écrans / gros zoom</td><td class="etoiles">★★★</td><td>★★</td><td>★★★</td><td>★★</td></tr>
+        <tr><td>Effort d'implémentation</td><td>moyen (refonte du render)</td><td>faible (resserrage)</td><td>moyen</td><td>moyen</td></tr>
+    </table>
+</section>
+
+<div class="reco">
+    <h2>💡 Ma recommandation : M1 + un bouton « mois » (M2 en repli)</h2>
+    <p><strong>Semaine glissante par défaut</strong> (M1) : c'est la question que l'accueil se pose 9 fois sur 10, et tout tient à l'écran sans scroller. On garde la grille mensuelle en <strong>second onglet / bascule « Semaine | Mois »</strong> (M2 condensé) pour la planification longue — le planning serveur existe déjà, c'est le même appel API filtré différemment.</p>
+    <p style="margin-bottom:0">Les barres d'occupation de M4 feraient une jolie addition à la carte « Locations » des Statistiques plutôt. Dis-moi ce que tu en penses — je code la piste choisie avec ses tests.</p>
+</div>
+
+</main>
+<footer>Mockups statiques Gimaweb — données fictives — aucun lien avec la base réelle.</footer>
+</body>
+</html>
