@@ -71,7 +71,7 @@ export const creerApiSalles = (db, { sessionValide = () => false, notifier = () 
         ).all(debut, fin).map((r) => ({ ...r, type: 'formation' }));
         // v1.5.0 : les LOCATIONS de salles occupent aussi des créneaux du planning
         const locations = db.prepare(
-            `SELECT ld.date, ld.slot, ld.location_id AS fid, l.titre AS title, l.id AS event_id, NULL AS categories, l.room_id
+            `SELECT ld.date, ld.slot, ld.location_id AS fid, l.titre AS title, l.id AS event_id, NULL AS categories, COALESCE(ld.room_id, l.room_id) AS room_id
              FROM location_dates ld JOIN locations l ON l.id = ld.location_id
              WHERE ld.date >= ? AND ld.date <= ?
              ORDER BY ld.date ASC, ld.slot ASC`

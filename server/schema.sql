@@ -214,6 +214,7 @@ CREATE TABLE IF NOT EXISTS location_dates (
     location_id TEXT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
     date TEXT NOT NULL,
     slot TEXT NOT NULL CHECK (slot IN ('AM', 'PM')),
+    room_id TEXT, -- v1.5.6 : salle PAR DATE (NULL = celle de la location)
     UNIQUE (location_id, date, slot)
 );
 CREATE INDEX IF NOT EXISTS idx_location_dates_date ON location_dates(date);

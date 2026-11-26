@@ -19,7 +19,10 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
         if (dates.length > 400) return { erreur: 'Trop de dates (400 max).' };
         for (const d of dates) {
             if (!d || !RE_DATE.test(String(d.date)) || !['AM', 'PM'].includes(d.slot)) {
-                return { erreur: 'Chaque date doit être { date: AAAA-MM-JJ, slot: AM|PM }.' };
+                return { erreur: 'Chaque date doit \u00eatre { date: AAAA-MM-JJ, slot: AM|PM }.' };
+            }
+            if (d.room_id !== undefined && d.room_id !== null && !db.prepare('SELECT 1 FROM rooms WHERE id = ?').get(String(d.room_id))) {
+                return { erreur: 'Salle inconnue pour l\u2019occurrence du ' + d.date + '.' };
             }
         }
         return null;
@@ -55,8 +58,8 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
                 String(req.body?.contact || '').trim() || null,
                 String(req.body?.notes || '').trim() || null,
                 new Date().toISOString());
-        const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot) VALUES (?, ?, ?, ?)');
-        for (const d of req.body.dates) ins.run(nouvelId('ld'), id, d.date, d.slot);
+        const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id) VALUES (?, ?, ?, ?, ?)');
+        for (const d of req.body.dates) ins.run(nouvelId('ld'), id, d.date, d.slot, d.room_id ? String(d.room_id) : null);
         notifier('location_creee', `\uD83D\uDD11 Location cr\u00e9\u00e9e : \u00ab ${titre} \u00bb en ${room.name} (${req.body.dates.length} cr\u00e9neau${req.body.dates.length > 1 ? 'x' : ''}).`,
             'success', JSON.stringify({ location_id: id }));
         res.status(201).json(db.prepare('SELECT * FROM locations WHERE id = ?').get(id));
@@ -66,7 +69,12 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
     api.get('/locations/:id', (req, res) => {
         const l = db.prepare('SELECT * FROM locations WHERE id = ?').get(req.params.id);
         if (!l) return res.status(404).json({ erreur: 'Location introuvable.' });
-        l.dates = db.prepare('SELECT date, slot FROM location_dates WHERE location_id = ? ORDER BY date ASC, slot ASC').all(l.id);
+        l.dates = db.prepare(
+            `SELECT ld.date, ld.slot, COALESCE(ld.room_id, l.room_id) AS room_id,
+             (SELECT name FROM rooms r WHERE r.id = COALESCE(ld.room_id, l.room_id)) AS room_name
+             FROM location_dates ld JOIN locations l ON l.id = ld.location_id
+             WHERE ld.location_id = ? ORDER BY ld.date ASC, ld.slot ASC`
+        ).all(l.id);
         const room = l.room_id ? db.prepare('SELECT name FROM rooms WHERE id = ?').get(l.room_id) : null;
         l.room_name = room ? room.name : null;
         res.json(l);
@@ -94,8 +102,8 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
             const probleme = validerDates(req.body.dates);
             if (probleme) return res.status(400).json(probleme);
             db.prepare('DELETE FROM location_dates WHERE location_id = ?').run(l.id);
-            const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot) VALUES (?, ?, ?, ?)');
-            for (const d of req.body.dates) ins.run(nouvelId('ld'), l.id, d.date, d.slot);
+            const ins = db.prepare('INSERT OR IGNORE INTO location_dates (id, location_id, date, slot, room_id) VALUES (?, ?, ?, ?, ?)');
+            for (const d of req.body.dates) ins.run(nouvelId('ld'), l.id, d.date, d.slot, d.room_id ? String(d.room_id) : null);
         }
         notifier('location_modifiee', `\uD83D\uDD11 Location modifi\u00e9e : \u00ab ${titre} \u00bb.`, 'info', JSON.stringify({ location_id: l.id }));
         res.json(db.prepare('SELECT * FROM locations WHERE id = ?').get(l.id));
@@ -115,18 +123,18 @@ export const creerApiLocations = (db, { sessionValide = () => false, notifier = 
     api.get('/locations/:id/conflits', (req, res) => {
         const l = db.prepare('SELECT * FROM locations WHERE id = ?').get(req.params.id);
         if (!l) return res.status(404).json({ erreur: 'Location introuvable.' });
-        const dates = db.prepare('SELECT date, slot FROM location_dates WHERE location_id = ?').all(l.id);
+        const dates = db.prepare('SELECT date, slot, room_id FROM location_dates WHERE location_id = ?').all(l.id);
         const conflits = [];
         for (const d of dates) {
             const autresLocs = db.prepare(
                 `SELECT l2.titre, ld.date, ld.slot FROM location_dates ld JOIN locations l2 ON l2.id = ld.location_id
-                 WHERE ld.location_id != ? AND l2.room_id = ? AND ld.date = ? AND ld.slot = ?`
-            ).all(l.id, l.room_id, d.date, d.slot);
+                 WHERE ld.location_id != ? AND COALESCE(ld.room_id, l2.room_id) = ? AND ld.date = ? AND ld.slot = ?`
+            ).all(l.id, d.room_id ? d.room_id : l.room_id, d.date, d.slot);
             for (const o of autresLocs) conflits.push({ type: 'location', ...o });
             const formations = db.prepare(
                 `SELECT f.title, f.event_id, fd.date, fd.slot FROM formation_dates fd JOIN formations f ON f.id = fd.formation_id
                  WHERE f.room_id = ? AND fd.date = ? AND fd.slot = ?`
-            ).all(l.room_id, d.date, d.slot);
+            ).all(d.room_id ? d.room_id : l.room_id, d.date, d.slot);
             for (const f of formations) conflits.push({ type: 'formation', titre: f.title, date: f.date, slot: f.slot, event_id: f.event_id });
         }
         res.json(conflits);

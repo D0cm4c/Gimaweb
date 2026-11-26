@@ -41,6 +41,10 @@ const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
 db.exec(fs.readFileSync(path.join(RACINE, 'server', 'schema.sql'), 'utf8'));
 
+// Migration v1.5.6 : location_dates.gagne room_id optionnel (salle par date) sur les bases existantes
+const ldRoomCol = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('location_dates') WHERE name = 'room_id'").get();
+if (ldRoomCol.n === 0) db.exec('ALTER TABLE location_dates ADD COLUMN room_id TEXT;');
+
 // Migration M5c : visits.member_id devient nullable (visites anonymes) sur les bases existantes
 const memberIdNullable = db.prepare("SELECT COUNT(*) AS n FROM pragma_table_info('visits') WHERE name = 'member_id' AND [notnull] = 0").get();
 if (memberIdNullable.n === 0) {

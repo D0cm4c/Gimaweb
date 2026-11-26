@@ -368,3 +368,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Ajout : carte \u00ab \U0001F511 Locations \u00bb sur stats.html (3 KPI : cr\u00e9neaux lou\u00e9s ce mois, locataires \u00e0 venir, salle la plus lou\u00e9e) \u2014 /api/agregats/stats expose `locations` ; page-stats.js renderLocationsStats.
 - M7 : 112/112. R\u00e9gression 432/432.
 - INCIDENT \u00e9vit\u00e9 de justesse : un write python contenant des surrogates \u00e9chapp\u00e9s (\ud83d\udd11 \u00e9crit en paires \u00e9chapp\u00e9es) a TRONQU\u00c9 stats.html \u00e0 0 octet \u2014 restaur\u00e9 par git checkout puis r\u00e9\u00e9crit avec le vrai caract\u00e8re (U0001F511). LE\u00c7ON (d\u00e9j\u00e0 connue, v\u00e9rifier \u00e0 chaque fois) : jamais de s\u00e9quences surrogate \u00e9chapp\u00e9es dans un write utf-8 \u2014 et v\u00e9rifier la taille du fichier apr\u00e8s chaque edit python.
+
+## ✨ v1.5.6 — salle PAR occurrence dans la modale location
+
+- Mod\u00e8le : location_dates.room_id optionnel (NULL \u2192 salle de la location). Migration idempotente au boot (pragma_table_info + ALTER). Semble COALESCE(ld.room_id, l.room_id) serv\u00e9e partout (planning, conflits, agenda, fiche).
+- Modale : s\u00e9lecteur Salle DANS la grille d'occurrences (Date|Salle|Cr\u00e9neau|Ajouter), sticky entre les ajouts (pr\u00e9s\u00e9lection = dernier choix). Champ Salle global supprim\u00e9. location.room = salle de la 1\u00e8re occurrence. Doublon = date+cr\u00e9neau+salle. Chip affiche la salle.
+- Le CSS de la grille doit maintenant accueillir 4 cellules (auto-fit minmax 140px, s'enroule).
+- m8 : 32/32 (salle par date), m7 : 116/116. R\u00e9gression 443/443.
+- Repos : page-locations.js?v=3, page-location.js (salle par s\u00e9ance sur la fiche).

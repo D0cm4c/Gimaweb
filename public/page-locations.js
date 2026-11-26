@@ -124,8 +124,10 @@
 
     // ---- Occurrences (v1.5.3) : l'équipe ajoute date + créneau un par un —
     // ça couvre les répétitions hebdo multiples ET les dates irrégulières. ----
-    var seances = []; // [{ date: 'AAAA-MM-JJ', creneau: 'AM'|'PM'|'JOURNEE' }]
+    var seances = []; // [{ date: 'AAAA-MM-JJ', salle: 'room-id', creneau: 'AM'|'PM'|'JOURNEE' }]
     var creneauLabel = { AM: 'Matin', PM: 'Après-midi', JOURNEE: 'Journée' };
+
+    var selSalle = document.getElementById('locSalle');
 
     function rendChips() {
         var ul = document.getElementById('locChips');
@@ -133,8 +135,11 @@
         seances.sort(function (a, b) { return a.date === b.date ? String(a.creneau).localeCompare(String(b.creneau)) : a.date.localeCompare(b.date); });
         seances.forEach(function (occ, i) {
             var li = document.createElement('li');
+            var salleNom = occ.salle;
+            var optS = selSalle && selSalle.querySelector('option[value="' + esc(occ.salle) + '"]');
+            if (optS) salleNom = optS.textContent;
             li.className = 'loc-chip';
-            li.innerHTML = '<strong>' + fmtCourt(occ.date) + '</strong> ' + creneauLabel[occ.creneau] +
+            li.innerHTML = '<strong>' + fmtCourt(occ.date) + '</strong> ' + esc(salleNom) + ' · ' + creneauLabel[occ.creneau] +
                 ' <button type="button" class="loc-chip-x" title="Retirer cette occurrence" aria-label="Retirer l’occurrence du ' + esc(occ.date) + '">✕</button>';
             li.querySelector('.loc-chip-x').addEventListener('click', function () {
                 seances.splice(i, 1);
@@ -150,19 +155,21 @@
         err.style.display = 'none';
         var d = document.getElementById('locDate').value;
         var c = document.getElementById('locCreneau').value;
+        var r = selSalle.value;
+        if (!r) { err.textContent = 'Choisis une salle avant d\u2019ajouter une occurrence.'; err.style.display = ''; selSalle.focus(); return; }
         if (!d) {
             err.textContent = 'Choisis une date avant d\u2019ajouter une occurrence.';
             err.style.display = '';
             document.getElementById('locDate').focus();
             return;
         }
-        var doublon = seances.some(function (o) { return o.date === d && o.creneau === c; });
+        var doublon = seances.some(function (o) { return o.date === d && o.creneau === c && o.salle === r; });
         if (doublon) {
             err.textContent = 'Cette occurrence existe déjà (même date, même créneau).';
             err.style.display = '';
             return;
         }
-        seances.push({ date: d, creneau: c });
+        seances.push({ date: d, salle: r, creneau: c });
         rendChips();
         // avancer d'un jour pour enchaîner les occurrences proches
         var plus = new Date(d + 'T12:00:00');
@@ -177,7 +184,7 @@
         var dates = [];
         seances.forEach(function (occ) {
             var slots = occ.creneau === 'JOURNEE' ? ['AM', 'PM'] : [occ.creneau];
-            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s }); });
+            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s, room_id: occ.salle }); });
         });
         return { dates: dates };
     }
@@ -189,7 +196,7 @@
         if (gen.erreur) { alert(gen.erreur); return; }
         window.ADWDatabase.createLocation({
             titre: titre,
-            room_id: document.getElementById('locSalle').value,
+            room_id: seances.length ? seances[0].salle : document.getElementById('locSalle').value,
             animateur: document.getElementById('locAnimateur').value || null,
             contact: document.getElementById('locContact').value.trim() || null,
             notes: document.getElementById('locNotes').value.trim() || null,
