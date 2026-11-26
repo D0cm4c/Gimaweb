@@ -353,3 +353,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Bug : le fieldset Cr\u00e9neaux utilisait `.filter-group` (flex SANS wrap) \u2192 tous les champs sur une ligne, d\u00e9bordement horizontal \u00e0 partir des champs dates. Fix : grille `.loc-grid` auto-fit minmax(140px,1fr), champs en `.form-group` (label au-dessus), wrappers unique/r\u00e9currente en `display:contents` (le JS display:none/'' continue de marcher tel quel).
 - M7 : pas de .filter-group dans la modale + .loc-grid pr\u00e9sent + bascule r\u00e9currente rejou\u00e9e. 101/101, r\u00e9gression 421/421.
 - Le\u00e7on : jsdom ne rend pas le CSS \u2014 les bugs de d\u00e9bordement ne sont pas testables directement ; on teste la structure (classes/crutures) qui garantit le layout, + capture d'\u00e9cran humaine en prod.
+
+## ✨ v1.5.3 — occurrences libres + locations visibles au dashboard
+
+- Modale location : s\u00e9lecteur date+cr\u00e9neau + bouton \u00ab Ajouter \u00bb (chips supprimables), remplace le mode unique/r\u00e9currente. Doublon exact refus\u00e9 (date+cr\u00e9neau), date auto-avance +1 jour apr\u00e8s ajout, occurrences tri\u00e9es par date. JOURNEE \u2192 AM+PM \u00e0 la g\u00e9n\u00e9ration (API inchang\u00e9e).
+- Dashboard : carte \u00ab \ud83d\udd11 Prochaines locations \u00bb (flot.prochaines_locations, 8 cr\u00e9neaux, liser\u00e9 brun #7A5230, style carte fermeture) entre nextClosure et todayAgenda dans index.html ; l'agenda du jour concat\u00e8ne les locations du jour (type:'location', lien location.html, pas d'inscrits \u2192 badge \u00ab location \u00bb).
+- Versions cache : dashboard.js v46, styles v93, page-locations.js v2.
+- M7 : 111/111 (chips modale \u00e0 base de clics r\u00e9els, doublon, \u2715, 3 s\u00e9ances JOURNEE+PM en base, flot + dashboard). R\u00e9gression 431/431.
+- Le\u00e7on (r\u00e9currente) : les ancres python doivent matcher les \u00e9chappements LITT\u00c9RAUX \\uXXXX du fichier (s\u00e9quences) \u2014 chercher par fragment non-accentu\u00e9 quand l'ancre \u00e9choue ; et \u00e9viter les d\u00e9coupages s[a:b] sur bornes de blocs (g\u00e9n\u00e8re des accolades cass\u00e9es) \u2014 pr\u00e9f\u00e9rer l'insertion par ligne.

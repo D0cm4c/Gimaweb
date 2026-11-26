@@ -2195,3 +2195,22 @@ select {
 }
 #locUniqueWrap, #locRecurWrap { display: contents; } /* les champs participent \u00e0 la grille ; JS bascule display:none/'' */
 .loc-grid input[type="date"] { width: 100%; }
+
+/* v1.5.3 — modale location : chips d'occurrences ajoutées (date + créneau) */
+.loc-chips {
+    display: flex; flex-wrap: wrap; gap: 0.45rem;
+    list-style: none; padding: 0.7rem 0 0; margin: 0;
+}
+.loc-chip {
+    display: inline-flex; align-items: center; gap: 0.45rem;
+    border: 1px solid var(--border); border-radius: 999px;
+    background: var(--surface-2, #f4f1ea);
+    padding: 0.28rem 0.7rem; font-size: 0.82rem;
+}
+.loc-chip strong { font-variant-numeric: tabular-nums; }
+.loc-chip-x {
+    border: none; background: none; cursor: pointer;
+    color: var(--danger, #b33); font-size: 0.8rem; line-height: 1;
+    padding: 0.1rem 0.25rem;
+}
+.loc-chip-x:hover { background: rgba(179, 51, 51, 0.12); border-radius: 999px; }

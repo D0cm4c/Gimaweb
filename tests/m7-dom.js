@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.2', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.3', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -397,30 +397,42 @@ for (const p of PAGES) {
     const modaleL = wl.document.getElementById('locationModal');
     verifie('locations.html : clic \u00ab Nouvelle location \u00bb ouvre la modale', Boolean(modaleL) && !modaleL.hidden);
     verifie('locations.html : le s\u00e9lecteur de salles est rempli', wl.document.getElementById('locSalle').options.length >= 3, wl.document.getElementById('locSalle').options.length);
-    // v1.5.2 : les champs dates ne doivent plus sortir de la modale (grille qui s'enroule,
-    // pas de .filter-group flex sans wrap) + bascule unique/récurrente fonctionnelle
-    verifie('locations.html : créneaux en grille .loc-grid (plus de flex non-enroulable)', Boolean(wl.document.querySelector('#locationModal .loc-grid')) && wl.document.querySelector('#locationModal .filter-group') === null);
-    verifie('locations.html : champ Date visible en mode unique', wl.document.getElementById('locUniqueWrap').style.display !== 'none' && wl.document.getElementById('locRecurWrap').style.display === 'none');
-    wl.document.getElementById('locMode').value = 'recurrent';
-    wl.document.getElementById('locMode').dispatchEvent(new wl.Event('change', { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 200));
-    verifie('locations.html : bascule récurrente → Jour/Du/Au affichés, Date masquée', wl.document.getElementById('locRecurWrap').style.display !== 'none' && wl.document.getElementById('locUniqueWrap').style.display === 'none');
-    wl.document.getElementById('locMode').value = 'unique';
-    wl.document.getElementById('locMode').dispatchEvent(new wl.Event('change', { bubbles: true }));
-    await new Promise((r) => setTimeout(r, 200));
+    // v1.5.3 : sélecteur date+créneau avec bouton « Ajouter » (occurrences multiples / irrégulières)
+    verifie('locations.html : occurrences en grille .loc-grid (bouton Ajouter présent)', Boolean(wl.document.querySelector('#locationModal .loc-grid')) && Boolean(wl.document.getElementById('locAddDate')) && Boolean(wl.document.getElementById('locChips')));
     wl.document.getElementById('locTitre').value = 'Asso Test DOM';
-    wl.document.getElementById('locCreneau').value = 'JOURNEE';
-    // date = demain (la modale pr\u00e9-remplit aujourd'hui, on force demain pour \u00eatre \u00c0 venir)
     const demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const apresdemain = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+    // occurrence 1 : journée complète (AM+PM)
     wl.document.getElementById('locDate').value = demain;
+    wl.document.getElementById('locCreneau').value = 'JOURNEE';
+    wl.document.getElementById('locAddDate').click();
+    verifie('locations.html : « + Ajouter » crée une chip d’occurrence (compteur 1)', wl.document.querySelectorAll('#locChips .loc-chip').length === 1 && wl.document.getElementById('locOccCount').textContent === '1');
+    verifie('locations.html : la date auto-avance d’un jour après ajout', wl.document.getElementById('locDate').value === apresdemain, wl.document.getElementById('locDate').value);
+    // doublon refusé : même date, même créneau
+    wl.document.getElementById('locDate').value = demain;
+    wl.document.getElementById('locCreneau').value = 'JOURNEE';
+    wl.document.getElementById('locAddDate').click();
+    verifie('locations.html : occurrence doublon refusée (compteur reste 1, message)', wl.document.querySelectorAll('#locChips .loc-chip').length === 1 && wl.document.getElementById('locOccErreur').style.display !== 'none');
+    // occurrence 2 : après-midi irrégulier
+    wl.document.getElementById('locDate').value = apresdemain;
+    wl.document.getElementById('locCreneau').value = 'PM';
+    wl.document.getElementById('locAddDate').click();
+    verifie('locations.html : 2 occurrences listées (jour + PM isolé)', wl.document.querySelectorAll('#locChips .loc-chip').length === 2);
+    // suppression d’une chip puis re-ajout (le ✕ marche)
+    [...wl.document.querySelectorAll('#locChips .loc-chip')].find((c) => c.textContent.includes('Après-midi')).querySelector('.loc-chip-x').click();
+    verifie('locations.html : le ✕ retire une occurrence (compteur 1)', wl.document.querySelectorAll('#locChips .loc-chip').length === 1);
+    wl.document.getElementById('locDate').value = apresdemain;
+    wl.document.getElementById('locCreneau').value = 'PM';
+    wl.document.getElementById('locAddDate').click();
     wl.document.getElementById('locSave').click();
     await new Promise((r) => setTimeout(r, 900));
-    verifie('locations.html : soumission ferme la modale (cr\u00e9\u00e9e)', modaleL.hidden === true, alLoc.join(' | '));
+    verifie('locations.html : soumission ferme la modale (créée)', modaleL.hidden === true, alLoc.join(' | '));
     const locsServeur = await (await fetch(`${origine}/api/locations`)).json();
     const creee = locsServeur.find((l) => l.titre === 'Asso Test DOM');
-    verifie('locations.html : la location cr\u00e9\u00e9e est en base (via la modale)', Boolean(creee), locsServeur.map((l) => l.titre));
+    verifie('locations.html : la location créée est en base (via la modale)', Boolean(creee), locsServeur.map((l) => l.titre));
     const ficheCreee = creee && await (await fetch(`${origine}/api/locations/${creee.id}`)).json();
-    verifie('locations.html : JOURN\u00c9E \u2192 2 s\u00e9ances AM+PM', Boolean(ficheCreee) && ficheCreee.dates.length === 2 && ficheCreee.dates.every((d) => d.date === demain) && ficheCreee.dates.map((d) => d.slot).join(',') === 'AM,PM', ficheCreee);
+    verifie('locations.html : 3 séances en base (JOURNÉE→AM+PM + PM irrégulier)', Boolean(ficheCreee) && ficheCreee.dates.length === 3 && ficheCreee.dates.filter((x) => x.date === demain).map((x) => x.slot).join(',') === 'AM,PM' && ficheCreee.dates.filter((x) => x.date === apresdemain).map((x) => x.slot).join(',') === 'PM', ficheCreee);
+    verifie('locations.html : la carte apparaît dans la grille', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Asso Test DOM')));
     verifie('locations.html : la carte appara\u00eet dans la grille', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Asso Test DOM')));
 
     // Fiche location.html?id \u2014 rendue sans erreur, hero + s\u00e9ances
@@ -428,7 +440,7 @@ for (const p of PAGES) {
     await new Promise((r) => setTimeout(r, 900));
     const heroL = wf2.document.querySelector('.hero');
     verifie('location.html?id : fiche rendue sans erreur (hero + titre)', erreursF2.length === 0 && Boolean(heroL) && heroL.textContent.includes('Asso Test DOM'), erreursF2.join(' | '));
-    verifie('location.html?id : 2 s\u00e9ances affich\u00e9es', (wf2.document.body.textContent || '').includes('2 s\u00e9ances') || wf2.document.querySelectorAll('#locationContent li').length === 2, wf2.document.querySelectorAll('#locationContent li').length);
+    verifie('location.html?id : 3 séances affichées', (wf2.document.body.textContent || '').includes('3 séances') || wf2.document.querySelectorAll('#locationContent li').length === 3, wf2.document.querySelectorAll('#locationContent li').length);
 
     // salles.html : la cellule location occupe la grille (class slot-location + lien location.html)
     const { errors: erreursS2, window: ws2 } = await chargerPage('salles.html');
@@ -441,6 +453,28 @@ for (const p of PAGES) {
     // Sidebar : Locations sous Salles, Suggestions \u00e9pingl\u00e9e en bas (hors nav m\u00e9tier)
 }
 {
+    // v1.5.3 : les locations apparaissent sur le dashboard — carte « Prochaines locations »
+    // + occupation de l'agenda du jour (c'est leur utilité majeure)
+    const coD = await fetch(`${origine}/api/auth/connexion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'chantier' }) });
+    const ckD = (coD.headers.get('set-cookie') || '').split(';')[0];
+    etatCookies.value = ckD;
+    const auj = new Date().toISOString().slice(0, 10);
+    await fetch(`${origine}/api/locations`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: ckD },
+        body: JSON.stringify({ titre: 'Loc du jour dashboard', room_id: 'room-grande', animateur: 'Nadia Franchi', dates: [{ date: auj, slot: 'PM' }] }) });
+
+    const flotD = await (await fetch(`${origine}/api/agregats/flot`)).json();
+    verifie('flot : prochaines_locations expose les créneaux à venir', flotD.prochaines_locations && flotD.prochaines_locations.some((o) => o.titre === 'Asso Test DOM'), flotD.prochaines_locations && flotD.prochaines_locations.length);
+    verifie('flot : agenda du jour contient la location d\u2019aujourd\u2019hui (type location)', flotD.agenda.some((a) => a.type === 'location' && a.title === 'Loc du jour dashboard'), flotD.agenda.length);
+
+    const { errors: erreursDash, window: wdash2 } = await chargerPage('index.html');
+    await new Promise((r) => setTimeout(r, 1000));
+    const carteLoc = wdash2.document.getElementById('nextLocations');
+    verifie('dashboard : carte « Prochaines locations » visible', Boolean(carteLoc) && !carteLoc.hidden && carteLoc.textContent.includes('Prochaines locations'), carteLoc && carteLoc.textContent.slice(0, 60));
+    const item = carteLoc && carteLoc.querySelector('a.agenda-item[href^="location.html?id="]');
+    verifie('dashboard : créneau de location à venir listé avec lien fiche', Boolean(item) && carteLoc.textContent.includes('Asso Test DOM'), item && item.textContent);
+    verifie('dashboard : la location du jour occupe l\u2019agenda « Aujourd\u2019hui à l\u2019Atelier \u00bb', wdash2.document.getElementById('todayAgenda').textContent.includes('Loc du jour dashboard'), wdash2.document.getElementById('todayAgenda').textContent.slice(0, 100));
+    verifie('dashboard : aucune erreur JS avec les locations', erreursDash.length === 0, erreursDash.join(' | '));
+
     const { window: wnav } = await chargerPage('membres.html');
     await new Promise((r) => setTimeout(r, 500));
     const nav = wnav.document.querySelector('nav.side-nav') || wnav.document.querySelector('nav');

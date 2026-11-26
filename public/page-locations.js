@@ -105,9 +105,10 @@
                 o.textContent = org.nom;
                 selA.appendChild(o);
             });
-            // valeurs par défaut
+            // valeurs par défaut + occurrences à vide
             document.getElementById('locDate').value = todayStr;
-            document.getElementById('locDu').value = todayStr;
+            seances = [];
+            rendChips();
             modal.hidden = false;
             document.getElementById('locTitre').focus();
         });
@@ -121,40 +122,63 @@
     document.getElementById('locCancel').addEventListener('click', function () { modal.hidden = true; });
     modal.addEventListener('click', function (e) { if (e.target === modal) modal.hidden = true; });
 
-    // Basculer unique / récurrente
-    document.getElementById('locMode').addEventListener('change', function () {
-        var rec = this.value === 'recurrent';
-        document.getElementById('locUniqueWrap').style.display = rec ? 'none' : '';
-        document.getElementById('locRecurWrap').style.display = rec ? '' : 'none';
+    // ---- Occurrences (v1.5.3) : l'équipe ajoute date + créneau un par un —
+    // ça couvre les répétitions hebdo multiples ET les dates irrégulières. ----
+    var seances = []; // [{ date: 'AAAA-MM-JJ', creneau: 'AM'|'PM'|'JOURNEE' }]
+    var creneauLabel = { AM: 'Matin', PM: 'Après-midi', JOURNEE: 'Journée' };
+
+    function rendChips() {
+        var ul = document.getElementById('locChips');
+        ul.innerHTML = '';
+        seances.sort(function (a, b) { return a.date === b.date ? String(a.creneau).localeCompare(String(b.creneau)) : a.date.localeCompare(b.date); });
+        seances.forEach(function (occ, i) {
+            var li = document.createElement('li');
+            li.className = 'loc-chip';
+            li.innerHTML = '<strong>' + fmtCourt(occ.date) + '</strong> ' + creneauLabel[occ.creneau] +
+                ' <button type="button" class="loc-chip-x" title="Retirer cette occurrence" aria-label="Retirer l’occurrence du ' + esc(occ.date) + '">✕</button>';
+            li.querySelector('.loc-chip-x').addEventListener('click', function () {
+                seances.splice(i, 1);
+                rendChips();
+            });
+            ul.appendChild(li);
+        });
+        document.getElementById('locOccCount').textContent = seances.length;
+    }
+
+    document.getElementById('locAddDate').addEventListener('click', function () {
+        var err = document.getElementById('locOccErreur');
+        err.style.display = 'none';
+        var d = document.getElementById('locDate').value;
+        var c = document.getElementById('locCreneau').value;
+        if (!d) {
+            err.textContent = 'Choisis une date avant d\u2019ajouter une occurrence.';
+            err.style.display = '';
+            document.getElementById('locDate').focus();
+            return;
+        }
+        var doublon = seances.some(function (o) { return o.date === d && o.creneau === c; });
+        if (doublon) {
+            err.textContent = 'Cette occurrence existe déjà (même date, même créneau).';
+            err.style.display = '';
+            return;
+        }
+        seances.push({ date: d, creneau: c });
+        rendChips();
+        // avancer d'un jour pour enchaîner les occurrences proches
+        var plus = new Date(d + 'T12:00:00');
+        plus.setDate(plus.getDate() + 1);
+        document.getElementById('locDate').value = plus.toISOString().slice(0, 10);
+        document.getElementById('locDate').focus();
     });
 
-    // Générer les dates depuis le formulaire (créneaux AM/PM, jamais de créneau flottant)
+    // Générer les dates depuis les occurrences (créneaux AM/PM, jamais de créneau flottant)
     function datesDuFormulaire() {
-        var creneau = document.getElementById('locCreneau').value;
-        var slots = creneau === 'JOURNEE' ? ['AM', 'PM'] : [creneau];
+        if (!seances.length) return { erreur: 'Ajoute au moins une occurrence (date + créneau) avec le bouton « + Ajouter ».' };
         var dates = [];
-        if (document.getElementById('locMode').value === 'unique') {
-            var d = document.getElementById('locDate').value;
-            if (!d) return { erreur: 'Choisis une date.' };
-            slots.forEach(function (s) { dates.push({ date: d, slot: s }); });
-        } else {
-            var jour = Number(document.getElementById('locJour').value);
-            var du = document.getElementById('locDu').value;
-            var au = document.getElementById('locAu').value;
-            if (!du || !au || au < du) return { erreur: 'Plage de répétition invalide (du → au).' };
-            var cur = new Date(du + 'T12:00:00');
-            var fin = new Date(au + 'T12:00:00');
-            var garde = 0;
-            while (cur <= fin && garde < 200) {
-                if (cur.getDay() === jour) {
-                    var iso = cur.toISOString().slice(0, 10);
-                    slots.forEach(function (s) { dates.push({ date: iso, slot: s }); });
-                }
-                cur.setDate(cur.getDate() + 1);
-                garde += 1;
-            }
-            if (!dates.length) return { erreur: 'Aucun ' + ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'][jour] + ' dans cette plage.' };
-        }
+        seances.forEach(function (occ) {
+            var slots = occ.creneau === 'JOURNEE' ? ['AM', 'PM'] : [occ.creneau];
+            slots.forEach(function (s) { dates.push({ date: occ.date, slot: s }); });
+        });
         return { dates: dates };
     }
 
