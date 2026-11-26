@@ -4,10 +4,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32125', ADMIN_HASH_SHA256: hash },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m1b-visites.db', PORT: '32125', ADMIN_HASH_SHA256: hash },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';

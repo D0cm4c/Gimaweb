@@ -66,3 +66,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 ## v1.4.2 — fix formation.html : « Réserver sur le site » inerte
 - **Fix signalé** : le bouton « Réserver sur le site » de la fiche formation ne faisait rien — le handler était présent mais `booking.js` (le sélecteur de membre présaisi) n'était pas chargé par formation.html (même oubli que formations.html en v1.2.5).
 - `<script src="booking.js?v=3">` ajouté ; le clic réel est testé dans le DOM (modale du sélecteur ouverte). 50/50. Régression : 342/342.
+## v1.4.3 — fermetures hors salles + tests isolés de la base production + fin des données de démo
+- **Fermetures** (demande) : les événements « fermeture » n'ont pas besoin de salle — exclus du planning mensuel (`/api/salles/planning`) et de la liste « sans salle » (`/api/formations/sans-salle`). Testés.
+- **SÉCURITÉ CRITIQUE — isolation des tests** : toutes les suites de test effaçaient `data/` (le dossier de la base de PRODUCTION) et utilisaient la même base que le serveur. Toute personne lançant `npm test` sur la machine de production effaçait les membres. Les tests vivent désormais dans `data-tests/` (wipe effectué là), chaque suite a SON PROPRE fichier `gimaweb-<suite>.db` (DB_PATH explicite), y compris les chemins doubles-guillemets (candidate.db, verif-decrypt.db) et BACKUP_DIR. `data-tests/` ajouté au .gitignore. La production (`data/`) est structurellement inatteignable par les tests.
+- **Bouton « Charger 20 membres de démo » retiré** de membres.html (+ son câblage app.js) — obsolète en production (le bouton résa-démo de formations.html l'avait déjà été en v1.3.0). Cache app.js v39.
+- Régression : 347/347.

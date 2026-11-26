@@ -4,10 +4,10 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32124', ADMIN_HASH_SHA256: hash },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m1-membres.db', PORT: '32124', ADMIN_HASH_SHA256: hash },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';
@@ -78,7 +78,7 @@ try {
 
     // Cascade RGPD : semer visites/impressions/liens puis supprimer
     const Database = (await import('better-sqlite3')).default;
-    const dbDirect = new Database('data/gimaweb.db');
+    const dbDirect = new Database('data-tests/gimaweb-m1-membres.db');
     dbDirect.prepare('INSERT INTO visits (id, member_id, visit_date, amount) VALUES (?, ?, ?, ?)').run('v-test', cree.body.id, '2026-11-20', 1);
     dbDirect.prepare('INSERT INTO prints (id, member_id, print_date, type, amount) VALUES (?, ?, ?, ?, ?)').run('p-test', cree.body.id, ajd, 'bw', 0.5);
     dbDirect.prepare('INSERT INTO formations (id, title) VALUES (?, ?)').run('f-test', 'Formation test');
@@ -90,7 +90,7 @@ try {
 
     const del = await fetchApi(`/api/membres/${cree.body.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
     verifie('DELETE avec session → 204', del.status === 204, del.body);
-    const db2 = new Database('data/gimaweb.db');
+    const db2 = new Database('data-tests/gimaweb-m1-membres.db');
     const restants = {
         visits: db2.prepare('SELECT COUNT(*) n FROM visits WHERE member_id = ?').get(cree.body.id).n,
         prints: db2.prepare('SELECT COUNT(*) n FROM prints WHERE member_id = ?').get(cree.body.id).n,

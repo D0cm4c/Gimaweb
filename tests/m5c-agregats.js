@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // Mock atelierduweb.be minimal (aucune formation attendue ici)
 const mock = http.createServer((req, res) => {
@@ -16,7 +16,7 @@ const mock = http.createServer((req, res) => {
 await new Promise((r) => mock.listen(32997, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32133', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32997/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32997/inconnu' },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m5c-agregats.db', PORT: '32133', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32997/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32997/inconnu' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';

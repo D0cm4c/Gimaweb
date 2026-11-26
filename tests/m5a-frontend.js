@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // Mock atelierduweb.be (formations WP) — boucle locale
 const mock = http.createServer((req, res) => {
@@ -23,7 +23,7 @@ const mock = http.createServer((req, res) => {
 await new Promise((r) => mock.listen(32996, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32132', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32996/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32996/inconnu' },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m5a-frontend.db', PORT: '32132', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32996/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32996/inconnu' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';

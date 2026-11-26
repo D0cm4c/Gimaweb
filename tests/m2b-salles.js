@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // Mock WP : une formation à deux dates AM
 const mock = http.createServer((req, res) => {
@@ -22,7 +22,7 @@ const mock = http.createServer((req, res) => {
 await new Promise((r) => mock.listen(32998, '127.0.0.1', r));
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32127', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32998/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32998/inconnu' },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m2b-salles.db', PORT: '32127', ADMIN_HASH_SHA256: hash, WP_BASE: 'http://127.0.0.1:32998/wp-json/wp/v2', ADW_LABELS_URL: 'http://127.0.0.1:32998/inconnu' },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';
@@ -91,7 +91,7 @@ try {
 
     // Conflit : une autre formation sur la même salle/date/créneau
     const Database = (await import('better-sqlite3')).default;
-    const dbD = new Database('data/gimaweb.db');
+    const dbD = new Database('data-tests/gimaweb-m2b-salles.db');
     dbD.prepare(`INSERT INTO formations (id, event_id, title, start_date, room_id) VALUES ('f-conf', '999', 'formation conflit', '2027-02-05', 'room-grande')`).run();
     dbD.prepare("INSERT INTO formation_dates (id, formation_id, date, slot) VALUES ('fd-conf', 'f-conf', '2027-02-05', 'AM')").run();
     dbD.close();
@@ -124,7 +124,7 @@ try {
     verifie('DELETE attente → 204', suppr.status === 204);
 
     // ---- Option C : l'attente survit à la session ----
-    const dbC = new Database('data/gimaweb.db');
+    const dbC = new Database('data-tests/gimaweb-m2b-salles.db');
     dbC.prepare("INSERT INTO formations (id, event_id, title, start_date, room_id) VALUES ('f-passee', '555', ' Excel initiAtion', '2026-01-10', 'room-petite')").run();
     dbC.prepare("INSERT INTO formations (id, event_id, title, start_date) VALUES ('f-autre', '556', 'Totale autre EXCEL', '2027-05-05')").run();
     dbC.prepare("INSERT INTO waitlist (id, member_id, formation_event_id, formation_title) VALUES ('w-passee', ?, '555', ' Excel initiAtion')").run(membre1.body.id);
@@ -134,7 +134,7 @@ try {
     const migration = await fetchApi('/api/listes-attente/migrer', json('POST'));
     verifie('migration option C : 1 passée migrée + 1 orpheline', migration.status === 200 && migration.body.migrees === 2, migration.body);
 
-    const dbV = new Database('data/gimaweb.db');
+    const dbV = new Database('data-tests/gimaweb-m2b-salles.db');
     const migree = dbV.prepare('SELECT formation_event_id, formation_title FROM waitlist WHERE id = ?').get('w-passee');
     const generique = dbV.prepare('SELECT formation_title FROM waitlist WHERE id = ?').get('w-orpheline');
     const notifSync = dbV.prepare("SELECT COUNT(*) AS n FROM notifications WHERE type = 'sync'").get().n;

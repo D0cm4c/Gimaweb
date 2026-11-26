@@ -6,7 +6,7 @@ import fs from 'fs';
 import path from 'path';
 
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 // Mock WebDAV Nextcloud (boucle locale) : accepte les PUT, expose le nombre/taille reçus
 const uploads = [];
@@ -29,7 +29,8 @@ const ENV = {
     ADMIN_HASH_SHA256: hash,
     BACKUP_PASSPHRASE: 'phrase-très-secrète-adw',
     NEXTCLOUD_WEBDAV_URL: 'http://127.0.0.1:32997/remote.php/dav/files/adw',
-    BACKUP_DIR: path.resolve('data', 'sauvegardes')
+    BACKUP_DIR: path.resolve('data-tests', 'sauvegardes'),
+    DB_PATH: 'data-tests/gimaweb-m4-tickets-sauvegarde.db'
 };
 
 let courant = null;
@@ -128,7 +129,7 @@ try {
     const { dechiffrer } = await import('../server/sauvegarde.js');
     const clair = dechiffrer(blob, 'phrase-très-secrète-adw');
     const Database = (await import('better-sqlite3')).default;
-    const tmp = path.resolve('data', 'verif-decrypt.db');
+    const tmp = path.resolve('data-tests', 'verif-decrypt.db');
     fs.writeFileSync(tmp, clair);
     const dbV = new Database(tmp, { readonly: true });
     const membreDansBackup = dbV.prepare("SELECT COUNT(*) AS n FROM members WHERE first_name = 'Victor'").get().n;
@@ -139,11 +140,11 @@ try {
 
     // ---- Remplacement de base (restauration) ----
     // Construire une base candidate saine avec un membre repère
-    const dbC = new Database(path.resolve('data', 'candidate.db'));
+    const dbC = new Database(path.resolve('data-tests', 'candidate.db'));
     dbC.exec(fs.readFileSync(path.resolve('server/schema.sql'), 'utf8'));
     dbC.prepare("INSERT INTO members (id, first_name, last_name, member_no) VALUES ('mb-restaure', 'Restaurée', 'Base', 7777)").run();
     dbC.close();
-    const candidat = fs.readFileSync(path.resolve('data', 'candidate.db'));
+    const candidat = fs.readFileSync(path.resolve('data-tests', 'candidate.db'));
     const remplSans = await fetchApi('/api/base/remplacement', json('POST', { fichier_base64: candidat.toString('base64') }));
     verifie('remplacement sans session → 401', remplSans.status === 401);
     const remplPourri = await fetchApi('/api/base/remplacement', avecCookie(json('POST', { fichier_base64: Buffer.from('ceci n est pas une base sqlite 0123456789abcdefghij').toString('base64') })));
@@ -168,7 +169,7 @@ try {
     const rgpd = await fetchApi('/api/rgpd/purge', avecCookie(json('POST')));
     verifie('purge RGPD effectuée (compte > 0)', rgpd.status === 200 && rgpd.body.supprimes > 0, rgpd.body);
     const apresPurge = await fetchApi('/api/membres');
-    const dbP = new Database(path.resolve('data', 'gimaweb.db'));
+    const dbP = new Database(path.resolve('data-tests', 'gimaweb-m4-tickets-sauvegarde.db'));
     const sallesRestantes = dbP.prepare('SELECT COUNT(*) AS n FROM rooms').get().n;
     const formationsRestantes = dbP.prepare('SELECT COUNT(*) AS n FROM formations').get().n;
     dbP.close();

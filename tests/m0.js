@@ -6,10 +6,10 @@ import fs from 'fs';
 const hash = crypto.createHash('sha256').update('chantier', 'utf8').digest('hex');
 
 // base neuve pour un test reproductible
-fs.rmSync('data', { recursive: true, force: true });
+fs.rmSync('data-tests', { recursive: true, force: true });
 
 const srv = spawn('node', ['server/serveur.js'], {
-    env: { ...process.env, PORT: '32123', ADMIN_HASH_SHA256: hash },
+    env: { ...process.env, DB_PATH: 'data-tests/gimaweb-m0.db', PORT: '32123', ADMIN_HASH_SHA256: hash },
     stdio: ['ignore', 'pipe', 'pipe']
 });
 let erreurs = '';
@@ -56,7 +56,7 @@ srv.kill();
 
 await new Promise(r => setTimeout(r, 300));
 const Database = (await import('better-sqlite3')).default;
-const db = new Database('data/gimaweb.db');
+const db = new Database('data-tests/gimaweb-m0.db');
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r => r.name);
 verifie('16 tables créées', tables.length === 16, tables.join(','));
 const salles = db.prepare('SELECT name, capacity FROM rooms ORDER BY sort_order').all();
