@@ -99,3 +99,6 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Complément demandé** : le champ « Dates : » des événements du site ne donne qu'une date (ex. « samedi 08 août ») pour la Fermeture Annuelle — la période complète (« ferme ses portes du 27 juillet au 08 août inclus ») vit dans la description. La sync scanne désormais la description en repli quand le champ Dates est seul, et la plage est cherchée aussi après le bloc horaires. Vérifié sur le vrai site : 27 juillet → 08 août (13 jours).
 - La carte « Prochaine fermeture » du dashboard affiche donc bien « du … au … » avec les vraies bornes de la fermeture réelle.
 - Mock aligné sur le schéma du site réel ; 73/73, régression 374/374.
+## v1.4.10 — carte fermeture : lien direct vers l'événement du site
+- **Demande** : les éditeurs du site ne sont pas toujours fiables dans la saisie et le parsing ne marchera pas à tous les coups — la carte « Prochaine fermeture » affiche désormais un lien 🔗 « Voir l'événement sur atelierduweb.be » vers la page de l'événement (URL stockée à la sync, incluse dans prochaine_fermeture du flot).
+- Test : présence du lien vers l'URL de l'événement vérifiée dans la carte. 74/74. Régression : 375/375.

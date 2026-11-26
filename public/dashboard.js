@@ -152,6 +152,7 @@
             '<h3>\uD83D\uDD34 Prochaine fermeture</h3>' +
             '<p style="margin:0.2rem 0 0;font-weight:700;">\uD83D\uDCC5 ' + (fem.title ? fem.title.replace(/fermeture/i, 'Fermeture').trim() : 'Fermeture') + '</p>' +
             '<p class="form-hint" style="margin:0.25rem 0 0;">' + dateTxt + (fem.time_label ? ' \u00b7 ' + fem.time_label : '') + ' \u2014 pr\u00E9viens les usagers \u00E0 l\u2019accueil.</p>' +
+            (fem.url ? '<p style="margin:0.35rem 0 0;"><a href="' + fem.url + '" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--blue);text-decoration:none;font-weight:600;">\uD83D\uDD17 Voir l\u2019\u00E9v\u00E8nement sur atelierduweb.be</a></p>' : '') +
             '</div>';
         el.hidden = false;
     }

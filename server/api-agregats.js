@@ -62,7 +62,7 @@ export const creerApiAgregats = (db) => {
 
         // Prochaine fermeture : événement du site de catégorie « fermeture » (date la plus proche à venir)
         const fermeture = db.prepare(
-            `SELECT f.title, f.event_id, f.time_label, MIN(fd.date) AS date, MAX(fd.date) AS date_fin
+            `SELECT f.title, f.event_id, f.url, f.time_label, MIN(fd.date) AS date, MAX(fd.date) AS date_fin
              FROM formations f JOIN formation_dates fd ON fd.formation_id = f.id
              WHERE lower(coalesce(f.categories, '')) LIKE '%fermeture%' AND fd.date >= date('now')
              GROUP BY f.id ORDER BY date ASC LIMIT 1`
