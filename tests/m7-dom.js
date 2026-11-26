@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.3', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.4', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -453,8 +453,9 @@ for (const p of PAGES) {
     // Sidebar : Locations sous Salles, Suggestions \u00e9pingl\u00e9e en bas (hors nav m\u00e9tier)
 }
 {
-    // v1.5.3 : les locations apparaissent sur le dashboard — carte « Prochaines locations »
-    // + occupation de l'agenda du jour (c'est leur utilité majeure)
+    // v1.5.4 : les locations d'aujourd'hui occupent l'agenda du jour du dashboard ;
+    // pas de carte « prochaines locations » (demande du porteur — l'info vit dans locations.html),
+    // en revanche une carte « Locations » avec 3 KPI sur stats.html
     const coD = await fetch(`${origine}/api/auth/connexion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'chantier' }) });
     const ckD = (coD.headers.get('set-cookie') || '').split(';')[0];
     etatCookies.value = ckD;
@@ -463,17 +464,22 @@ for (const p of PAGES) {
         body: JSON.stringify({ titre: 'Loc du jour dashboard', room_id: 'room-grande', animateur: 'Nadia Franchi', dates: [{ date: auj, slot: 'PM' }] }) });
 
     const flotD = await (await fetch(`${origine}/api/agregats/flot`)).json();
-    verifie('flot : prochaines_locations expose les créneaux à venir', flotD.prochaines_locations && flotD.prochaines_locations.some((o) => o.titre === 'Asso Test DOM'), flotD.prochaines_locations && flotD.prochaines_locations.length);
     verifie('flot : agenda du jour contient la location d\u2019aujourd\u2019hui (type location)', flotD.agenda.some((a) => a.type === 'location' && a.title === 'Loc du jour dashboard'), flotD.agenda.length);
 
     const { errors: erreursDash, window: wdash2 } = await chargerPage('index.html');
     await new Promise((r) => setTimeout(r, 1000));
-    const carteLoc = wdash2.document.getElementById('nextLocations');
-    verifie('dashboard : carte « Prochaines locations » visible', Boolean(carteLoc) && !carteLoc.hidden && carteLoc.textContent.includes('Prochaines locations'), carteLoc && carteLoc.textContent.slice(0, 60));
-    const item = carteLoc && carteLoc.querySelector('a.agenda-item[href^="location.html?id="]');
-    verifie('dashboard : créneau de location à venir listé avec lien fiche', Boolean(item) && carteLoc.textContent.includes('Asso Test DOM'), item && item.textContent);
     verifie('dashboard : la location du jour occupe l\u2019agenda « Aujourd\u2019hui à l\u2019Atelier \u00bb', wdash2.document.getElementById('todayAgenda').textContent.includes('Loc du jour dashboard'), wdash2.document.getElementById('todayAgenda').textContent.slice(0, 100));
     verifie('dashboard : aucune erreur JS avec les locations', erreursDash.length === 0, erreursDash.join(' | '));
+
+    // stats.html : carte « 🔑 Locations » — 3 KPI (créneaux ce mois, à venir, salle top)
+    const st = await (await fetch(`${origine}/api/agregats/stats`)).json();
+    verifie('stats API : locations.creneaux_mois >= 1 (la loc du jour compte)', st.locations && st.locations.creneaux_mois >= 1, st.locations);
+    const { errors: erreursStats, window: ws3 } = await chargerPage('stats.html');
+    await new Promise((r) => setTimeout(r, 900));
+    const carteS = ws3.document.querySelectorAll('#statLocMonth, #statLocUpcoming, #statLocTopRoom');
+    verifie('stats.html : carte Locations rendue (3 KPI)', carteS.length === 3 && ws3.document.getElementById('statLocMonth').textContent.indexOf('cr') !== -1, ws3.document.getElementById('statLocMonth') && ws3.document.getElementById('statLocMonth').textContent);
+    verifie('stats.html : salle top affichée (Grande salle)', ws3.document.getElementById('statLocTopRoom').textContent.includes('Grande salle'), ws3.document.getElementById('statLocTopRoom').textContent);
+    verifie('stats.html : aucune erreur JS', erreursStats.length === 0, erreursStats.join(' | '));
 
     const { window: wnav } = await chargerPage('membres.html');
     await new Promise((r) => setTimeout(r, 500));

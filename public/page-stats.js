@@ -40,6 +40,17 @@
     function eur(v) { return Number(v).toFixed(2).replace('.', ',') + ' €'; }
 
     // ===== KPI + carte Membres (stats détaillées) =====
+    function renderLocationsStats(s) {
+        var l = s && s.locations;
+        if (!l) return;
+        var mois = document.getElementById('statLocMonth');
+        var up = document.getElementById('statLocUpcoming');
+        var top = document.getElementById('statLocTopRoom');
+        if (mois) mois.textContent = l.creneaux_mois + ' cr\u00e9neau' + (l.creneaux_mois > 1 ? 'x' : '');
+        if (up) up.textContent = l.locataires_a_venir;
+        if (top) top.textContent = l.top_salle ? (l.top_salle.name + ' (' + l.top_salle.c + ')') : '\u2014';
+    }
+
     function renderMembersStats(s) {
         var m = s.membres;
         setText('statVisitsMonth', s.visites.mois);
@@ -276,6 +287,7 @@
         renderProfile(s);
         renderVisitReasons(s);
         renderInclusion(s);
+        renderLocationsStats(s);
         renderStatusDonut(s);
         renderChart();
         renderHeatmap(s);
