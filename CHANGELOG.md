@@ -118,3 +118,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Fix signalé** : la carte « Formateurs / Animateurs » s'affichait DANS la carte « Équipe technique » — la balise `<section>` de l'équipe n'était pas fermée avant celle des formateurs (le `</section>` manquant déportait la fermeture en fin de carte formateurs, et les deux cartes fusionnaient visuellement).
 - Le HTML est rééquilibré : les cartes Équipe technique, Formateurs / Animateurs et Salles de formation sont sœurs dans le groupe « Équipe & salles » (validateur d'appariement des balises OK).
 - M7 : vérification par `contains()` — la carte Formateurs ne doit PAS être dans la carte Équipe. 98/98. R\u00e9gression : 418/418.
+## v1.5.2 — modale location : les champs dates sortaient de la modale
+- **Fix signalé** : dans la modale « Nouvelle location », à partir des champs dates, les champs sortaient de la modale — le fieldset « Créneaux » utilisait `.filter-group` (`display:flex` sans `flex-wrap`) : tous les labels/selects/inputs dates s'alignaient sur UNE ligne qui débordait horizontalement.
+- Nouvelle structure : grille `.loc-grid` (`grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))`) qui s'enroule, chaque champ en `.form-group` (label au-dessus, comme le reste de la modale) ; les wrappers `#locUniqueWrap`/`#locRecurWrap` en `display:contents` — leurs champs participent à la grille, le JS existant (bascule `none`/`''`) reste inchangé.
+- M7 : assertions structurelles (plus de `.filter-group` dans la modale, `.loc-grid` présent) + bascule unique/récurrente rejouée au clic réel (Date masquée ↔ Jour/Du/Au affichés). 101/101. Régression : 421/421.
+- (Correctif de test) : le label de version attendu dans m7-dom suit package.json (1.5.2).

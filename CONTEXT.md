@@ -347,3 +347,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 
 - Bug : le `<section class="settings-card">` de l'\u00c9quipe technique n'\u00e9tait pas ferm\u00e9 avant celui des Formateurs (v1.4.11) \u2192 la carte formateurs vivait DANS la carte \u00e9quipe. Fix : `</section>` ajout\u00e9, doublon de fin retir\u00e9, appariement des balises valid\u00e9 par script Python.
 - M7 : nouveau test `!carteEquipe.contains(carteFormateurs)` (cartes s\u0153urs via `closest('.settings-card')`). 98/98, r\u00e9gression 418/418.
+
+## 🚨 v1.5.2 — champs dates hors de la modale location (locations.html)
+
+- Bug : le fieldset Cr\u00e9neaux utilisait `.filter-group` (flex SANS wrap) \u2192 tous les champs sur une ligne, d\u00e9bordement horizontal \u00e0 partir des champs dates. Fix : grille `.loc-grid` auto-fit minmax(140px,1fr), champs en `.form-group` (label au-dessus), wrappers unique/r\u00e9currente en `display:contents` (le JS display:none/'' continue de marcher tel quel).
+- M7 : pas de .filter-group dans la modale + .loc-grid pr\u00e9sent + bascule r\u00e9currente rejou\u00e9e. 101/101, r\u00e9gression 421/421.
+- Le\u00e7on : jsdom ne rend pas le CSS \u2014 les bugs de d\u00e9bordement ne sont pas testables directement ; on teste la structure (classes/crutures) qui garantit le layout, + capture d'\u00e9cran humaine en prod.
