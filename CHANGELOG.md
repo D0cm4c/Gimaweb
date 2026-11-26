@@ -81,3 +81,7 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Favicon refait** aux couleurs maîtresses de l'Atelier du web : fond bordeaux #9f0c45, monogramme AW crème, bande lime #bbcc6a en bas — servi en favicon.ico (16+32), PNG 32/192/512, apple-touch-icon ; liens mis à jour dans les 12 pages.
 - Bumps cache : page-formations v42, page-formation v3, dashboard v42.
 - M7 étendu : 3 événements de test (tablette/trucs/formation) → couleurs de bandeau vérifiées sur les cartes + hero ; favicon.ico servi. 66/66. Régression : 366/366.
+## v1.4.6 — couleurs par catégorie : le vrai schéma du site (catégories multiples)
+- **Fix signalé** : les couleurs ne changeaient pas sur formations.html malgré la v1.4.5. Cause trouvée en interrogeant le VRAI atelierduweb.be : chaque événement porte PLUSIEURS catégories, et la première est générique (« Ateliers », « Formations », « Evènement ») — la catégorie utile (tablette/smartphone, trucs et astuces) arrive en 2e position. La règle ne regardait que la 1re → aucune couleur ne bougeait.
+- La règle `couleurCategorie` scanne désormais TOUTES les catégories de l'événement (tablette/smartphone = vert, trucs = ambre, formation = bleu), avec repli sur le ton déterministe. Appliquée aux cartes, aux héros de fiches et à l'agenda du dashboard.
+- Le mock du test reflète le schéma réel du site (cat générique en tête, utile derrière) : « Ateliers + Truc et astuces » → ambre, etc. Bumps cache : page-formations v43, page-formation v4, dashboard v43. Régression : 366/366.

@@ -41,15 +41,23 @@
             for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
             return h % 10;
         }
-        // Couleur par CATEGORIE (charte, v1.4.5) : tablette/smartphone = vert #18A55F,
+        // Couleur par CATEGORIE (charte, v1.4.6) : on scanne TOUTES les categories de
+        // l'evenement (sur le site, la 1re est generique — Ateliers/Formations/Evènement —
+        // et la categorie utile arrive derriere) : tablette/smartphone = vert #18A55F,
         // trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 ;
-        // les autres categories gardent le ton deterministe par hash.
+        // sinon ton deterministe sur la 1re categorie.
         function couleurCategorie(cat) {
-            var s = (cat || '').toLowerCase();
-            if (s.indexOf('tablette') !== -1 || s.indexOf('smartphone') !== -1 || s.indexOf('mobile') !== -1) return '#18A55F';
-            if (s.indexOf('truc') !== -1) return '#B26A00';
-            if (s.indexOf('formation') === 0) return '#2F9BE4';
-            var tone = toneFor(cat);
+            var liste = Array.isArray(cat) ? cat : String(cat || '').split(',').map(function (c) { return c.trim(); }).filter(Boolean);
+            var tous = (list) => {
+                var s = (list || []).join(' ').toLowerCase();
+                if (s.indexOf('tablette') !== -1 || s.indexOf('smartphone') !== -1 || s.indexOf('mobile') !== -1) return '#18A55F';
+                if (s.indexOf('truc') !== -1) return '#B26A00';
+                if (list.some(function (c) { return (c || '').toLowerCase().indexOf('formation') === 0; })) return '#2F9BE4';
+                return null;
+            };
+            var direct = tous(liste);
+            if (direct) return direct;
+            var tone = liste.length ? toneFor(liste[0]) : -1;
             return tone >= 0 ? TONE_SOLID[tone] : '#2F9BE4';
         }
 
@@ -153,7 +161,7 @@
             var cats = (f.categories || '').split(',').map(function (c) { return c.trim(); }).filter(function (c) { return c && !/^\d+$/.test(c); });
             var mainCat = cats[0] || '';
             var tone = mainCat ? toneFor(mainCat) : -1;
-            var bannerStyle = mainCat ? ' style="background:' + couleurCategorie(mainCat) + '"' : '';
+            var bannerStyle = mainCat ? ' style="background:' + couleurCategorie(cats) + '"' : '';
 
             var attendees = ctx.attendees || [];
             var moduleDates = ctx.moduleDates || [];

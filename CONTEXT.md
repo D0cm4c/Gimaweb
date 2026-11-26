@@ -289,3 +289,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Demande utilisateur : couleurs de bandeau par catégorie — tablette/smartphone = vert #18A55F, trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 (règle couleurCategorie partagée page-formations/page-formation/dashboard, repli hash pour les autres catégories). Favicon refait : bordeaux #9f0c45 + AW crème + bande lime #bbcc6a (favicon.ico 16/32, png 32/192/512, apple-touch).
 - M7 : mock enrichi (cats 11-13 + events 305/307), 4 nouvelles vérifications couleurs (3 cartes + hero). **66/66**, régression **366/366**.
 - ⚠ Leçon technique : insertion de fonction APRÈS une fermeture `}` repérée par find() — fragile (le find peut tomber sur un `}` intérieur) ; insertion d'une fonction partag\u00e9e : la placer TOUJOURS entre deux fonctions complètes, jamais à l'intérieur d'un corps.
+
+## 🚨 v1.4.6 — couleurs : le vrai schéma de catégories du site (PR #35)
+
+- La v1.4.5 passait les tests mais rien ne changeait en production. Diagnostic : interrogation du VRAI atelierduweb.be (wp-json) — chaque événement a plusieurs catégories, la 1re est GÉNÉRIQUE (Ateliers/Formations/Evènement), la catégorie utile arrive APRES. La règle ne regardait que categories[0].
+- Fix : couleurCategorie(cat) accepte tableau OU chaîne 'a, b' et scanne TOUTES les catégories (tablette/smartphone → vert, truc → ambre, formation* → bleu), repli hash sur la 1re. Appels fournis en liste complète (ev.categories / cats / f.categories).
+- Mock M7 aligné sur le site réel (Ateliers en tête) : « bandeau vert/ambre/bleu » toujours verts — le test ANCIEN (cats uniques) passait sans couvrir le cas réel.
+- ⚠ Leçon : quand un mock invente des données, vérifier sa forme contre les DONNÉES RÉELLES de la source (ici : wp-json du site en prod, consultable directement) avant d'en tirer fierté de tests verts.
+- Régression **366/366**.

@@ -11,18 +11,18 @@ fs.rmSync('data-tests', { recursive: true, force: true });
 
 import http from 'http';
 const FLUX = [{ id: 301, title: { rendered: 'Secret de mot de passe solide' }, link: 'https://atelierduweb.be/formation/motdepasse/',
-    excerpt: { rendered: '<p>⏳ Durée : 1 Matinée 📅 Dates : Le 15 février 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [11] }];
+    excerpt: { rendered: '<p>⏳ Durée : 1 Matinée 📅 Dates : Le 15 février 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 11] }];
 FLUX.push({ id: 305, title: { rendered: 'Trucs et astuces : gérer sa boîte mail' }, link: 'https://atelierduweb.be/formation/trucs-mail/',
-    excerpt: { rendered: '<p>⏳ Durée : 1 Après-midi 📅 Dates : Le 20 septembre 2027 ⏰ Horaires : De 13h30 à 16h30</p>' }, mec_category: [12] });
+    excerpt: { rendered: '<p>⏳ Durée : 1 Après-midi 📅 Dates : Le 20 septembre 2027 ⏰ Horaires : De 13h30 à 16h30</p>' }, mec_category: [22, 12] });
 FLUX.push({ id: 307, title: { rendered: 'Formation découverte de l’informatique' }, link: 'https://atelierduweb.be/formation/decouverte/',
-    excerpt: { rendered: '<p>⏳ Durée : 2 Matinées 📅 Dates : Le 3 octobre 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [13] });
+    excerpt: { rendered: '<p>⏳ Durée : 2 Matinées 📅 Dates : Le 3 octobre 2027 ⏰ Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 13] });
 FLUX.push({ id: 302, title: { rendered: 'Fermeture annuelle de l\u2019Atelier' }, link: 'https://atelierduweb.be/fermeture/',
     excerpt: { rendered: '<p>\u23f3 Dur\u00e9e : 1 Jour \uD83D\uDCC5 Dates : Les 15 et 16 ao\u00fbt 2027 \u23f0 Horaires : De 9h00 \u00e0 18h00</p>' }, mec_category: [10] });
 
 const mock = http.createServer((req, res) => {
     res.setHeader('Content-Type', 'application/json');
     if (req.url.startsWith('/wp-json/wp/v2/mec-events')) res.end(JSON.stringify(FLUX));
-    else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }, { id: 11, name: 'Utilisation d\u2019une tablette ou d\u2019un smartphone' }, { id: 12, name: 'Trucs et astuces' }, { id: 13, name: 'Formation' }]));
+    else if (req.url.startsWith('/wp-json/wp/v2/mec_category')) res.end(JSON.stringify([{ id: 9, name: 'Internet & s\u00e9curit\u00e9' }, { id: 10, name: 'Fermeture' }, { id: 11, name: 'Utilisation d\u2019une tablette ou d\u2019un smartphone' }, { id: 12, name: 'Truc et astuces' }, { id: 13, name: 'Formations' }, { id: 22, name: 'Ateliers' }, { id: 23, name: 'Ev\u00e8nement' }]));
     else { res.statusCode = 404; res.end('{}'); }
 });
 await new Promise((r) => mock.listen(32993, '127.0.0.1', r));
@@ -117,7 +117,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.5 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.5', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.6 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.4.6', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur

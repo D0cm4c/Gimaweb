@@ -112,15 +112,23 @@
         for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
         return h % 10;
     }
-    // Couleur par CATEGORIE (charte, v1.4.5) : tablette/smartphone = vert #18A55F,
+    // Couleur par CATEGORIE (charte, v1.4.6) : on scanne TOUTES les categories de
+    // l'evenement (sur le site, la 1re est generique — Ateliers/Formations/Evènement —
+    // et la categorie utile arrive derriere) : tablette/smartphone = vert #18A55F,
     // trucs et astuces = ambre #B26A00, formation = bleu #2F9BE4 ;
-    // les autres categories gardent le ton deterministe par hash.
+    // sinon ton deterministe sur la 1re categorie.
     function couleurCategorie(cat) {
-        var s = (cat || '').toLowerCase();
+        var liste = Array.isArray(cat) ? cat : String(cat || '').split(',').map(function (c) { return c.trim(); }).filter(Boolean);
+        var tous = (list) => {
+        var s = (list || []).join(' ').toLowerCase();
         if (s.indexOf('tablette') !== -1 || s.indexOf('smartphone') !== -1 || s.indexOf('mobile') !== -1) return '#18A55F';
         if (s.indexOf('truc') !== -1) return '#B26A00';
-        if (s.indexOf('formation') === 0) return '#2F9BE4';
-        var tone = toneFor(cat);
+        if (list.some(function (c) { return (c || '').toLowerCase().indexOf('formation') === 0; })) return '#2F9BE4';
+        return null;
+        };
+        var direct = tous(liste);
+        if (direct) return direct;
+        var tone = liste.length ? toneFor(liste[0]) : -1;
         return tone >= 0 ? TONE_SOLID[tone] : '#2F9BE4';
     }
     var TONE_SOLID = ['#0F3D5C', '#6C5CE7', '#2F9BE4', '#18A55F', '#E8734A', '#B26A00', '#D8434B', '#7A5230', '#556B2F', '#4A4E69'];
@@ -166,7 +174,7 @@
         rows.forEach(function (f) {
             var mainCat = (f.categories || '').split(',').map(function (c) { return c.trim(); }).filter(function (c) { return c && !/^\d+$/.test(c); })[0] || '';
             var tone = mainCat ? toneFor(mainCat) : -1;
-            var bg = mainCat ? couleurCategorie(mainCat) : 'var(--primary)';
+            var bg = mainCat ? couleurCategorie(f.categories) : 'var(--primary)';
             html += '<a class="agenda-item" href="formation.html?id=' + encodeURIComponent(f.event_id) + '" style="text-decoration:none;">' +
                 '<span class="agenda-slot ' + (f.slot === 'AM' ? 'am' : 'pm') + '">' + (f.slot === 'AM' ? 'Matin' : 'A-midi') + '</span>' +
                 '<span class="agenda-bar" style="background:' + bg + ';"></span>' +
