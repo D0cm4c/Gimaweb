@@ -39,8 +39,9 @@
         // Séances
         html += '<div class="m-card"><h3>\uD83D\uDCC5 Séances (' + (loc.dates ? loc.dates.length : 0) + ')</h3><ul class="detail-list" style="list-style:none;padding:0;">';
         (loc.dates || []).slice(0, 40).forEach(function (d) {
+            var salleSeance = d.room_name ? ' · 🏫 ' + esc(d.room_name) : '';
             html += '<li style="padding:0.25rem 0;border-bottom:1px solid var(--bg);">📅 ' + fmt(d.date) +
-                ' <span class="badge badge-sub-yearly">' + slotLabel(d.slot) + '</span></li>';
+                ' <span class="badge badge-sub-yearly">' + slotLabel(d.slot) + '</span>' + salleSeance + '</li>';
         });
         html += '</ul>';
         if ((loc.dates || []).length > 40) html += '<p class="form-hint">… … et ' + (loc.dates.length - 40) + ' autres.</p>';

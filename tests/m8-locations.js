@@ -139,6 +139,29 @@ try {
     const planningApres = await fetchApi('/api/salles/planning?mois=2026-09');
     verifie('dates de la location supprim\u00e9e retir\u00e9es du planning (cascade)', planningApres.body.filter(p => p.type === 'location' && p.fid === doublon.body.id).length === 0, planningApres.body.filter(p => p.type === 'location' && p.date === '2026-09-15'));
 
+    // ---- v1.5.6 : salle PAR DATE (une location peut changer de salle selon la date) ----
+    const mixte = await fetchApi('/api/locations', avecCookie(cookie, json('POST', {
+        titre: 'Loc mixte salles', room_id: 'room-grande',
+        dates: [{ date: '2026-09-24', slot: 'AM' }, { date: '2026-09-25', slot: 'AM', room_id: 'room-petite' }]
+    })));
+    verifie('POST salle par date \u2192 201', mixte.status === 201, mixte.body);
+    const ficheMixte = await fetchApi(`/api/locations/${mixte.body.id}`);
+    verifie('fiche : s\u00e9ance du 24 en Grande (room de la location)', ficheMixte.body.dates[0].room_id === 'room-grande' && ficheMixte.body.dates[0].room_name === 'Grande salle', ficheMixte.body.dates[0]);
+    verifie('fiche : s\u00e9ance du 25 SURCHARG\u00c9E en Petite salle', ficheMixte.body.dates[1].room_id === 'room-petite' && ficheMixte.body.dates[1].room_name === 'Petite salle', ficheMixte.body.dates[1]);
+    const planMixte = await fetchApi('/api/salles/planning?mois=2026-09');
+    const row24 = planMixte.body.find((x) => x.type === 'location' && x.title === 'Loc mixte salles' && x.date === '2026-09-24');
+    const row25 = planMixte.body.find((x) => x.type === 'location' && x.title === 'Loc mixte salles' && x.date === '2026-09-25');
+    verifie('planning : chaque date occupe SA salle (24 grande, 25 petite)', row24 && row24.room_id === 'room-grande' && row25 && row25.room_id === 'room-petite', { row24: row24 && row24.room_id, row25: row25 && row25.room_id });
+    const salleInvalOcc = await fetchApi('/api/locations', avecCookie(cookie, json('POST', { titre: 'X', room_id: 'room-grande', dates: [{ date: '2026-09-24', slot: 'PM', room_id: 'room-xxx' }] })));
+    verifie('POST salle par date inconnue \u2192 400', salleInvalOcc.status === 400, salleInvalOcc.body);
+    // conflit par salle effective : une autre location petite le 25 AM doit se voir
+    const autrePetite = await fetchApi('/api/locations', avecCookie(cookie, json('POST', { titre: 'Petite le 25', room_id: 'room-petite', dates: [{ date: '2026-09-25', slot: 'AM' }] })));
+    const conflitsMixte = await fetchApi(`/api/locations/${mixte.body.id}/conflits`);
+    verifie('conflits : la salle effective par date compte (petite vs petite le 25)', conflitsMixte.body.length === 1 && conflitsMixte.body[0].type === 'location' && conflitsMixte.body[0].titre === 'Petite le 25', conflitsMixte.body);
+    const delMixte = await fetchApi(`/api/locations/${mixte.body.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
+    const delAutre = await fetchApi(`/api/locations/${autrePetite.body.id}`, { method: 'DELETE', headers: { Cookie: cookie } });
+    verifie('nettoyage locations mixtes supprim\u00e9es', delMixte.status === 204 && delAutre.status === 204);
+
     // ---- Aucune fuite vers le site public : le mock n'a re\u00e7u aucune requ\u00eate contenant nos locataires ----
     const fuite = requetesVersLeSite.some(u => /voisins|yoga|th\u00e9\u00e2tre|chorale|location/i.test(decodeURIComponent(u)));
     verifie('aucune donn\u00e9e de location envoy\u00e9e vers wp-json (pull-only)', !fuite, requetesVersLeSite);

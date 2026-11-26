@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.5', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.4.11 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.6', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -424,6 +424,14 @@ for (const p of PAGES) {
     wl.document.getElementById('locDate').value = apresdemain;
     wl.document.getElementById('locCreneau').value = 'PM';
     wl.document.getElementById('locAddDate').click();
+    // v1.5.6 : salle PAR occurrence — on change de salle pour la 3ème
+    wl.document.getElementById('locSalle').value = 'room-petite';
+    const apres3 = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+    wl.document.getElementById('locDate').value = apres3;
+    wl.document.getElementById('locCreneau').value = 'AM';
+    wl.document.getElementById('locAddDate').click();
+    verifie('locations.html : salle présélectionnée conservée après ajout (sticky)', wl.document.getElementById('locSalle').value === 'room-petite', wl.document.getElementById('locSalle').value);
+    verifie('locations.html : la chip montre la salle de l\u2019occurrence', [...wl.document.querySelectorAll('#locChips .loc-chip')].some((c) => c.textContent.includes('Petite salle')), [...wl.document.querySelectorAll('#locChips .loc-chip')].map((c) => c.textContent).join(' | '));
     wl.document.getElementById('locSave').click();
     await new Promise((r) => setTimeout(r, 900));
     verifie('locations.html : soumission ferme la modale (créée)', modaleL.hidden === true, alLoc.join(' | '));
@@ -431,7 +439,8 @@ for (const p of PAGES) {
     const creee = locsServeur.find((l) => l.titre === 'Asso Test DOM');
     verifie('locations.html : la location créée est en base (via la modale)', Boolean(creee), locsServeur.map((l) => l.titre));
     const ficheCreee = creee && await (await fetch(`${origine}/api/locations/${creee.id}`)).json();
-    verifie('locations.html : 3 séances en base (JOURNÉE→AM+PM + PM irrégulier)', Boolean(ficheCreee) && ficheCreee.dates.length === 3 && ficheCreee.dates.filter((x) => x.date === demain).map((x) => x.slot).join(',') === 'AM,PM' && ficheCreee.dates.filter((x) => x.date === apresdemain).map((x) => x.slot).join(',') === 'PM', ficheCreee);
+    verifie('locations.html : 4 séances en base (jour + PM + occurrence avec salle distincte)', Boolean(ficheCreee) && ficheCreee.dates.length === 4 && ficheCreee.dates.filter((x) => x.date === demain).map((x) => x.slot).join(',') === 'AM,PM' && ficheCreee.dates.filter((x) => x.date === apresdemain).map((x) => x.slot).join(',') === 'PM', ficheCreee);
+    verifie('locations.html : salle PAR date en base (la 3e occurrence en Petite)', ficheCreee && ficheCreee.dates.some((x) => x.date === apres3 && x.slot === 'AM' && x.room_id === 'room-petite' && x.room_name === 'Petite salle'), ficheCreee && ficheCreee.dates);
     verifie('locations.html : la carte apparaît dans la grille', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Asso Test DOM')));
     verifie('locations.html : la carte appara\u00eet dans la grille', [...wl.document.querySelectorAll('.f-card-title')].some((t) => t.textContent.includes('Asso Test DOM')));
 
@@ -440,7 +449,7 @@ for (const p of PAGES) {
     await new Promise((r) => setTimeout(r, 900));
     const heroL = wf2.document.querySelector('.hero');
     verifie('location.html?id : fiche rendue sans erreur (hero + titre)', erreursF2.length === 0 && Boolean(heroL) && heroL.textContent.includes('Asso Test DOM'), erreursF2.join(' | '));
-    verifie('location.html?id : 3 séances affichées', (wf2.document.body.textContent || '').includes('3 séances') || wf2.document.querySelectorAll('#locationContent li').length === 3, wf2.document.querySelectorAll('#locationContent li').length);
+    verifie('location.html?id : 4 séances affichées (salle par séance)', (wf2.document.body.textContent || '').includes('4 séances') || wf2.document.querySelectorAll('#locationContent li').length === 4, wf2.document.querySelectorAll('#locationContent li').length);
 
     // salles.html : la cellule location occupe la grille (class slot-location + lien location.html)
     const { errors: erreursS2, window: ws2 } = await chargerPage('salles.html');
