@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://atelierduweb.be; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">
     <title>Tableau de bord — Atelier du Web</title>
-    <link rel="stylesheet" href="styles.css?v=93">
+    <link rel="stylesheet" href="styles.css?v=94">
     <link rel="icon" href="assets/icons/favicon.ico" sizes="any">
     <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
     <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
@@ -25,13 +25,13 @@
         <div data-layout-topbar data-title="Tableau de bord" data-search-id="siteSearch" data-search-label="Rechercher" data-search-placeholder="Rechercher sur atelierduweb.be..."></div>
 
     <main id="main">
-        <section class="hero">
-            <p class="hero-lead">La journée d'aujourd'hui d'un coup d'œil : formations, visites, alertes et actions à mener. Les statistiques de pilotage vivent sur la page → Statistiques.</p>
+        <section class="hero hero-home">
+            <p class="hero-lead">Bienvenue à l'Atelier du web ! Depuis ce bandeau : pointez une visite ou enregistrez une impression, renouvelez l'abonnement d'un membre existant, ou inscrivez un nouveau membre. Le reste de la journée — formations, visites, alertes — se lit juste en dessous.</p>
             <div class="hero-actions">
                 <button class="btn btn-primary" id="quickCheckinBtn">✅ Pointer une visite</button>
                 <button class="btn btn-primary" id="quickPrintBtn">🖨️ Impression</button>
-                <a href="membres.html" class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">👥 Gérer les membres</a>
-                <a href="https://atelierduweb.be" class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">🌐 atelierduweb.be</a>
+                <button class="btn btn-secondary" id="quickRenewBtn" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">♻️ Renouveler un abo</button>
+                <a href="membres.html#add" class="btn btn-secondary" style="background:rgba(255,255,255,0.14);color:#fff;border-color:rgba(255,255,255,0.3);">➕ Ajouter un membre</a>
             </div>
         </section>
 
@@ -156,6 +156,23 @@
         </div>
     </div>
 
+    <!-- Renouvellement d'abo rapide (depuis le héro) -->
+    <div class="modal-overlay" id="renewModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="renewTitle">
+            <h3 id="renewTitle">♻️ Renouveler un abo</h3>
+            <div class="form-group">
+                <label for="renewSearch">Nom ou n° de membre</label>
+                <input type="text" id="renewSearch" placeholder="Ex : Marie ou 1002..." autocomplete="off">
+                <p class="form-hint">Sélectionnez le membre : sa fiche s'ouvre sur la page Membres, où se trouve le bouton « Renouveler l'abo ».</p>
+            </div>
+            <ul class="checkin-results" id="renewResults"></ul>
+            <div class="modal-actions">
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-secondary" id="renewCloseBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     <script src="layout.js?v=12"></script>
     <script src="escape.js?v=1"></script>
     <script src="auth.js?v=4"></script>
@@ -165,7 +182,7 @@
     <script src="adw-client.js?v=3"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="dashboard.js?v=46"></script>
+    <script src="dashboard.js?v=47"></script>
 <script>
         // PWA : enregistrement du service worker (silencieux si non supporté)
         if ('serviceWorker' in navigator) {
