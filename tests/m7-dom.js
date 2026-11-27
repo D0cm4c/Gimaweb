@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.18 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.18', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.19 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.19', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -465,32 +465,26 @@ for (const p of PAGES) {
         }
     }
 
-    // mode checkin : le bouton « Pointer une visite » ouvre la même modale en mode checkin
+    // v1.5.19 : « Pointer une visite » renvoie au dashboard (index.html#visite) — plus de mode checkin dans le picker
     const btnCheckin = whm.document.getElementById('quickCheckinBtn');
-    verifie('membres.html : bouton « Pointer une visite » présent', Boolean(btnCheckin) && (btnCheckin.textContent || '').indexOf('Pointer une visite') !== -1, btnCheckin && btnCheckin.textContent);
+    verifie('membres.html : « Pointer une visite » = lien <a> vers index.html#visite', Boolean(btnCheckin) && btnCheckin.tagName === 'A' && (btnCheckin.getAttribute('href') || '') === 'index.html#visite', btnCheckin && btnCheckin.outerHTML.slice(0, 90));
     if (btnCheckin) {
+        navHM.length = 0;
         btnCheckin.click();
-        await new Promise((r) => setTimeout(r, 600));
-        verifie('membres.html : modale ouverte en mode « Pointer une visite » (titre)', !modaleRenew.hidden && whm.document.getElementById('renewTitle').textContent.indexOf('Pointer une visite') !== -1, whm.document.getElementById('renewTitle').textContent);
-        const rs2 = whm.document.getElementById('renewSearch');
-        rs2.value = 'niqueur';
-        rs2.dispatchEvent(new whm.Event('input', { bubbles: true }));
-        await new Promise((r) => setTimeout(r, 600));
-        const items2 = [...whm.document.querySelectorAll('#renewResults li.checkin-item')];
-        verifie('membres.html : recherche (mode checkin) retrouve le membre', items2.length >= 1, whm.document.getElementById('renewResults').textContent.slice(0, 60));
-        if (items2.length) {
-            const mid = items2[0].getAttribute('data-member-id');
-            navHM.length = 0;
-            items2[0].click();
-            await new Promise((r) => setTimeout(r, 1200));
-            const fiche2 = whm.document.getElementById('detailModal');
-            verifie('membres.html : mode checkin → fiche ouverte en place, aucune navigation', Boolean(fiche2) && !fiche2.hidden && navHM.length === 0, navHM.join(' | '));
-            const visites = await (await fetch(`${origine}/api/membres/${encodeURIComponent(mid)}/visites`)).json();
-            const auj = new Date().toISOString().slice(0, 10);
-            verifie('membres.html : la visite du jour est bien enregistrée (API)', Array.isArray(visites) && visites.some((v) => String(v.visit_date || '').slice(0, 10) === auj), JSON.stringify(visites).slice(0, 120));
-        }
+        await new Promise((r) => setTimeout(r, 300));
+        verifie('membres.html : clic « Pointer une visite » → navigation vers le dashboard', navHM.length > 0, navHM.join(' | '));
     }
-    verifie('membres.html : aucune erreur JS (boutons + modale pick)', erreursHM.length === 0, erreursHM.join(' | '));
+    verifie('membres.html : aucune erreur JS (boutons + picker renew)', erreursHM.length === 0, erreursHM.join(' | '));
+}
+
+// ---- 1treize) v1.5.19 — index.html#visite ouvre directement la modale « Pointer une visite » du dashboard
+{
+    const { errors: erreursV, window: wvis } = await chargerPage('index.html#visite');
+    await new Promise((r) => setTimeout(r, 1000));
+    const modV = wvis.document.getElementById('checkinModal');
+    verifie('index.html#visite : la modale « Pointer une visite » s\'ouvre directement', Boolean(modV) && !modV.hidden, modV && String(modV.hidden));
+    verifie('index.html#visite : liste initiale affichée', wvis.document.querySelectorAll('#checkinResults li.checkin-item').length >= 1);
+    verifie('index.html#visite : aucune erreur JS', erreursV.length === 0, erreursV.join(' | '));
 }
 
 // ---- 1novies) salles.html : la grille affiche les salles (bug v1.4.4 : getRoomPlanning recevait

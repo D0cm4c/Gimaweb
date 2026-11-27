@@ -834,7 +834,15 @@
         if (e.key === 'Escape' && renewModal && !renewModal.hidden) closeRenew();
     });
 
-    ADWDatabase.init().then(render).catch(function (err) {
+    ADWDatabase.init().then(function () {
+        render();
+        // Lien direct vers la modale « Pointer une visite » : index.html#visite
+        // (bouton « Pointer une visite » de membres.html y renvoie)
+        if (location.hash === '#visite') {
+            openCheckin();
+            history.replaceState(null, '', location.pathname + location.search);
+        }
+    }).catch(function (err) {
         if (loading) {
             loading.hidden = true;
             loading.querySelector('p').textContent = 'Erreur de chargement de la base de données : ' + err.message;
