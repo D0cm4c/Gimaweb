@@ -457,3 +457,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Flux visite** : même picker, mode checkin → fiche `openDetail` en place + pointage via `detailCheckinBtn.click()` (409 géré). PAS de nouveau hero sur membres.html (boutons dans `.filters-head` à côté de `addMemberBtn` — pas de doublon « Ajouter un membre »).
 - ⚠ Leçons : `scrollIntoView` absent sous jsdom → guard `typeof === 'function'` ; les tests de dates doivent être RELATIFS (vérité = `GET /api/membres/:id/renouvellement`), pas en dur — un autre test renew déjà le membre avant.
 - Bumps cache : membres.html `app.js?v=41` ; index.html `dashboard.js?v=48`. M7-dom +17 vérifs (m7 167/167). Régression **544/544 (15 suites)**.
+
+
+## ✨ v1.5.18 — unification abo/renouvellement sur membres.html (fix + refactor ; décisions porteur 1b / 2A / 3-oui)
+
+- **À LIRE PAR LES AUTRES SESSIONS** : touche UNIQUEMENT `public/app.js`, `public/membres.html` (bump cache), `tests/m7-dom.js`, `package.json`, `CHANGELOG.md`, ce fichier. Aucun endpoint serveur, aucun CSS. Branche `vibe/v1.5.18-fix-renew-abo-dates-b38ea7`.
+- **Règle de dates d'abo UNIQUE (1b : +1 mois/1 an EXACT, sans -1 j — identique au serveur ajouterMois)** : `aboEndDate(sub, startStr)` dans app.js — aucun → '' ; mensuel → début + 1 mois ; annuel → début + 1 an. Utilisée par `applySubscriptionDates` (modale « Modifier le membre ») et `applyRenewAboDates` (modale `#renewAboModal`, recalcul TOUJOURS — bug v1.5.17 : seulement si fin vide). Ne plus dupliquer cette règle ailleurs. `page-membre.js` (renewSubBtn) laissée telle quelle (hors scope 2A).
+- **Renouvellement UNIFIÉ (2A)** : `detailRenewBtn` (fiche) → `closeDetail()` + `openRenewAbo(id)` ; l'ancienne logique double-clic inline supprimée. Une seule modale de renouvellement `#renewAboModal` (double confirmation conservée — 3-oui : aperçu `previewRenewal` pré-remplit les dates, 2e clic applique `renewSubscription(formule, dates affichées)`).
+- M7-dom : +7 vérifs (m7 174/174). Régression **551/551 (15 suites)**. Version **1.5.18**.
