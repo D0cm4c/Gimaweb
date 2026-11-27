@@ -28,7 +28,7 @@
         <section class="filters-bar" aria-label="Filtres et tri">
             <div class="filters-row filters-head">
                 <button class="btn btn-primary" id="addMemberBtn">+ Ajouter un membre</button>
-                <button class="btn btn-secondary" id="quickCheckinBtn" title="Rechercher un membre et pointer sa visite du jour">✅ Pointer une visite</button>
+                <a href="index.html#visite" class="btn btn-secondary" id="quickCheckinBtn" title="Ouvrir la modale « Pointer une visite » du tableau de bord">✅ Pointer une visite</a>
                 <button class="btn btn-secondary" id="quickRenewBtn" title="Rechercher un membre et renouveler son abonnement">♻️ Renouveler un abo</button>
                 <button class="btn btn-secondary btn-small filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="filtersMore" hidden>🎚 Filtres &amp; tri</button>
                 <span class="members-count" id="membersCount" aria-live="polite"></span>
@@ -220,7 +220,7 @@
             <div class="form-group">
                 <label for="renewSearch">Nom ou n° de membre</label>
                 <input type="text" id="renewSearch" placeholder="Ex : Marie ou 1002..." autocomplete="off">
-                <p class="form-hint" id="renewHint">Sélectionnez le membre : la modale « Renouveler un abo » s'ouvre ici.</p>
+                <p class="form-hint">Sélectionnez le membre : la modale « Renouveler un abo » s'ouvre ici.</p>
             </div>
             <ul class="checkin-results" id="renewResults"></ul>
             <div class="modal-actions">
@@ -315,7 +315,7 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="app.js?v=42"></script>
+    <script src="app.js?v=43"></script>
     <script src="shortcuts.js?v=1"></script>
 <script>
         // PWA : enregistrement du service worker (silencieux si non supporté)

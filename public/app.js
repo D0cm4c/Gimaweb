@@ -449,19 +449,15 @@
         });
     });
 
-    /* ---------- Renouveler un abo (bouton du héro) ---------- */
-    // Même modèle que le dashboard (recherche membre), mais au clic on ouvre la fiche
-    // EN PLACE via openDetail — on est DÉJÀ sur membres.html, aucune navigation vers #member=.
+    /* ---------- Picker « Renouveler un abo » (bouton de la barre de filtres) ---------- */
+    // v1.5.19 : le picker ne sert PLUS que le renouvellement (le bouton « Pointer une visite »
+    // renvoie au dashboard index.html#visite). Au clic on ouvre la modale #renewAboModal EN PLACE.
     var renewModal = document.getElementById('renewModal');
-    var renewTitle = document.getElementById('renewTitle');
-    var renewHint = document.getElementById('renewHint');
-    var quickCheckinBtn = document.getElementById('quickCheckinBtn');
     var quickRenewBtn = document.getElementById('quickRenewBtn');
     var renewCloseBtn = document.getElementById('renewCloseBtn');
     var renewSearch = document.getElementById('renewSearch');
     var renewResults = document.getElementById('renewResults');
     var renewActive = -1;
-    var pickMode = 'renew'; // 'renew' | 'checkin' — la modale du héro sert les deux boutons
 
     function searchMembersRenew(q, apres) {
         q = (q || '').trim().toLowerCase();
@@ -476,22 +472,15 @@
         }).catch(function () { apres([]); });
     }
 
-    function openPick(mode) {
-        pickMode = mode === 'checkin' ? 'checkin' : 'renew';
+    function openRenew() {
         if (!renewModal) return;
         renewModal.hidden = false;
-        if (renewTitle) renewTitle.textContent = pickMode === 'checkin' ? '✅ Pointer une visite' : '♻️ Renouveler un abo';
-        if (renewHint) renewHint.textContent = pickMode === 'checkin'
-            ? 'Sélectionnez le membre : sa fiche s\'ouvre ici et la visite du jour est pointée.'
-            : 'Sélectionnez le membre : la modale « Renouveler un abo » s\'ouvre ici.';
         if (renewSearch) {
             renewSearch.value = '';
             renewSearch.focus();
         }
         searchMembersRenew('', afficherResultatsRenew);
     }
-
-    function openRenew() { openPick('renew'); }
 
     function closeRenew() {
         if (renewModal) renewModal.hidden = true;
@@ -529,17 +518,7 @@
                 subBadge(m) + fin;
             li.addEventListener('click', function () {
                 closeRenew();
-                if (pickMode === 'renew') {
-                    openRenewAbo(m.id); // nouvelle modale « Renouveler un abo » ouverte EN PLACE
-                    return;
-                }
-                // Mode checkin : fiche ouverte en place, puis pointage via son bouton (même handler, 409 géré)
-                var promesse = openDetail(m.id);
-                if (promesse && typeof promesse.then === 'function') {
-                    promesse.then(function () {
-                        if (detailCheckinBtn) detailCheckinBtn.click();
-                    });
-                }
+                openRenewAbo(m.id); // modale « Renouveler un abo » ouverte EN PLACE (jamais de navigation)
             });
             renewResults.appendChild(li);
         });
@@ -547,7 +526,6 @@
     }
 
     if (quickRenewBtn) quickRenewBtn.addEventListener('click', openRenew);
-    if (quickCheckinBtn) quickCheckinBtn.addEventListener('click', function () { openPick('checkin'); });
     if (renewCloseBtn) renewCloseBtn.addEventListener('click', closeRenew);
     if (renewModal) renewModal.addEventListener('click', function (e) {
         if (e.target === renewModal) closeRenew();

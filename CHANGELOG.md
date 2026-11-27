@@ -213,3 +213,8 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - `membre.html` (fiche complète) laissée telle quelle pour l'instant (hors scope 2A).
 - Bump cache : membres.html `app.js?v=42`. Version 1.5.18.
 - Tests m7-dom : +7 vérifications (règle exacte annuelle/mensuelle/aucune dans la modale renew, bouton fiche → modale renew, même règle dans `#edit=`). Régression : **551/551 (15 suites)**.
+## v1.5.19 — « Pointer une visite » de membres.html renvoie au dashboard (index.html#visite)
+- **membres.html** : le bouton « ✅ Pointer une visite » de la barre de filtres devient un simple lien `<a href="index.html#visite">` — la modale de pointage vit UNE SEULE fois, sur le dashboard.
+- **dashboard (index.html/dashboard.js)** : nouveau deep link `index.html#visite` → ouvre directement la modale « Pointer une visite » (`openCheckin`, hash nettoyé). Bump `dashboard.js?v=49`.
+- **Nettoyage (code inutile retiré)** : le picker `#renewModal` de membres.html ne sert plus que le renouvellement — suppression du mode checkin (`pickMode`, `openPick(mode)`, auto-clic sur `detailCheckinBtn`, hint dynamique). Le picker au clic ouvre uniquement `#renewAboModal` en place. Bump membres.html `app.js?v=43`.
+- Tests m7-dom : +4/-5 vérifications (lien `index.html#visite` + navigation au clic, `index.html#visite` ouvre la modale checkin avec sa liste). Régression : **551/551 (15 suites)**.

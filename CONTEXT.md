@@ -465,3 +465,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Règle de dates d'abo UNIQUE (1b : +1 mois/1 an EXACT, sans -1 j — identique au serveur ajouterMois)** : `aboEndDate(sub, startStr)` dans app.js — aucun → '' ; mensuel → début + 1 mois ; annuel → début + 1 an. Utilisée par `applySubscriptionDates` (modale « Modifier le membre ») et `applyRenewAboDates` (modale `#renewAboModal`, recalcul TOUJOURS — bug v1.5.17 : seulement si fin vide). Ne plus dupliquer cette règle ailleurs. `page-membre.js` (renewSubBtn) laissée telle quelle (hors scope 2A).
 - **Renouvellement UNIFIÉ (2A)** : `detailRenewBtn` (fiche) → `closeDetail()` + `openRenewAbo(id)` ; l'ancienne logique double-clic inline supprimée. Une seule modale de renouvellement `#renewAboModal` (double confirmation conservée — 3-oui : aperçu `previewRenewal` pré-remplit les dates, 2e clic applique `renewSubscription(formule, dates affichées)`).
 - M7-dom : +7 vérifs (m7 174/174). Régression **551/551 (15 suites)**. Version **1.5.18**.
+
+## ✨ v1.5.19 — « Pointer une visite » (membres.html) → dashboard `index.html#visite` ; picker renew-only
+
+- **À LIRE PAR LES AUTRES SESSIONS** : touche UNIQUEMENT `public/membres.html`, `public/app.js`, `public/index.html`, `public/dashboard.js`, `tests/m7-dom.js`, `package.json`, `CHANGELOG.md`, ce fichier. Aucun endpoint serveur, aucun CSS. Branche `vibe/v1.5.19-visite-vers-dashboard-b38ea7`.
+- **Une seule modale de pointage** : celle du dashboard (`#checkinModal`). Le bouton « Pointer une visite » de membres.html est un lien `index.html#visite` ; deep link géré dans dashboard.js à l'init (`openCheckin()` + nettoyage du hash). Bump `dashboard.js?v=49` (index.html), `app.js?v=43` (membres.html).
+- **Picker `#renewModal` de membres.html nettoyé** : plus de mode checkin — `pickMode`/`openPick(mode)`/hint dynamique supprimés ; au clic → `openRenewAbo(m.id)` uniquement. Le pointage depuis membres.html passe par le dashboard.
+- M7-dom : 174/174 (liens + deep link #visite testés). Régression **551/551 (15 suites)**. Version **1.5.19**.
