@@ -223,7 +223,7 @@ async function enrichFromPlugin(events) {
         if (!data || typeof data !== 'object') return events;
         (events || []).forEach((ev) => {
             const info = data[String(ev.id)];
-            if (!info) return;
+            if (!info || ev._mec) return; // v1.5.13 : l'API MEC est prioritaire, le plugin ne comble que le vide
             if (info.labels?.length) ev.labels = info.labels;
             if (info.price) ev.price = String(info.price);
             if (info.location) ev.location = info.location;
@@ -233,9 +233,14 @@ async function enrichFromPlugin(events) {
     return events;
 }
 
-// ---- v1.5.12 : source M.E. Calendar (API officielle, si clé présente) ----
-// GET /events → racine « events » indexée par date de début, items {ID, data:{title, content}}
-// GET /events/:id/next-occurrences → occurrences {start:{date, hour, ampm}, allday, past}
+// ---- v1.5.12/1.5.13 : source M.E. Calendar (API officielle, si clé présente) ----
+// GET /events → racine « events » indexée par date de début, items {ID, date, data:{…}}
+//   (audit 27 nov. 2026 : docs/AUDIT-API-MEC.md — la pagination du plugin est ignorée,
+//    UN SEUL GET suffit ; has_more_events boucle à l'infini sur le même payload)
+// data contient : title, content, permalink, meta:{mec_cost, mec_location_id, mec_organizer_id,
+//   mec_allday…}, mec:{days}, time, tickets, categories, labels, locations, organizers, color.
+// GET /events/:id/next-occurrences → occurrences FUTURES {start:{date, ampm}, allday, past}
+//   les dates PASSÉES vivent dans data.mec.days (liste complète) : on fusionne les deux.
 async function fetchViaApiMec(cle) {
     if (!cle) return null;
     const entetes = { 'mec-token': cle, Accept: 'application/json' };
@@ -243,54 +248,96 @@ async function fetchViaApiMec(cle) {
     if (!res.ok) throw new Error(`mec_api_http_${res.status}`);
     const data = await res.json();
     const parId = {};
+    const premierDe = (obj) => {
+        const v = Object.values(obj || {});
+        return v.length ? v[0] : null;
+    };
     for (const [dateCle, items] of Object.entries(data.events || {})) {
         for (const it of (items || [])) {
             const id = String(it.ID ?? it.data?.ID ?? '');
             if (!id) continue;
+            const d = it.data || {};
+            const loc = premierDe(d.locations);
+            const org = premierDe(d.organizers);
+            const cats = Object.values(d.categories || {}).map((c) => c.name).filter(Boolean);
+            // v1.5.13 (décision porteur) : les fermetures se détectent par CATÉGORIE
+            // uniquement — les labels MEC ne servent qu'à la déco du site web.
             const ev = parId[id] = parId[id] || {
                 id,
-                title: stripHtml(it.data?.title || ''),
-                excerpt: stripHtml(it.data?.content || '').slice(0, 400),
+                title: stripHtml(d.title || ''),
+                excerpt: stripHtml(d.content || '').slice(0, 400),
                 dates: new Set(),
                 slot: '',
                 startDate: dateCle,
-                url: '',
-                categories: []
+                url: d.permalink || '',
+                categories: cats,
+                labels: Object.values(d.labels || {}).map((l) => l.name).filter(Boolean),
+                price: (d.meta && d.meta.mec_cost !== undefined && String(d.meta.mec_cost).trim() !== '') ? String(d.meta.mec_cost).trim() : '',
+                location: loc ? loc.name : '',
+                organizer: org ? org.name : '',
+                timeLabel: (d.time && d.time.start ? String(d.time.start) : '') + (d.time && d.time.end ? ' – ' + d.time.end : ''),
+                allday: String((d.meta && d.meta.mec_allday) || '0') === '1',
+                mecDays: (d.mec && d.mec.days) || ''
             };
+            if (!ev.mecDays && d.mec && d.mec.days) ev.mecDays = d.mec.days;
             if (!/\d{4}-\d{2}-\d{2}/.test(ev.startDate) || dateCle < ev.startDate) ev.startDate = dateCle;
             if (dateCle) ev.dates.add(dateCle);
+            // créneau depuis l'occurrence de l'index (ampm local, zéro piège de fuseau)
+            const ampm = it.date && it.date.start && String(it.date.start.ampm).toUpperCase();
+            if (ampm === 'PM') ev.creneauPM = true; else ev.creneauAM = true;
         }
     }
-    // Occurrences exactes : préférer start.date (ISO déjà local, zéro piège de fuseau)
-    // et le champ ampm pour le créneau AM/PM (jamais l'heure en 12h seule).
+    // Séances COMPLÈTES : next-occurrences (futures, exactes) ∪ mec.days (y compris passées)
+    // Format mec.days : « 2026-11-10:2026-11-10:09-30-AM:12-30-PM,2026-11-17:… »
     for (const ev of Object.values(parId)) {
+        const dates = new Set(ev.dates);
+        const creneaux = new Set();
+        if (ev.creneauAM) creneaux.add('AM');
+        if (ev.creneauPM) creneaux.add('PM');
+        const parseJoursMec = (days) => {
+            for (const bloc of String(days || '').split(',')) {
+                const m = bloc.trim().match(/^(\d{4}-\d{2}-\d{2}):\d{4}-\d{2}-\d{2}:(\d{2})-(\d{2})-(AM|PM):(\d{2})-(\d{2})-(AM|PM)$/);
+                if (!m) continue;
+                dates.add(m[1]);
+                creneaux.add(m[4] === 'PM' ? 'PM' : 'AM');
+                creneaux.add(m[7] === 'PM' ? 'PM' : 'AM');
+            }
+        };
         try {
             const r = await fetch(`${MEC_API_BASE}/events/${ev.id}/next-occurrences`, { headers: entetes });
-            if (!r.ok) continue;
-            const occs = (await r.json()).occurrences || [];
-            const dates = new Set();
-            const creneaux = new Set();
-            for (const o of occs) {
-                if (o && Number(o.past) === 1) continue;
-                const d = o?.start?.date;
-                if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
-                dates.add(d);
-                if (String(o.allday) === '1') { creneaux.add('AM'); creneaux.add('PM'); }
-                else creneaux.add(String(o.start?.ampm).toUpperCase() === 'PM' ? 'PM' : 'AM');
+            if (r.ok) {
+                const occs = (await r.json()).occurrences || [];
+                for (const o of occs) {
+                    if (o && Number(o.past) === 1) continue;
+                    const d = o?.start?.date;
+                    if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+                    dates.add(d);
+                    if (String(o.allday) === '1') { creneaux.add('AM'); creneaux.add('PM'); }
+                    else creneaux.add(String(o.start?.ampm).toUpperCase() === 'PM' ? 'PM' : 'AM');
+                }
             }
-            if (dates.size) {
-                ev.dates = dates;
-                ev.slot = creneaux.has('AM') ? 'AM' : 'PM'; // convention existante : un créneau par formation
-            }
-        } catch { /* occurrence inaccessible : on garde les dates de l'index */ }
+        } catch { /* occurrences inaccessibles : on garde l'index + mec.days */ }
+        // mec.days : injecté depuis l'index initial (stocké sur le 1er item vu)
+        if (ev.mecDays) parseJoursMec(ev.mecDays);
+        if (dates.size) {
+            ev.dates = dates;
+            // convention existante : un créneau par formation ; allday → AM
+            ev.slot = ev.allday || creneaux.has('AM') ? 'AM' : 'PM';
+        }
     }
-    return Object.values(parId).map((ev) => ({ ...ev, dates: [...ev.dates].sort() }));
+    return Object.values(parId).map((ev) => {
+        const { creneauAM, creneauPM, mecDays, allday, ...propre } = ev;
+        return { ...propre, dates: [...ev.dates].sort() };
+    });
 }
 
 // Chargement complet : WP REST → fallback RSS → enrichissement plugin
-// v1.5.12 : si une clé MEC est fournie, l'API officielle enrichit/corrige les DATES
-// (occurrences exactes) ; les métadonnées (catégories, lieu, organisateur) restent
-// issues du wp-json public — l'API MEC observée ne les expose pas (issue #52).
+// v1.5.13 (audit docs/AUDIT-API-MEC.md) : si une clé MEC est fournie, l'API officielle
+// est PRIORITAIRE sur TOUTES les infos — dates (occurrences ∪ mec.days, y compris passées),
+// tarif (meta.mec_cost), lieu (locations[id].name), organisateur (organizers[id].name),
+// catégories, labels, permalien. Le wp-json public ne sert plus que de secours pour les
+// champs que l'API MEC ne fournit pas (durée, date_text) et pour les événements absents
+// de l'index MEC (fenêtre future uniquement). Les entités HTML sont décodées (stripHtml).
 export async function chargerFormations({ cleMec = '' } = {}) {
     let sourceMec = false;
     let apiEvents = null;
@@ -306,17 +353,41 @@ export async function chargerFormations({ cleMec = '' } = {}) {
     }
     if (apiEvents && apiEvents.length) {
         const parId = new Map(apiEvents.map((e) => [String(e.id), e]));
+        const vus = new Set();
         events = events.map((ev) => {
             const api = parId.get(String(ev.id));
             if (!api) return ev;
+            vus.add(String(ev.id));
+            vus.add(String(ev.id));
             return {
                 ...ev,
+                _mec: true,
+                title: api.title || ev.title,
+                url: api.url || ev.url,
+                excerpt: api.excerpt || ev.excerpt,
                 dates: api.dates.length ? api.dates : ev.dates,
                 startDate: api.dates.length ? api.dates[0] : ev.startDate,
                 slot: api.slot || ev.slot,
-                excerpt: ev.excerpt || api.excerpt
+                timeLabel: api.timeLabel || ev.timeLabel,
+                price: api.price !== '' && api.price !== undefined ? api.price : ev.price,
+                location: api.location || ev.location,
+                organizer: api.organizer || ev.organizer,
+                categories: (api.categories && api.categories.length) ? api.categories : ev.categories,
+                labels: (api.labels && api.labels.length) ? api.labels : ev.labels
             };
         });
+        // Événements présents dans l'API MEC mais absents du flux wp-json : ajoutés tels quels
+        for (const api of apiEvents) {
+            if (vus.has(String(api.id))) continue;
+            events.push({
+                _mec: true,
+                id: api.id, title: api.title, url: api.url, excerpt: api.excerpt,
+                duration: '', startDate: api.dates[0] || '', dates: api.dates, slot: api.slot || 'AM',
+                dateText: '', timeLabel: api.timeLabel || '',
+                categories: api.categories || [], labels: api.labels || [],
+                price: api.price || '', location: api.location || '', organizer: api.organizer || ''
+            });
+        }
     }
     const resultat = await enrichFromPlugin(events);
     resultat.sourceMec = sourceMec;
