@@ -24,14 +24,68 @@ const mock = http.createServer((req, res) => {
             return res.end(JSON.stringify({ code: 'invalid_api_token', message: 'Invalid API Token!' }));
         }
         if (u === '/wp-json/mec/v1.0/events') {
-            return res.end(JSON.stringify({ events: {
-                '2027-03-10': [
-                    { ID: 501, data: { ID: 501, title: 'Initiation API MEC', content: '<p>Formation test via API officielle</p>' } }
-                ],
-                '2027-03-12': [
-                    { ID: 502, data: { ID: 502, title: 'Fermé (test API)', content: '<p>Fermeture annuelle test</p>' } }
-                ]
-            } }));
+            // Structure RÉELLE observée (docs/AUDIT-API-MEC.md, 27 nov. 2026) :
+            // racine « events » indexée par date, items {ID, date, data:{title, content, permalink,
+            // meta:{mec_cost, mec_location_id, mec_organizer_id, mec_allday}, mec:{days}, time,
+            // tickets, categories, labels, locations, organizers}} + pagination (ignorée : un seul GET).
+            return res.end(JSON.stringify({
+                events: {
+                    '2027-03-10': [{
+                        ID: 501,
+                        date: { start: { date: '2027-03-10', hour: '09', minutes: '30', ampm: 'am', timestamp: 1 }, end: {} },
+                        data: {
+                            ID: 501, title: 'Initiation à l&rsquo;API MEC', content: '<p>Formation test via API officielle</p>',
+                            permalink: 'https://atelierduweb.be/formation/initiation-api-mec/',
+                            meta: { mec_cost: '15', mec_location_id: '24', mec_organizer_id: '190', mec_allday: '0' },
+                            mec: { days: '2026-06-01:2026-06-01:09-30-AM:12-30-PM,2027-03-10:2027-03-10:09-30-AM:12-30-PM,2027-03-11:2027-03-11:01-30-PM:04-30-PM,' },
+                            time: { start: '9h30', end: '12h30' },
+                            tickets: { '1': { name: 'R\u00e9duction CPAS', price: '5' }, '2': { name: 'Formation (15\u20ac)', price: '15' } },
+                            categories: { '22': { id: 22, name: 'Ateliers' } },
+                            labels: { '73': { id: 73, name: 'Niveau débutant' } },
+                            locations: { '24': { id: 24, name: "L'Atelier du web", address: '37 Rue du Fort' } },
+                            organizers: { '190': { id: 190, name: 'Matthieu de Cartier d\u2019Yves', email: 'test@stgilles.brussels', url: '/equipe/matthieu/' } }
+                        }
+                    }],
+                    '2027-03-12': [{
+                        ID: 502,
+                        date: { start: { date: '2027-03-12', hour: '08', minutes: '00', ampm: 'am', timestamp: 3 }, end: {} },
+                        data: {
+                            ID: 502, title: 'Fermé (test API)', content: '<p>Fermeture annuelle test</p>',
+                            permalink: 'https://atelierduweb.be/formation/fermeture-test-api/',
+                            meta: { mec_cost: '', mec_location_id: '1', mec_organizer_id: '1', mec_allday: '1' },
+                            mec: { days: '2027-03-12:2027-03-12:08-00-AM:06-00-PM' },
+                            time: { start: 'Journée entière', end: '' },
+                            tickets: {},
+                            categories: { '10': { id: 10, name: 'Fermeture' }, '45': { id: 45, name: 'Evènement' } },
+                            labels: { '74': { id: 74, name: 'Fermeture', color: '#ff3a3a' } },
+                            locations: { '1': { id: 1, name: 'L\u2019Atelier du web' } },
+                            organizers: { '1': { id: 1, name: 'Atelier du web' } }
+                        }
+                    }],
+                    '2027-03-20': [{
+                        ID: 503, // présent UNIQUEMENT dans l'API MEC (pas dans wp-json)
+                        date: { start: { date: '2027-03-20', hour: '13', minutes: '30', ampm: 'pm', timestamp: 9 }, end: {} },
+                        data: {
+                            ID: 503, title: 'Repair Café spécial API', content: '<p>Permanence test</p>',
+                            permalink: 'https://atelierduweb.be/formation/repair-api/',
+                            meta: { mec_cost: '0', mec_location_id: '24', mec_organizer_id: '190', mec_allday: '0' },
+                            mec: { days: '2027-03-20:2027-03-20:01-30-PM:04-30-PM' },
+                            time: { start: '13h30', end: '16h30' },
+                            tickets: {},
+                            categories: { '22': { id: 22, name: 'Ateliers' } },
+                            labels: { '75': { id: 75, name: 'Permanence' } },
+                            locations: { '24': { id: 24, name: "L'Atelier du web" } },
+                            organizers: { '190': { id: 190, name: 'Matthieu de Cartier d\u2019Yves' } }
+                        }
+                    }]
+                },
+                pagination: { next_date: '2027-03-20', next_offset: 1, has_more_events: true, found: 3 }
+            }));
+        }
+        if (u === '/wp-json/mec/v1.0/events/503/next-occurrences') {
+            return res.end(JSON.stringify({ success: 1, occurrences: [
+                { start: { date: '2027-03-20', hour: '01', minutes: '30', ampm: 'PM', timestamp: 9 }, end: {}, allday: '0', past: 0 }
+            ] }));
         }
         if (u === '/wp-json/mec/v1.0/events/501/next-occurrences') {
             return res.end(JSON.stringify({ success: 1, occurrences: [
@@ -117,10 +171,21 @@ try {
     await fetchApi('/api/formations/sync', avecCookie(cookie, json('POST')));
     verifie('l\u2019API MEC est appel\u00e9e avec le header \u00ab mec-token \u00bb', teteRecue === CLE_VALIDEE, teteRecue);
     dates501 = await fetchApi(`/api/formations/501/dates`);
-    verifie('avec cl\u00e9 : les occurrences exactes peuplent formation_dates (10 + 11 mars)', dates501.body.length === 2 && dates501.body.map((d) => d.date).join(',') === '2027-03-10,2027-03-11', dates501.body);
+    verifie('avec cl\u00e9 : s\u00e9ances COMPL\u00c8TES (next-occurrences \u222a mec.days, y compris pass\u00e9e)', dates501.body.length === 3 && dates501.body.map((d) => d.date).join(',') === '2026-06-01,2027-03-10,2027-03-11', dates501.body);
     verifie('avec cl\u00e9 : cr\u00e9neau d\u00e9duit du champ ampm (AM pour la 1\u02b3\u1d49 occurrence)', dates501.body.every((d) => d.slot === 'AM'), dates501.body);
     f501 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '501');
-    verifie('les m\u00e9tadonn\u00e9es wp-json sont conserv\u00e9es (cat\u00e9gories, pas de r\u00e9gression)', f501 && f501.categories.includes('Tablettes') && f501.url.includes('atelierduweb.be'), f501 && f501.categories);
+    verifie('titre : entit\u00e9s HTML d\u00e9cod\u00e9es (rsquo \u2192 apostrophe typographique)', f501 && f501.title.includes('l\u2019API') && !f501.title.includes('&rsquo;'), f501 && f501.title);
+    verifie('tarif depuis meta.mec_cost (priorit\u00e9 API MEC)', f501 && Number(f501.price) === 15, f501 && f501.price);
+    verifie('lieu depuis locations[id].name', f501 && /Atelier du web/i.test(f501.location || ''), f501 && f501.location);
+    verifie('organisateur depuis organizers[id].name', f501 && /Matthieu/i.test(f501.organizer || ''), f501 && f501.organizer);
+    verifie('labels depuis data.labels', f501 && (f501.labels || '').includes('Niveau d\u00e9butant'), f501 && f501.labels);
+    verifie('permalien depuis data.permalink', f501 && String(f501.url || '').includes('initiation-api-mec'), f501 && f501.url);
+    const f503 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '503');
+    verifie('event MEC-only (absent de wp-json) : ajout\u00e9 par la sync', !!f503 && f503.title === 'Repair Caf\u00e9 sp\u00e9cial API', f503 && f503.title);
+    verifie('event MEC-only : cr\u00e9neau PM via ampm', f503 && (await fetchApi('/api/formations/503/dates')).body.every((d) => d.slot === 'PM'), f503 && f503.slot);
+    const f502 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '502');
+    verifie('fermeture : d\u00e9tection par CAT\u00c9GORIE MEC (les labels = d\u00e9co site)', f502 && (f502.categories || '').includes('Fermeture'), f502 && f502.categories);
+    verifie('fermeture : labels conserv\u00e9s pour la d\u00e9co, sans effet sur la d\u00e9tection', f502 && (f502.labels || '').includes('Fermeture'), f502 && f502.labels);
     const notifs = await fetchApi('/api/notifications?limite=50');
     verifie('notification de sync mentionne \u00ab via API M.E. Calendar \u00bb', notifs.body.some((n) => (n.message || '').includes('API M.E. Calendar')), notifs.body.slice(0, 3).map((n) => n.message));
 

@@ -418,3 +418,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - api-formations.js : `cleMecActive()`, `journaliser()`, notification sync « — dates via API M.E. Calendar » si sourceMec.
 - Tests m10-mec-api.js (18/18, mock loopback de l'API MEC + serveur port 32138) ; m0 passe à 19 tables ; m7-dom attend v1.5.12. Régression 496/496 (15 suites).
 - Surveillance future (issue #52) : champ « Numéro de membre (Optionnel) » côté WP → apparaîtra dans /config/custom-fields et les bookings → boucle matching n° > email > nom > création.
+
+## ✨ v1.5.13 — API MEC prioritaire sur toutes les infos (audit clé réelle)
+
+- Audit avec clé temporaire (docs/AUDIT-API-MEC.md + tools/audit-mec-api.cjs, dumps .vibe/mec-audit/ hors git). LEÇONS : racine {events, pagination} SANS wrapper data (le code v1.5.12 lisait data.events → OK en fait, c'est le script d'audit qui s'était trompé) ; pagination du plugin MEC IGNORE ?start=&offset= (payload identique) → UN SEUL GET, jamais suivre has_more_events (boucle infinie vérifiée) ; mauvaise clé = HTTP 500 invalid_api_token (pas 401).
+- fetchViaApiMec : extraction riche — price (meta.mec_cost), location/organizer (data.locations/organizers[id].name), categories/labels (names), url (permalink), timeLabel (data.time), entités HTML décodées via stripHtml/decodeEntites. Séances = next-occurrences (futur) ∪ mec.days (TOUTES, format « YYYY-MM-DD:…:HH-MM-AM:HH-MM-PM ») → dates passées incluses.
+- chargerFormations : marque _mec=true sur les events servis par l'API, enrichFromPlugin ne les surcharge plus (MEC prioritaire) ; events MEC-only ajoutés. Fermetures : CATÉGORIE uniquement (décision porteur — les labels = déco site web, id 74 Fermeture).
+- m10 : mock calé sur la vraie structure + 9 nouvelles assertions (27/27). Régression 505/505 (15 suites).
+- Champ « Numéro de membre (Optionnel) » : viendra avec le plugin WP dans les BOOKINGS (pas custom-fields — resté vide à l'audit) ; clé définitive déjà posée dans Gimaweb (carte Paramètres → table settings).
