@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.14 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.14', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.15 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.15', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -290,6 +290,55 @@ for (const p of PAGES) {
     await new Promise((r) => setTimeout(r, 600));
     verifie('dashboard : recherche pointage retrouve le membre', wdash.document.querySelectorAll('#checkinResults li.checkin-item').length >= 1);
     verifie('dashboard : aucune erreur JS pendant la recherche', erreursD.length === 0, erreursD.join(' | '));
+}
+
+// ---- 1undecies) v1.5.15 — héro dashboard : « Renouveler un abo » (modale recherche membre → fiche) + « Ajouter un membre » (membres.html#add)
+{
+    const { errors: erreursH, window: whero, navigations: navH } = await chargerPage('index.html');
+    await new Promise((r) => setTimeout(r, 900));
+    const btnsHero = [...whero.document.querySelectorAll('.hero-actions .btn')].map((b) => (b.textContent || '').trim());
+    const liensHero = [...whero.document.querySelectorAll('.hero-actions a')].map((a) => a.getAttribute('href') || '');
+    verifie('dashboard hero : « Renouveler un abo » présent', btnsHero.some((t) => t.indexOf('Renouveler un abo') !== -1), btnsHero.join(' | '));
+    verifie('dashboard hero : « Ajouter un membre » pointe vers membres.html#add', liensHero.some((h) => h === 'membres.html#add'), liensHero.join(' | '));
+    verifie('dashboard hero : « Gérer les membres » et le lien atelierduweb.be sont retirés',
+        !btnsHero.some((t) => t.indexOf('Gérer les membres') !== -1) && !liensHero.some((h) => h.indexOf('atelierduweb.be') !== -1), btnsHero.join(' | ') + ' / ' + liensHero.join(' | '));
+    const lead = whero.document.querySelector('.hero-home .hero-lead');
+    verifie('dashboard hero : classe hero-home + texte d\'accueil', Boolean(lead) && lead.textContent.indexOf('Bienvenue') !== -1, lead && lead.textContent.slice(0, 60));
+
+    whero.document.getElementById('quickRenewBtn')?.click();
+    await new Promise((r) => setTimeout(r, 600));
+    const modaleRenew = whero.document.getElementById('renewModal');
+    verifie('dashboard : modale « Renouveler un abo » ouverte au clic du héro', Boolean(modaleRenew) && !modaleRenew.hidden);
+    verifie('dashboard : liste initiale affichée dans la modale renew', whero.document.querySelectorAll('#renewResults li.checkin-item').length >= 1);
+    const rs = whero.document.getElementById('renewSearch');
+    rs.value = 'niqueur';
+    rs.dispatchEvent(new whero.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 600));
+    const items = [...whero.document.querySelectorAll('#renewResults li.checkin-item')];
+    verifie('dashboard : recherche renew retrouve le membre (avec badge abo)', items.length >= 1 && items[0].textContent.indexOf('Domi') !== -1, whero.document.getElementById('renewResults').textContent.slice(0, 80));
+    if (items.length) {
+        navH.length = 0;
+        items[0].click();
+        await new Promise((r) => setTimeout(r, 300));
+        verifie('dashboard : sélection d\'un membre → navigation vers la fiche (membres.html#member=…)', navH.length > 0, navH.join(' | '));
+    }
+    verifie('dashboard : aucune erreur JS (héro + modale renew)', erreursH.length === 0, erreursH.join(' | '));
+
+    // deep links membres.html : #add ouvre « Ajouter un membre », #member=<id> ouvre la fiche (bouton Renouveler)
+    const tous = await (await fetch(`${origine}/api/membres`)).json();
+    const niqueur = (tous || []).find((m) => (m.last_name || '').toLowerCase().includes('niqueur'));
+    const { errors: erreursAdd, window: wadd } = await chargerPage('membres.html#add');
+    await new Promise((r) => setTimeout(r, 600));
+    const modAdd = wadd.document.getElementById('memberModal');
+    verifie('membres.html#add : la modale « Ajouter un membre » s\'ouvre directement', Boolean(modAdd) && !modAdd.hidden && wadd.document.getElementById('modalTitle').textContent === 'Ajouter un membre', wadd.document.getElementById('modalTitle') && wadd.document.getElementById('modalTitle').textContent);
+    verifie('membres.html#add : aucune erreur JS', erreursAdd.length === 0, erreursAdd.join(' | '));
+    if (niqueur) {
+        const { errors: erreursFiche, window: wfiche } = await chargerPage(`membres.html#member=${encodeURIComponent(niqueur.id)}`);
+        await new Promise((r) => setTimeout(r, 900));
+        const modFiche = wfiche.document.getElementById('detailModal');
+        verifie('membres.html#member=<id> : la fiche du membre s\'ouvre (bouton « Renouveler l\'abo » dispo)', Boolean(modFiche) && !modFiche.hidden && wfiche.document.getElementById('detailTitle').textContent.indexOf('Fiche de') === 0 && Boolean(wfiche.document.getElementById('detailRenewBtn')), wfiche.document.getElementById('detailTitle') && wfiche.document.getElementById('detailTitle').textContent);
+        verifie('membres.html#member=<id> : aucune erreur JS', erreursFiche.length === 0, erreursFiche.join(' | '));
+    }
 }
 
 // ---- 1novies) salles.html : la grille affiche les salles (bug v1.4.4 : getRoomPlanning recevait

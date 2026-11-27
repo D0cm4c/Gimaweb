@@ -841,6 +841,11 @@
             ADWDatabase.getMembre(mid).then(function (m) { if (m) openModal(m); });
             history.replaceState(null, '', location.pathname + location.search);
         }
+        // Lien direct vers le formulaire vierge : membres.html#add — ouvre « Ajouter un membre »
+        if (location.hash === '#add') {
+            openModal(null);
+            history.replaceState(null, '', location.pathname + location.search);
+        }
     }).catch(function (err) {
         loading.hidden = true;
         emptyState.hidden = false;

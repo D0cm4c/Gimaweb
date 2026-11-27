@@ -760,6 +760,80 @@
         if (e.key === 'Escape' && printModal && !printModal.hidden) closePrint();
     });
 
+    /* ============ Renouveler un abo (bouton du héro) ============ */
+    // Même modèle que « Pointer une visite » : recherche de membre, puis au clic
+    // on envoie sur la fiche du membre (membres.html#member=<id>) où vit le bouton « Renouveler l'abo ».
+    var renewModal = document.getElementById('renewModal');
+    var quickRenewBtn = document.getElementById('quickRenewBtn');
+    var renewCloseBtn = document.getElementById('renewCloseBtn');
+    var renewSearch = document.getElementById('renewSearch');
+    var renewResults = document.getElementById('renewResults');
+    var renewNav = (renewSearch && renewResults) ? makeListNavigable(renewSearch, renewResults, {}) : null;
+
+    function openRenew() {
+        if (!renewModal) return;
+        renewModal.hidden = false;
+        if (renewSearch) {
+            renewSearch.value = '';
+            renewSearch.focus();
+        }
+        searchMembers('', afficherResultatsRenew);
+    }
+
+    function closeRenew() {
+        if (renewModal) renewModal.hidden = true;
+    }
+
+    function badgeAbo(m) {
+        var s = m.subscription || 'none';
+        if (s === 'yearly') return '<span class="badge badge-sub-yearly">abo annuel</span>';
+        if (s === 'monthly') return '<span class="badge badge-sub-monthly">abo mensuel</span>';
+        return '<span class="badge badge-sub-none">sans abo</span>';
+    }
+
+    function afficherResultatsRenew(members) {
+        if (!renewResults) return;
+        renewResults.innerHTML = '';
+        if (!members.length) {
+            renewResults.innerHTML = '<li class="form-hint" style="list-style:none;padding:0.6rem 0;">Aucun membre trouvé.</li>';
+            return;
+        }
+        if (renewNav) renewNav.setMembers(members);
+        members.forEach(function (m) {
+            var li = document.createElement('li');
+            li.className = 'checkin-item' + statusClass(m);
+            li.setAttribute('data-member-id', m.id);
+            var fin = '';
+            if (m.end_date) {
+                var d = new Date(m.end_date + 'T12:00:00');
+                var lbl = isNaN(d.getTime()) ? m.end_date : d.toLocaleDateString('fr-BE', { day: 'numeric', month: 'short', year: 'numeric' });
+                fin = '<span class="badge ' + (statusClass(m) === ' expired' ? 'badge-sub-none' : 'badge-ok') + '">fin : ' + escapeHtml(lbl) + '</span>';
+            }
+            li.innerHTML =
+                '<span class="member-avatar small" aria-hidden="true">' +
+                    escapeHtml(((m.first_name || '?').charAt(0) + (m.last_name || '?').charAt(0)).toUpperCase()) +
+                '</span>' +
+                '<span class="rv-name">#' + escapeHtml(m.member_no) + ' ' + escapeHtml(m.first_name) + ' ' + escapeHtml(m.last_name) + '</span>' +
+                badgeAbo(m) + fin;
+            li.addEventListener('click', function () {
+                window.location.href = 'membres.html#member=' + encodeURIComponent(m.id);
+            });
+            renewResults.appendChild(li);
+        });
+    }
+
+    if (quickRenewBtn) quickRenewBtn.addEventListener('click', openRenew);
+    if (renewCloseBtn) renewCloseBtn.addEventListener('click', closeRenew);
+    if (renewModal) renewModal.addEventListener('click', function (e) {
+        if (e.target === renewModal) closeRenew();
+    });
+    if (renewSearch) renewSearch.addEventListener('input', function () {
+        searchMembers(renewSearch.value, afficherResultatsRenew);
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && renewModal && !renewModal.hidden) closeRenew();
+    });
+
     ADWDatabase.init().then(render).catch(function (err) {
         if (loading) {
             loading.hidden = true;
