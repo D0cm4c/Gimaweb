@@ -296,6 +296,34 @@
             bookingsModal.hidden = false;
         });
         document.getElementById('bookingsCloseBtn').addEventListener('click', function () { bookingsModal.hidden = true; });
+
+        // Bouton « 🔄 Actualiser » : relance la synchro serveur (API MEC → base unique)
+        // puis re-rend la page (v1.5.15 — le listener avait été perdu à la migration M5).
+        // Même pattern que le bouton Resynchroniser de la fiche (page-formation.js).
+        var refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) refreshBtn.addEventListener('click', function () {
+            if (refreshBtn.disabled) return;
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '⏳ Synchronisation…';
+            window.ADWDatabase.syncFormations().then(function (res) {
+                if (window.ADWNotifications) {
+                    window.ADWNotifications.push('sync_formations',
+                        '🔄 Actualisation : ' + (res && res.total) + ' formation(s) dans le flux — ' +
+                        (res && res.ajoutees) + ' ajoutée(s), ' + (res && res.misesAJour) + ' mise(s) à jour, ' +
+                        (res && res.retires) + ' retirée(s).', 'info');
+                    window.ADWNotifications.refresh();
+                }
+                render();
+            }).catch(function (err) {
+                if (window.ADWNotifications) {
+                    window.ADWNotifications.push('error',
+                        '⚠️ Actualisation impossible : ' + (err && err.message ? err.message : 'site injoignable') + ' — données conservées.', 'danger');
+                }
+            }).finally(function () {
+                refreshBtn.disabled = false;
+                refreshBtn.textContent = '🔄 Actualiser';
+            });
+        });
         bookingsModal.addEventListener('click', function (e) { if (e.target === bookingsModal) bookingsModal.hidden = true; });
 
         function loadEvents() {

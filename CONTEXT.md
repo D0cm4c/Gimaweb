@@ -441,3 +441,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - Bumps cache : index.html `styles.css?v=94` + `dashboard.js?v=47` ; membres.html `app.js?v=40`. Version `package.json` = **1.5.15** (m7-dom attend `Gimaweb v1.5.15`) — les v1.5.13 et v1.5.14 ont été prises par les PR #55 et #56 (API MEC), cette PR passe en v1.5.15.
 - M7-dom : +13 vérifications (boutons héro présents/retirés, `.hero-home` + texte d'accueil, modale renew ouverte + recherche « niqueur » + navigation au clic, `membres.html#add` ouvre la modale, `membres.html#member=<id>` ouvre la fiche avec `detailRenewBtn`, 0 erreur JS sur les 3 pages chargées). Régression 521/521 (15 suites).
 
+
+## ✨ v1.5.16 — fix bouton « Actualiser » de formations.html + COORDINATION DES SESSIONS
+
+- ⚠ **Coordination inter-sessions** (27 nov. 2026) : DEUX sessions IA bossent sur ce dépôt en parallèle. RÈGLE : avant toute PR, vérifier `gh pr list` + le package.json sur main pour prendre le numéro LIBRE suivant ; annoncer sa version en commentaire de PR dès l'ouverture. CONSTAT de course : PR #57 (héro) a été fusionnée en 1.5.15 AVANT de voir la convocation (les deux sessions visaient 1.5.15 en même temps) → le fix Actualiser passe en **1.5.16**. Attention après rebase : m7-dom ligne ~127 vérifie « Gimaweb v1.5.x » en sidebar.
+- Fix : refreshBtn de formations.html n'avait AUCUN listener (perdu à la migration M5). Clic → syncFormations() serveur → notification push (ADWNotifications.push, pattern page-formation.js) → refreshBadge + render(). Bouton désactivé + « ⏳ Synchronisation… » pendant l'opération. page-formations.js?v=44.
+- m7-dom : +4 (bouton présent, clic sans erreur JS, ré-activé avec libellé, notification serveur de synchro) — 135/135.
