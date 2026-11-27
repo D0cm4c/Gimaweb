@@ -108,6 +108,29 @@ export const creerApiSauvegarde = (options = {}) => {
         res.json({ ok: true, redemarrage_requis: true });
     });
 
+    // v1.5.11 : export DIRECT de la base vers le poste (bouton « Sauvegarder maintenant »)
+    // Snapshot SQLite coherent via l'API backup (les lecteurs concurrents ne perturbent pas).
+    api.get('/base/export', async (req, res) => {
+        if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
+        const tmp = `${dbPath}.export-${Date.now()}.db`;
+        try {
+            const source = new Database(dbPath, { readonly: true });
+            await source.backup(tmp); // backup() est ASYNCHRONE (promesse) — attendre le fichier
+            source.close();
+            const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
+            res.setHeader('Content-Type', 'application/x-sqlite3');
+            res.setHeader('Content-Disposition', `attachment; filename="gimaweb-${stamp}.db"`);
+            const flux = fs.createReadStream(tmp);
+            flux.on('error', (e) => { try { fs.unlinkSync(tmp); } catch { /* rien */ } res.destroy(e); });
+            flux.on('close', () => { try { fs.unlinkSync(tmp); } catch { /* deja parti */ } });
+            flux.pipe(res);
+            notifier('info', `⾏️ Base exportée vers un poste (gimaweb-${stamp}.db).`, 'success');
+        } catch (e) {
+            try { fs.unlinkSync(tmp); } catch { /* rien */ }
+            res.status(500).json({ erreur: 'Export impossible : ' + e.message });
+        }
+    });
+
     api.post('/base/sauvegarde', async (req, res) => {
         if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
         const r = await faireSauvegarde();

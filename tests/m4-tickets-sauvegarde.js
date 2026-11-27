@@ -104,6 +104,15 @@ try {
     const delOk = await fetchApi(`/api/equipe/${anim1.body.id}`, { method: 'DELETE' });
     verifie('suppression animateur libre → 204', delOk.status === 204);
 
+    // ---- v1.5.11 : export direct de la base vers le poste (GET /base/export) ----
+    const expSans = await fetchApi('/api/base/export');
+    verifie('export de base sans session \u2192 401', expSans.status === 401, expSans.status);
+    const exp = await fetch(`http://127.0.0.1:32129/api/base/export`, { headers: { Cookie: cookie } });
+    const expNom = exp.headers.get('Content-Disposition') || '';
+    verifie('export avec session \u2192 200 + fichier .db en attachment', exp.status === 200 && expNom.includes('attachment') && expNom.includes('.db'), expNom);
+    const expOctets = Buffer.from(await exp.arrayBuffer());
+    verifie('le fichier t\u00e9l\u00e9charg\u00e9 est une vraie base SQLite', expOctets.length > 1000 && expOctets.slice(0, 15).toString() === 'SQLite format 3', expOctets.length);
+
     // ---- Suggestions ----
     const sugg = await fetchApi('/api/suggestions', json('POST', { message: 'Ajouter un thermomètre dans la grande salle', page: '/salles.html', author: 'Rui' }));
     verifie('suggestion créée', sugg.status === 201);

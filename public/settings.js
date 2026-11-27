@@ -248,16 +248,33 @@
 
         if (chooseBtn) { chooseBtn.hidden = true; } // plus d'emplacement local : le serveur décide (data/sauvegardes + Nextcloud)
 
+        // v1.5.11 : « Sauvegarder maintenant » télécharge la base sur LE POSTE
+        // (téléchargement navigateur du snapshot SQLite — la sauvegarde nocturne
+        // chiffrée AES-256-GCM + Nextcloud continue de tourner côté serveur, elle).
         saveBtn.addEventListener('click', function () {
             saveBtn.disabled = true;
-            setStatus('⏳ Sauvegarde chiffrée en cours…');
-            window.ADWDatabase.sauvegardeChiffree().then(function (res) {
-                setStatus('✓ Sauvegarde créée : <strong>' + (res && res.fichier) + '</strong> (' +
-                    Math.round((res && res.taille || 0) / 1024) + ' Ko chiffrés AES-256-GCM)' +
-                    (res && res.televerse ? ' — exportée vers Nextcloud.' : ' — sur le serveur (export Nextcloud configurable).'));
-            }).catch(function (err) {
-                setStatus('⚠ ' + (err.status === 401 ? 'Session admin requise.' : err.message));
-            }).then(function () { saveBtn.disabled = false; });
+            setStatus('⏳ Préparation de la base à télécharger…');
+            window.ADWAuth.ensureUnlocked('Sauvegarder la base — téléchargement du fichier SQLite.').then(function (ok) {
+                if (!ok) { saveBtn.disabled = false; return; }
+                fetch('/api/base/export', { credentials: 'same-origin' }).then(function (rep) {
+                    if (!rep.ok) throw Object.assign(new Error('Export refusé'), { status: rep.status });
+                    var nom = 'gimaweb-export.db';
+                    var cd = rep.headers.get('Content-Disposition') || '';
+                    var m = cd.match(/filename="?([^";]+)"?/);
+                    if (m) nom = m[1];
+                    setStatus('⏳ Téléchargement de <strong>' + nom + '</strong>…');
+                    return rep.blob().then(function (blob) {
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url; a.download = nom;
+                        document.body.appendChild(a); a.click(); a.remove();
+                        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+                        setStatus('✓ Base téléchargée : <strong>' + nom + '</strong> (' + Math.round(blob.size / 1024) + ' Ko) — range-la sur une clé USB. La sauvegarde nocturne chiffrée continue de tourner côté serveur.');
+                    });
+                }).catch(function (err) {
+                    setStatus('⚠ ' + (err.status === 401 ? 'Session admin requise.' : err.message));
+                }).then(function () { saveBtn.disabled = false; });
+            });
         });
 
         if (restoreBtn) restoreBtn.addEventListener('click', function () {

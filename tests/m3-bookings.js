@@ -129,6 +129,14 @@ try {
     // ---- Notifications : lectures/effacement ----
     const count1 = await fetchApi('/api/notifications/non-lues');
     verifie('compteur non-lues > 0', count1.body.non_lues > 0, count1.body);
+    // v1.5.11 : les pastilles ne comptent que les ALERTES non lues (danger/warning + types alertes)
+    const countAvant = await fetchApi('/api/notifications/non-lues');
+    await fetchApi('/api/notifications', json('POST', { type: 'info', message: 'Journal purement informatif (ne doit pas allumer la pastille)', severity: 'success' }));
+    const countApresInfo = await fetchApi('/api/notifications/non-lues');
+    verifie('pastilles : une notification success ne compte PAS', countApresInfo.body.non_lues === countAvant.body.non_lues, { avant: countAvant.body, apres: countApresInfo.body });
+    await fetchApi('/api/notifications', json('POST', { type: 'info', message: 'Alerte de test M3', severity: 'warning' }));
+    const countApresAlerte = await fetchApi('/api/notifications/non-lues');
+    verifie('pastilles : une alerte warning compte', countApresAlerte.body.non_lues === countAvant.body.non_lues + 1, { avant: countAvant.body, apres: countApresAlerte.body });
     const liste = await fetchApi('/api/notifications?limite=30');
     const uneNonLue = liste.body.find(n => n.is_read === 0);
     const marquee = await fetchApi(`/api/notifications/${uneNonLue.id}/lu`, json('PUT'));
