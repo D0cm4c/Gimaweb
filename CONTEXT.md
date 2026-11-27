@@ -403,3 +403,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - M3 : agendaWrap \u2014 cartes .ag-jour des 30 prochains jours occup\u00e9s (formations color\u00e9es + \U0001F511 locations hachur\u00e9es, salle \u00e0 droite, jour courant encadr\u00e9).
 - page-salles.js v5, mockup public retir\u00e9 (archive docs/mockups/). M7 : 131/131 (dont ligne dynamique test\u00e9e en ajout/rollback admin). R\u00e9gression 472/472.
 - Le\u00e7on : les \u00e9chappements \\uXXXX des fichiers HTML "mockups" s'affichent LITT\u00c9RALEMENT dans le navigateur \u2014 toujours \u00e9crire les vrais caract\u00e8res UTF-8 (et d\u00e9coder avec gestion des paires de surrogates si besoin).
+
+## ✨ v1.5.11 — 3 demandes : retention span-1, export de base sur poste, badges=alertes
+
+- stats.html : carte R\u00e9tention span-2 \u2192 span-1.
+- parametres.html : Sauvegarder maintenant = T\u00c9L\u00c9CHARGEMENT de la base sur le poste (GET /api/base/export, garde admin, snapshot via source.backup() \u2014 ASYNCHRONE, LE\u00c7ON : await obligatoire + on('error') sur le ReadStream sinon le serveur meurt sur ENOENT non g\u00e9r\u00e9). La nocturne chiffr\u00e9e AES-GCM/Nextcloud continue c\u00f4t\u00e9 serveur. settings.js v35.
+- Pastilles notifications (cloche + sidebar) : comptent UNIQUEMENT les alertes non lues (severity warning/danger + types ticket_urgent/error/room_needed/awaiting_validation \u2014 miroir de TYPE_CATEGORY de page-notifications). Journal d'activit\u00e9 visible sans badge.
+- R\u00e9gression 478/478 (14 suites). Rappel : chaque crash de suite laisse un serveur fant\u00f4me \u2192 pkill node server/serveur.js avant de re-rouler.

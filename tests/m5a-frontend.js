@@ -99,8 +99,12 @@ const attente2 = await D.addToWaitlist(cree.id, '999', 'formation future');
 verifie('addToWaitlist (sujet générique)', attente2 && attente2.id, attente2);
 const notifs = await D.listNotifications();
 verifie('listNotifications non vide (sync notifiée)', (notifs || []).some(n => n.type === 'sync_formations'), notifs && notifs.length);
+// v1.5.11 : les pastilles ne comptent que les ALERTES (warning/danger + types alertes)
+const nonLuesAvant = await D.unreadNotificationsCount();
+verifie('unreadNotificationsCount = 0 sans alerte (journal sans pastille)', nonLuesAvant === 0, nonLuesAvant);
+await D.notify('info', 'Alerte de test M5a (warning)', 'warning');
 const nonLues = await D.unreadNotificationsCount();
-verifie('unreadNotificationsCount > 0', nonLues > 0, nonLues);
+verifie('unreadNotificationsCount compte les alertes', nonLues === 1, nonLues);
 
 // Salles
 const salles = await D.listRooms();

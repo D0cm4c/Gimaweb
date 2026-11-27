@@ -30,8 +30,17 @@ export const creerApiNotifications = (db) => {
         res.json(nonLues);
     });
 
+    // v1.5.11 : les pastilles ne comptent que les ALERTES non lues (decision EPN —
+    // danger/warning + les types alertes de la page notifications) ; le journal
+    // d'activite (success/info/sync) reste consultable sans allumer les badges.
     api.get('/notifications/non-lues', (req, res) => {
-        res.json({ non_lues: db.prepare('SELECT COUNT(*) AS c FROM notifications WHERE is_read = 0').get().c });
+        const c = db.prepare(
+            `SELECT COUNT(*) AS c FROM notifications WHERE is_read = 0 AND (
+                severity IN ('warning', 'danger')
+                OR type IN ('ticket_urgent', 'error', 'room_needed', 'awaiting_validation')
+            )`
+        ).get().c;
+        res.json({ non_lues: c });
     });
 
     api.get('/notifications', (req, res) => {
