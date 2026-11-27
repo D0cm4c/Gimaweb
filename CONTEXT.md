@@ -426,3 +426,9 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - chargerFormations : marque _mec=true sur les events servis par l'API, enrichFromPlugin ne les surcharge plus (MEC prioritaire) ; events MEC-only ajoutés. Fermetures : CATÉGORIE uniquement (décision porteur — les labels = déco site web, id 74 Fermeture).
 - m10 : mock calé sur la vraie structure + 9 nouvelles assertions (27/27). Régression 505/505 (15 suites).
 - Champ « Numéro de membre (Optionnel) » : viendra avec le plugin WP dans les BOOKINGS (pas custom-fields — resté vide à l'audit) ; clé définitive déjà posée dans Gimaweb (carte Paramètres → table settings).
+
+## ✨ v1.5.14 — fix hors fenêtre + mec.days pourri
+
+- Constat réel : /events = fenêtre ~4 semaines (16 déc hors index → « Je maîtrise mon smartphone » sync en parseur). Pagination MEC ignore ?start/?offset/?page/?date (tous testés en direct). Fix : les IDs viennent du wp-json (chargé EN PREMIER maintenant), chaque ID absent de l'index → GET /events/:id (structure data identique).
+- LEÇON : data.mec.days garde les dates d'ORIGINE des events dupliqués (11111 : 2023-03-31 pour une séance 2026-12-16) → jamais l'utiliser en source primaire. Ordre : next-occurrences (exact) > mec.days filtré futur > dates de l'index.
+- chargerFormations réordonné : wp-json/RSS d'abord, puis MEC (besoin des IDs), fusion inchangée. m10 : 30/30 (event 504 hors fenêtre + mec.days pourri rejoués).
