@@ -762,7 +762,7 @@
 
     /* ============ Renouveler un abo (bouton du héro) ============ */
     // Même modèle que « Pointer une visite » : recherche de membre, puis au clic
-    // on envoie sur la fiche du membre (membres.html#member=<id>) où vit le bouton « Renouveler l'abo ».
+    // on envoie vers la modale « Renouveler un abo » de membres.html (membres.html#renew=<id>).
     var renewModal = document.getElementById('renewModal');
     var quickRenewBtn = document.getElementById('quickRenewBtn');
     var renewCloseBtn = document.getElementById('renewCloseBtn');
@@ -816,7 +816,7 @@
                 '<span class="rv-name">#' + escapeHtml(m.member_no) + ' ' + escapeHtml(m.first_name) + ' ' + escapeHtml(m.last_name) + '</span>' +
                 badgeAbo(m) + fin;
             li.addEventListener('click', function () {
-                window.location.href = 'membres.html#member=' + encodeURIComponent(m.id);
+                window.location.href = 'membres.html#renew=' + encodeURIComponent(m.id);
             });
             renewResults.appendChild(li);
         });

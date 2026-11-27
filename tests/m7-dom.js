@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.16 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.16', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.17 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.17', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -336,7 +336,7 @@ for (const p of PAGES) {
         navH.length = 0;
         items[0].click();
         await new Promise((r) => setTimeout(r, 300));
-        verifie('dashboard : sélection d\'un membre → navigation vers la fiche (membres.html#member=…)', navH.length > 0, navH.join(' | '));
+        verifie('dashboard : sélection d\'un membre → navigation vers membres.html#renew=<id> (modale « Renouveler un abo »)', navH.length > 0, navH.join(' | '));
     }
     verifie('dashboard : aucune erreur JS (héro + modale renew)', erreursH.length === 0, erreursH.join(' | '));
 
@@ -355,6 +355,109 @@ for (const p of PAGES) {
         verifie('membres.html#member=<id> : la fiche du membre s\'ouvre (bouton « Renouveler l\'abo » dispo)', Boolean(modFiche) && !modFiche.hidden && wfiche.document.getElementById('detailTitle').textContent.indexOf('Fiche de') === 0 && Boolean(wfiche.document.getElementById('detailRenewBtn')), wfiche.document.getElementById('detailTitle') && wfiche.document.getElementById('detailTitle').textContent);
         verifie('membres.html#member=<id> : aucune erreur JS', erreursFiche.length === 0, erreursFiche.join(' | '));
     }
+}
+
+// ---- 1douze) v1.5.17 — barre de filtres de membres.html : « Pointer une visite » + « Renouveler un abo » (pas de nouveau hero)
+{
+    const { errors: erreursHM, window: whm, navigations: navHM } = await chargerPage('membres.html');
+    await new Promise((r) => setTimeout(r, 900));
+    verifie('membres.html : PAS de nouveau hero — boutons dans la barre de filtres (.filters-head)',
+        !whm.document.querySelector('main > .hero') &&
+        Boolean(whm.document.querySelector('.filters-head #quickCheckinBtn')) &&
+        Boolean(whm.document.querySelector('.filters-head #quickRenewBtn')) &&
+        Boolean(whm.document.querySelector('.filters-head #addMemberBtn')),
+        whm.document.querySelector('.filters-head') && whm.document.querySelector('.filters-head').textContent.slice(0, 80));
+    const btnRenew = whm.document.getElementById('quickRenewBtn');
+    verifie('membres.html : bouton « Renouveler un abo » présent', Boolean(btnRenew) && (btnRenew.textContent || '').indexOf('Renouveler un abo') !== -1, btnRenew && btnRenew.textContent);
+    btnRenew.click();
+    await new Promise((r) => setTimeout(r, 600));
+    const modaleRenew = whm.document.getElementById('renewModal');
+    verifie('membres.html : modale ouverte au clic du bouton « Renouveler un abo »', Boolean(modaleRenew) && !modaleRenew.hidden);
+    verifie('membres.html : liste initiale affichée dans la modale renew', whm.document.querySelectorAll('#renewResults li.checkin-item').length >= 1);
+    const rs = whm.document.getElementById('renewSearch');
+    rs.value = 'niqueur';
+    rs.dispatchEvent(new whm.Event('input', { bubbles: true }));
+    await new Promise((r) => setTimeout(r, 600));
+    const items = [...whm.document.querySelectorAll('#renewResults li.checkin-item')];
+    verifie('membres.html : recherche renew retrouve le membre', items.length >= 1 && items[0].textContent.indexOf('Domi') !== -1, whm.document.getElementById('renewResults').textContent.slice(0, 80));
+    if (items.length) {
+        const mid = items[0].getAttribute('data-member-id');
+        navHM.length = 0;
+        items[0].click();
+        await new Promise((r) => setTimeout(r, 900));
+        const modAbo = whm.document.getElementById('renewAboModal');
+        const avant = await (await fetch(`${origine}/api/membres/${encodeURIComponent(mid)}`)).json();
+        const prev = await (await fetch(`${origine}/api/membres/${encodeURIComponent(mid)}/renouvellement`)).json();
+        verifie('membres.html : clic membre → modale « Renouveler un abo » EN PLACE (pas la fiche, pas de navigation)',
+            Boolean(modAbo) && !modAbo.hidden && whm.document.getElementById('renewAboWho').textContent.indexOf('Domi') !== -1
+            && whm.document.getElementById('detailModal').hidden === true && navHM.length === 0,
+            navHM.join(' | '));
+        verifie('membres.html : modale abo pré-remplie (radio du membre + dates actuelles)',
+            whm.document.getElementById('renewSubNone').checked === ((avant.subscription || 'none') === 'none')
+            && whm.document.getElementById('renewAboStart').value === (avant.start_date || '')
+            && whm.document.getElementById('renewAboEnd').value === (avant.end_date || ''),
+            (avant.subscription || 'none') + ' | ' + whm.document.getElementById('renewAboStart').value + ' / ' + whm.document.getElementById('renewAboEnd').value);
+        verifie('membres.html : modale picker fermée après sélection', modaleRenew.hidden === true);
+        const btnAbo = whm.document.getElementById('renewAboBtn');
+        verifie('membres.html : bouton « Renouveler l\'abo » présent dans la modale', Boolean(btnAbo));
+        if (btnAbo) {
+            btnAbo.click(); // 1er clic : aperçu (rien n'est écrit en base)
+            await new Promise((r) => setTimeout(r, 700));
+            verifie('membres.html : 1er clic → aperçu armé (« Confirmer », dates = preview API)',
+                btnAbo.textContent.indexOf('Confirmer') !== -1
+                && whm.document.getElementById('renewAboStart').value === prev.nouveau_debut
+                && whm.document.getElementById('renewAboEnd').value === prev.nouvelle_fin,
+                btnAbo.textContent + ' | ' + whm.document.getElementById('renewAboStart').value + ' / ' + whm.document.getElementById('renewAboEnd').value + ' vs ' + prev.nouveau_debut + ' / ' + prev.nouvelle_fin);
+            btnAbo.click(); // 2e clic : confirmation
+            await new Promise((r) => setTimeout(r, 1000));
+            const apres = await (await fetch(`${origine}/api/membres/${encodeURIComponent(mid)}`)).json();
+            verifie('membres.html : 2e clic → renouvellement appliqué en base (end_date = preview) + modale fermée',
+                Boolean(apres) && apres.end_date === prev.nouvelle_fin && modAbo.hidden === true, apres && apres.end_date + ' vs ' + prev.nouvelle_fin);
+        }
+    }
+
+    // deep link membres.html#renew=<id> : ouvre directement la modale « Renouveler un abo »
+    {
+        const tous3 = await (await fetch(`${origine}/api/membres`)).json();
+        const nk = (tous3 || []).find((m) => (m.last_name || '').toLowerCase().includes('niqueur'));
+        if (nk) {
+            const { errors: erreursRA, window: wra } = await chargerPage(`membres.html#renew=${encodeURIComponent(nk.id)}`);
+            await new Promise((r) => setTimeout(r, 900));
+            const modRA = wra.document.getElementById('renewAboModal');
+            verifie('membres.html#renew=<id> : la modale « Renouveler un abo » s\'ouvre directement (pré-remplie avec les dates du membre)',
+                Boolean(modRA) && !modRA.hidden && wra.document.getElementById('renewAboWho').textContent.indexOf('Domi') !== -1
+                && wra.document.getElementById('renewAboStart').value === (nk.start_date || ''),
+                wra.document.getElementById('renewAboStart') && wra.document.getElementById('renewAboStart').value + ' vs ' + (nk.start_date || ''));
+            verifie('membres.html#renew=<id> : aucune erreur JS', erreursRA.length === 0, erreursRA.join(' | '));
+        }
+    }
+
+    // mode checkin : le bouton « Pointer une visite » ouvre la même modale en mode checkin
+    const btnCheckin = whm.document.getElementById('quickCheckinBtn');
+    verifie('membres.html : bouton « Pointer une visite » présent', Boolean(btnCheckin) && (btnCheckin.textContent || '').indexOf('Pointer une visite') !== -1, btnCheckin && btnCheckin.textContent);
+    if (btnCheckin) {
+        btnCheckin.click();
+        await new Promise((r) => setTimeout(r, 600));
+        verifie('membres.html : modale ouverte en mode « Pointer une visite » (titre)', !modaleRenew.hidden && whm.document.getElementById('renewTitle').textContent.indexOf('Pointer une visite') !== -1, whm.document.getElementById('renewTitle').textContent);
+        const rs2 = whm.document.getElementById('renewSearch');
+        rs2.value = 'niqueur';
+        rs2.dispatchEvent(new whm.Event('input', { bubbles: true }));
+        await new Promise((r) => setTimeout(r, 600));
+        const items2 = [...whm.document.querySelectorAll('#renewResults li.checkin-item')];
+        verifie('membres.html : recherche (mode checkin) retrouve le membre', items2.length >= 1, whm.document.getElementById('renewResults').textContent.slice(0, 60));
+        if (items2.length) {
+            const mid = items2[0].getAttribute('data-member-id');
+            navHM.length = 0;
+            items2[0].click();
+            await new Promise((r) => setTimeout(r, 1200));
+            const fiche2 = whm.document.getElementById('detailModal');
+            verifie('membres.html : mode checkin → fiche ouverte en place, aucune navigation', Boolean(fiche2) && !fiche2.hidden && navHM.length === 0, navHM.join(' | '));
+            const visites = await (await fetch(`${origine}/api/membres/${encodeURIComponent(mid)}/visites`)).json();
+            const auj = new Date().toISOString().slice(0, 10);
+            verifie('membres.html : la visite du jour est bien enregistrée (API)', Array.isArray(visites) && visites.some((v) => String(v.visit_date || '').slice(0, 10) === auj), JSON.stringify(visites).slice(0, 120));
+        }
+    }
+    verifie('membres.html : aucune erreur JS (boutons + modale pick)', erreursHM.length === 0, erreursHM.join(' | '));
 }
 
 // ---- 1novies) salles.html : la grille affiche les salles (bug v1.4.4 : getRoomPlanning recevait
