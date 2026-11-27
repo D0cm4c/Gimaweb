@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.17 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.17', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.18 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.18', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -354,6 +354,24 @@ for (const p of PAGES) {
         const modFiche = wfiche.document.getElementById('detailModal');
         verifie('membres.html#member=<id> : la fiche du membre s\'ouvre (bouton « Renouveler l\'abo » dispo)', Boolean(modFiche) && !modFiche.hidden && wfiche.document.getElementById('detailTitle').textContent.indexOf('Fiche de') === 0 && Boolean(wfiche.document.getElementById('detailRenewBtn')), wfiche.document.getElementById('detailTitle') && wfiche.document.getElementById('detailTitle').textContent);
         verifie('membres.html#member=<id> : aucune erreur JS', erreursFiche.length === 0, erreursFiche.join(' | '));
+        // v1.5.18 : le bouton « Renouveler l'abo » de la fiche ouvre la modale unifiée #renewAboModal
+        wfiche.document.getElementById('detailRenewBtn').click();
+        await new Promise((r) => setTimeout(r, 700));
+        verifie('membres.html : fiche « Renouveler l\'abo » → modale #renewAboModal ouverte (flux unifié, fiche fermée)',
+            !wfiche.document.getElementById('renewAboModal').hidden && wfiche.document.getElementById('detailModal').hidden === true,
+            'renewAbo hidden=' + wfiche.document.getElementById('renewAboModal').hidden + ' / detail hidden=' + wfiche.document.getElementById('detailModal').hidden);
+        verifie('membres.html : modale renew ouverte depuis la fiche pré-remplie (membre Domi)', wfiche.document.getElementById('renewAboWho').textContent.indexOf('Domi') !== -1, wfiche.document.getElementById('renewAboWho').textContent);
+        // v1.5.18 : la modale d'édition (#edit=) applique la MÊME règle de dates (aboEndDate partagée)
+        const { errors: erreursEdit, window: wedit } = await chargerPage(`membres.html#edit=${encodeURIComponent(niqueur.id)}`);
+        await new Promise((r) => setTimeout(r, 900));
+        const st = wedit.document.getElementById('startDate');
+        const en = wedit.document.getElementById('endDate');
+        st.value = '2027-06-15';
+        st.dispatchEvent(new wedit.Event('change', { bubbles: true }));
+        wedit.document.getElementById('subYearly').click();
+        await new Promise((r) => setTimeout(r, 300));
+        verifie('membres.html#edit= : « Annuel » → fin = début + 1 an EXACT (2028-06-15) — même règle que la modale renew (décision 1b)', en.value === '2028-06-15', en.value);
+        verifie('membres.html#edit= : aucune erreur JS', erreursEdit.length === 0, erreursEdit.join(' | '));
     }
 }
 
@@ -428,6 +446,21 @@ for (const p of PAGES) {
                 Boolean(modRA) && !modRA.hidden && wra.document.getElementById('renewAboWho').textContent.indexOf('Domi') !== -1
                 && wra.document.getElementById('renewAboStart').value === (nk.start_date || ''),
                 wra.document.getElementById('renewAboStart') && wra.document.getElementById('renewAboStart').value + ' vs ' + (nk.start_date || ''));
+            // v1.5.18 : la formule recalcule TOUJOURS la date de fin (comme la modale d'édition) :
+            // annuel = début + 1 an EXACT, mensuel = début + 1 mois EXACT, aucun = fin vidée (décision 1b)
+            const rStart = wra.document.getElementById('renewAboStart');
+            const rEnd = wra.document.getElementById('renewAboEnd');
+            rStart.value = '2027-01-05';
+            rStart.dispatchEvent(new wra.Event('change', { bubbles: true }));
+            wra.document.getElementById('renewSubYearly').click();
+            await new Promise((r) => setTimeout(r, 300));
+            verifie('modale renew : « Annuel » → fin = début + 1 an EXACT (2028-01-05)', rEnd.value === '2028-01-05', rEnd.value);
+            wra.document.getElementById('renewSubMonthly').click();
+            await new Promise((r) => setTimeout(r, 300));
+            verifie('modale renew : « Mensuel » → fin = début + 1 mois EXACT (2027-02-05)', rEnd.value === '2027-02-05', rEnd.value);
+            wra.document.getElementById('renewSubNone').click();
+            await new Promise((r) => setTimeout(r, 300));
+            verifie('modale renew : « Aucun » → fin vidée', rEnd.value === '', rEnd.value);
             verifie('membres.html#renew=<id> : aucune erreur JS', erreursRA.length === 0, erreursRA.join(' | '));
         }
     }

@@ -417,47 +417,15 @@
         }
     });
 
-    // Renouveler depuis la modale fiche : prolonge selon la formule + toast + rafraîchit la fiche
-    // Renouveler : double validation avec affichage des nouvelles dates (décision utilisateur).
-    // 1er clic → calcul + aperçu des dates ; 2e clic (dans la foulée) → application effective.
+    // Renouveler depuis la modale fiche : on délègue à la modale « Renouveler un abo »
+    // (v1.5.18 — flux UNIFIÉ : une seule modale de renouvellement, plus de logique en double ici)
     var detailRenewBtn = document.getElementById('detailRenewBtn');
-    var renewArmed = null; // { newStart, newEnd, until } en attente de confirmation
-    var RENEW_ARMED_MS = 6000; // la confirmation doit se faire dans les 6 s, sinon désarmée
-
-    if (detailRenewBtn) {
-        var renewArmTimer = null;
-        detailRenewBtn.addEventListener('click', function () {
-            if (!detailMember) return;
-            if (renewArmed) {
-                // 2e clic = confirmation
-                clearTimeout(renewArmTimer);
-                var r = renewArmed;
-                renewArmed = null;
-                detailRenewBtn.textContent = '♻️ Renouveler l’abo';
-                detailRenewBtn.classList.remove('btn-danger');
-                ADWDatabase.renewSubscription(detailMember.id, r.newStart, r.newEnd).then(function (res) {
-                    if (!res) return;
-                    if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé : du ' + res.newStart + ' au ' + res.newEnd + ' (membre ' + detailMember.member_no + ')', 'success', { member_id: detailMember.id });
-                    showToast('♻️ Renouvelé — inscription du ' + res.newStart + ' au ' + res.newEnd);
-                    render();
-                    openDetail(detailMember.id);
-                });
-                return;
-            }
-            // 1er clic : calculer et afficher l'aperçu (rien n'est écrit en base)
-            ADWDatabase.previewRenewal(detailMember.id).then(function (r) {
-            if (!r) return;
-            renewArmed = r;
-            detailRenewBtn.textContent = '✅ Confirmer : du ' + fmtDMY(r.newStart) + ' au ' + fmtDMY(r.newEnd) + ' ?';
-            detailRenewBtn.classList.add('btn-danger');
-            renewArmTimer = setTimeout(function () {
-                renewArmed = null;
-                detailRenewBtn.textContent = '♻️ Renouveler l’abo';
-                detailRenewBtn.classList.remove('btn-danger');
-            }, RENEW_ARMED_MS);
-            }).catch(function (e) { showToast('Renouvellement impossible : ' + (e && e.message ? e.message : e), 'error'); });
-        });
-    }
+    if (detailRenewBtn) detailRenewBtn.addEventListener('click', function () {
+        if (!detailMember) return;
+        var id = detailMember.id;
+        closeDetail();
+        openRenewAbo(id);
+    });
 
     var detailEditBtn = document.getElementById('detailEditBtn');
     if (detailEditBtn) detailEditBtn.addEventListener('click', function () {
@@ -647,21 +615,22 @@
         renewAboArmed = null;
     }
 
-    // Live : comme dans la modale d'édition — « aucun » vide la fin, mensuel/annuel propose +1 mois/+1 an
+    // Même règle que la modale d'édition (aboEndDate, décision 1b : +1 mois/1 an EXACT) :
+    // la fin est TOUJOURS recalculée au changement de formule ou de date de début.
+    // (bug v1.5.17 : le calcul ne se faisait que si la fin était vide — or elle est pré-remplie)
+    function applyRenewAboDates() {
+        if (!renewAboEnd) return;
+        // Même règle que la modale d'édition (aboEndDate) — « aucun » vide la fin ici
+        renewAboEnd.value = aboEndDate(renewAboRadio(), renewAboStart ? renewAboStart.value : '');
+    }
     if (renewAboModal) {
         renewAboModal.querySelectorAll('input[name="renewSubscription"]').forEach(function (radio) {
             radio.addEventListener('change', function () {
-                if (!radio.checked) return;
-                if (radio.value === 'none') { if (renewAboEnd) renewAboEnd.value = ''; }
-                else if (renewAboEnd && !renewAboEnd.value) {
-                    var base = renewAboStart && renewAboStart.value ? new Date(renewAboStart.value) : new Date();
-                    var d = new Date(base);
-                    if (radio.value === 'yearly') d.setFullYear(d.getFullYear() + 1); else d.setMonth(d.getMonth() + 1);
-                    renewAboEnd.value = d.toISOString().slice(0, 10);
-                }
+                if (radio.checked) applyRenewAboDates();
             });
         });
     }
+    if (renewAboStart) renewAboStart.addEventListener('change', applyRenewAboDates);
 
     if (renewAboBtn) renewAboBtn.addEventListener('click', function () {
         if (!renewAboMember) return;
@@ -790,25 +759,24 @@
 
     endDateInput.addEventListener('change', validateDates);
 
+    // Règle UNIQUE de calcul de la date de fin d'abo (v1.5.18 — unifiée, décision porteur 1b) :
+    // aucun → fin vide ; mensuel → début + 1 mois EXACT ; annuel → début + 1 an EXACT
+    // (même règle que le serveur de renouvellement : ajouterMois, sans -1 jour).
+    // Utilisée par « Modifier le membre » (applySubscriptionDates) ET « Renouveler un abo » (applyRenewAboDates).
+    function aboEndDate(sub, startStr) {
+        if (!sub || sub === 'none') return '';
+        var base = startStr ? new Date(startStr) : new Date();
+        var d = new Date(base);
+        if (sub === 'yearly') d.setFullYear(d.getFullYear() + 1); else d.setMonth(d.getMonth() + 1);
+        return d.toISOString().slice(0, 10);
+    }
+
     function applySubscriptionDates() {
         var checked = form.querySelector('input[name="subscription"]:checked');
         var sub = checked ? checked.value : 'none';
-        var base = startDateInput.value
-            ? new Date(startDateInput.value)
-            : new Date();
-        var end;
-        if (sub === 'monthly') {
-            end = new Date(base);
-            end.setMonth(end.getMonth() + 1);
-            end.setDate(end.getDate() - 1);
-        } else if (sub === 'yearly') {
-            end = new Date(base);
-            end.setFullYear(end.getFullYear() + 1);
-            end.setDate(end.getDate() - 1);
-        } else {
-            return;
-        }
-        endDateInput.value = end.toISOString().slice(0, 10);
+        var end = aboEndDate(sub, startDateInput.value);
+        if (!end) return; // « aucun » : la modale d'édition laisse la fin telle quelle (comportement d'origine)
+        endDateInput.value = end;
     }
 
     form.querySelectorAll('input[name="subscription"]').forEach(function (radio) {
