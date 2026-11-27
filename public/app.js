@@ -217,7 +217,7 @@
             '</div>' +
             '<div class="member-meta">' +
                 (member.age ? '<span>🎂 ' + escapeHtml(member.age) + ' ans' +
-                    (member.gender ? ' · ' + (GENDER_LABELS[member.gender] || member.gender) : '') + '</span>' : (member.gender ? '<span>' + (GENDER_LABELS[member.gender] || member.gender) + '</span>' : '')) +
+                    (member.gender ? ' · ' + escapeHtml(GENDER_LABELS[member.gender] || member.gender) : '') + '</span>' : (member.gender ? '<span>' + escapeHtml(GENDER_LABELS[member.gender] || member.gender) + '</span>' : '')) +
                 (member.postal_code ? '<span>🏠 ' + escapeHtml(member.postal_code) + '</span>' : '') +
                 (member.social_status ? '<span>💼 ' + escapeHtml(STATUS_LABELS[member.social_status] || member.social_status) + '</span>' : '') +
                 (member.email ? '<span>✉️ <a href="mailto:' + escapeHtml(member.email) + '">' + escapeHtml(member.email) + '</a></span>' : '') +
@@ -319,7 +319,7 @@
             '</div>' +
             '<dl class="detail-list">' +
                 '<div><dt>Âge</dt><dd>' + (member.age ? escapeHtml(member.age) + ' ans' : 'Non renseigné') + '</dd></div>' +
-                '<div><dt>Genre</dt><dd>' + (member.gender ? escapeHtml(GENDER_LABELS[member.gender] || member.gender) : 'Non renseigné') + '</dd></div>' +
+                '<div><dt>Genre</dt><dd>' + (member.gender ? escapeHtmlescapeHtml(GENDER_LABELS[member.gender] || member.gender) : 'Non renseigné') + '</dd></div>' +
                 '<div><dt>Code postal</dt><dd>' + (member.postal_code
                     ? escapeHtml(member.postal_code) + (typeof ADW_POSTAL_CODES !== 'undefined' && ADW_POSTAL_CODES.some(function (p) { return p[0] === member.postal_code; }) ? ' — ' + escapeHtml(ADW_POSTAL_CODES.filter(function (p) { return p[0] === member.postal_code; })[0][1]) : '')
                     : 'Non renseigné') + '</dd></div>' +

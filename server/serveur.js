@@ -171,6 +171,23 @@ app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encor
 // Rôle A : fichiers statiques du frontend (public/ — livré en M5)
 app.use(express.static(path.join(RACINE, 'public')));
 
+// Gestionnaire d'erreurs GLOBAL (audit nov. 2026) : plus jamais de stack trace ni de chemin
+// interne côté client. Le détail est journalisé serveur ; le client reçoit un JSON générique
+// (message d'erreur d'origine uniquement si Express/body-parser le marque exposé = faute client).
+app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
+    console.error(`[gimaweb] erreur ${req.method} ${req.url} :`, err && err.stack ? err.stack : err);
+    const statut = Number(err && err.status) >= 400 && Number(err && err.status) < 600 ? Number(err.status) : 500;
+    const message = (statut < 500 && err && err.expose) ? String(err.message || 'Requête invalide.') : 'Erreur serveur interne.';
+    if (req.path.startsWith('/api/')) return res.status(statut).json({ erreur: message });
+    res.status(statut).type('text/plain').send(message);
+});
+
+// Filet de sécurité (audit nov. 2026) : un rejet de promesse non rattrapé ne doit plus tuer
+// le process (Node >= 15 crash par défaut) — on journalise et le serveur continue.
+process.on('unhandledRejection', (e) => {
+    console.error('[gimaweb] rejet de promesse non géré (journalisé, le serveur continue) :', e && e.stack ? e.stack : e);
+});
+
 // ---- HTTPS (v1.5.9) : en WiFi LAN, le mot de passe admin ne doit JAMAIS partir en clair.
 // Si TLS_CERT + TLS_KEY sont fournis (cf. tools/generer-certificat.sh), le serveur écoute en HTTPS.
 // Sinon il reste en HTTP (développement / machine isolée) — le schéma est affiché au boot.

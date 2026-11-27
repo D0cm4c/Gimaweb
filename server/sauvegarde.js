@@ -78,13 +78,21 @@ export async function faireSauvegarde(options = {}) {
     if (webdavUrl) {
         const distant = webdavUrl.replace(/\/+$/, '') + '/gimaweb/' + path.basename(fichierChiffre);
         const auth = webdavUser ? 'Basic ' + Buffer.from(`${webdavUser}:${webdavPass}`).toString('base64') : '';
-        const reponse = await fetch(distant, {
-            method: 'PUT',
-            headers: auth ? { Authorization: auth } : {},
-            body: blob
-        });
+        let reponse;
+        try {
+            // audit nov. 2026 : un WebDAV injoignable ne doit plus faire rejeter la promesse
+            // (rejet non géré = crash du process Node dans une route async Express 4)
+            reponse = await fetch(distant, {
+                method: 'PUT',
+                headers: auth ? { Authorization: auth } : {},
+                body: blob
+            });
+        } catch (e) {
+            console.error('[gimaweb] export WebDAV injoignable :', e && e.message ? e.message : e);
+            return { ok: false, erreur: 'Export WebDAV injoignable.', fichier: fichierChiffre };
+        }
         if (!reponse.ok) {
-            return { ok: false, erreur: `Export WebDAV échoué (HTTP ${reponse.status}) : ${await reponse.text().catch(() => '')}`, fichier: fichierChiffre };
+            return { ok: false, erreur: `Export WebDAV échoué (HTTP ${reponse.status}).`, fichier: fichierChiffre };
         }
         resultat.televerse = distant;
     }
@@ -127,16 +135,24 @@ export const creerApiSauvegarde = (options = {}) => {
             notifier('info', `⾏️ Base exportée vers un poste (gimaweb-${stamp}.db).`, 'success');
         } catch (e) {
             try { fs.unlinkSync(tmp); } catch { /* rien */ }
-            res.status(500).json({ erreur: 'Export impossible : ' + e.message });
+            // audit nov. 2026 : plus de e.message (chemin interne) au client
+            console.error('[gimaweb] export base impossible :', e && e.stack ? e.stack : e);
+            res.status(500).json({ erreur: 'Export impossible.' });
         }
     });
 
-    api.post('/base/sauvegarde', async (req, res) => {
+    api.post('/base/sauvegarde', async (req, res, next) => {
         if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
-        const r = await faireSauvegarde();
-        if (!r.ok) return res.status(500).json({ erreur: r.erreur });
-        notifier('info', `💾 Sauvegarde chiffrée créée : ${path.basename(r.fichier)}${r.televerse ? ' — exportée vers Nextcloud.' : '.'}`, 'success', { fichier: path.basename(r.fichier), televerse: r.televerse });
-        res.json({ fichier: path.basename(r.fichier), taille: r.taille, televerse: r.televerse });
+        try {
+            const r = await faireSauvegarde();
+            if (!r.ok) return res.status(500).json({ erreur: r.erreur });
+            notifier('info', `💾 Sauvegarde chiffrée créée : ${path.basename(r.fichier)}${r.televerse ? ' — exportée vers Nextcloud.' : '.'}`, 'success', { fichier: path.basename(r.fichier), televerse: r.televerse });
+            res.json({ fichier: path.basename(r.fichier), taille: r.taille, televerse: r.televerse });
+        } catch (e) {
+            // audit nov. 2026 : Express 4 ne rattrape pas les rejets — next(e) vers le
+            // gestionnaire global (sinon rejet non géré = crash du process)
+            next(e);
+        }
     });
     return api;
 };

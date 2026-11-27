@@ -48,6 +48,21 @@ try {
 
     const nonLivree = await fetchApi('/api/quelquechose');
     verifie('endpoint non livré → 501', nonLivree.status === 501);
+
+    // audit nov. 2026 (v1.5.20) : gestionnaire d'erreurs global + liste blanche gender
+    const membre = await fetchApi('/api/membres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_name: 'Test', last_name: 'Audit' }) });
+    verifie('création membre → 201', membre.status === 201, membre.body);
+
+    const genre = await fetchApi('/api/membres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ first_name: 'X', last_name: 'Y', gender: '<script>alert(1)</script>' }) });
+    verifie('gender hors liste blanche F|M|X → 400', genre.status === 400, genre.body);
+
+    const rMalforme = await fetch('http://127.0.0.1:32123/api/membres', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{oops' });
+    const tMalforme = await rMalforme.text();
+    verifie('JSON malformé → 400 JSON sans stack ni chemin', rMalforme.status === 400 && !/at\s+\S+\s+\([^)]+:\d+:\d+\)/.test(tMalforme) && !tMalforme.includes('server/'), tMalforme.slice(0, 120));
+
+    const r500 = await fetch('http://127.0.0.1:32123/api/visites', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member_id: { a: 1 } }) });
+    const t500 = await r500.text();
+    verifie('binding invalide → 500 JSON sans stack ni chemin', r500.status === 500 && t500.includes('erreur') && !/at\s+\S+\s+\([^)]+:\d+:\d+\)/.test(t500) && !t500.includes('server/'), t500.slice(0, 120));
 } catch (e) {
     console.log('❌ échec du test :', e.message);
 }
