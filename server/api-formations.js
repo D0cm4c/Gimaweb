@@ -17,13 +17,21 @@ export const normaliserTitre = (titre) => String(titre || '')
     .replace(/\s+/g, ' ')
     .trim();
 
-export const creerApiFormations = (db, { apresSync = null } = {}) => {
+export const creerApiFormations = (db, { apresSync = null, sessionValide = () => false } = {}) => {
     const api = express.Router();
 
     // ---- Sync : le serveur fetch le site lui-même (plus jamais le navigateur) ----
     // Retire les formations disparues du flux (et leurs inscriptions via CASCADE).
+    // v1.5.12 : la cle MEC vient de la table settings (page Parametres) ou de .env
+    const cleMecActive = () => {
+        const env = (process.env.MEC_API_KEY || '').trim();
+        if (env) return env;
+        const r = db.prepare("SELECT value FROM settings WHERE key = 'mec_api_key'").get();
+        return r ? String(r.value || '').trim() : '';
+    };
+
     const synchroniser = async () => {
-        const events = await chargerFormations();
+        const events = await chargerFormations({ cleMec: cleMecActive() });
         const now = new Date().toISOString();
         const keptIds = [];
         let ajoutees = 0, misesAJour = 0, attributionsAuto = 0;
@@ -91,7 +99,7 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
         if (events.length) {
             db.prepare('INSERT INTO notifications (id, type, severity, message, details) VALUES (?, ?, ?, ?, ?)').run(
                 nouvelId('n'), 'sync_formations', 'success',
-                `🔄 Sync formations : ${events.length} dans le flux — ${ajoutees} ajoutée(s), ${misesAJour} mise(s) à jour, ${retirees} retirée(s).`,
+                `\ud83d\udd04 Sync formations : ${events.length} dans le flux \u2014 ${ajoutees} ajout\u00e9e(s), ${misesAJour} mise(s) \u00e0 jour, ${retirees} retir\u00e9e(s).${events.sourceMec ? ' \u2014 dates via API M.E. Calendar' : ''}`,
                 JSON.stringify({ total: events.length, ajoutees, misesAJour, retirees, attributionsAuto })
             );
         }
@@ -101,6 +109,30 @@ export const creerApiFormations = (db, { apresSync = null } = {}) => {
     // Mémoire de sync : 15 min (TTL maquette). let DERNIERE_SYNC ici pour rester simple.
     let derniereSync = 0;
     const SYNC_TTL = 15 * 60 * 1000;
+
+    // ---- v1.5.12 : cle API M.E. Calendar (page Parametres, issue #52) ----
+    const journaliser = (message, severite = 'info') => db.prepare(
+        'INSERT INTO notifications (id, type, severity, message, details) VALUES (?, ?, ?, ?, NULL)'
+    ).run(nouvelId('n'), 'info', severite, message);
+
+    api.get('/parametres/cle-mec', (req, res) => {
+        if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
+        const cle = cleMecActive();
+        res.json({ presente: Boolean(cle), masquee: cle ? cle.slice(0, 4) + '…' + cle.slice(-4) : '', source: (process.env.MEC_API_KEY || '').trim() ? 'env' : 'settings' });
+    });
+    api.put('/parametres/cle-mec', (req, res) => {
+        if (!sessionValide(req)) return res.status(401).json({ erreur: 'Session admin requise.' });
+        const cle = String(req.body?.cle ?? '').trim();
+        if (cle === '') {
+            db.prepare("DELETE FROM settings WHERE key = 'mec_api_key'").run();
+            journaliser('🔑 Clé API M.E. Calendar effacée — la sync revient au canal public wp-json.');
+            return res.json({ presente: false, masquee: '' });
+        }
+        if (cle.length < 8) return res.status(400).json({ erreur: 'Cette clé semble trop courte.' });
+        db.prepare("INSERT INTO settings (key, value) VALUES ('mec_api_key', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(cle);
+        journaliser('🔑 Clé API M.E. Calendar enregistrée (' + cle.slice(0, 4) + '…' + cle.slice(-4) + ') — la sync utilisera l\u2019API officielle du site (lecture seule, dates exactes).');
+        res.json({ presente: true, masquee: cle.slice(0, 4) + '…' + cle.slice(-4), source: 'settings' });
+    });
 
     api.post('/formations/sync', async (req, res) => {
         try {

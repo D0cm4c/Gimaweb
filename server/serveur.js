@@ -165,7 +165,7 @@ app.use('/api', creerApiLocations(db, { sessionValide, notifier }));
 app.use('/api', creerApiAgregats(db));
 app.use('/api', creerApiSauvegarde({ sessionValide, notifier, dbPath: DB_PATH }));
 app.use('/api', salles.api);
-app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees }));
+app.use('/api', creerApiFormations(db, { apresSync: salles.migrerAttentesPassees, sessionValide }));
 app.use('/api', (req, res) => res.status(501).json({ erreur: 'Endpoint non encore livré (phase M2+).' }));
 
 // Rôle A : fichiers statiques du frontend (public/ — livré en M5)

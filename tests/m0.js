@@ -58,7 +58,7 @@ await new Promise(r => setTimeout(r, 300));
 const Database = (await import('better-sqlite3')).default;
 const db = new Database('data-tests/gimaweb-m0.db');
 const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all().map(r => r.name);
-verifie('18 tables créées (v1.5.0 : + locations, location_dates)', tables.length === 18 && tables.includes('locations') && tables.includes('location_dates'), tables.join(','));
+verifie('19 tables créées (v1.5.12 : + settings)', tables.length === 19 && tables.includes('settings') && tables.includes('locations') && tables.includes('location_dates'), tables.join(','));
 const salles = db.prepare('SELECT name, capacity FROM rooms ORDER BY sort_order').all();
 verifie('salles 15/8/25', salles.map(s => s.capacity).join(',') === '15,8,25', JSON.stringify(salles));
 

@@ -28,3 +28,4 @@ jobs:
       - run: node tests/m7-dom.js
       - run: node tests/m8-locations.js
       - run: node tests/m9-https.js
+      - run: node tests/m10-mec-api.js

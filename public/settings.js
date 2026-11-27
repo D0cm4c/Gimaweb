@@ -79,9 +79,10 @@
         ensureDb().then(render).catch(function () { /* base indisponible : liste vide */ });
     }
 
-    // ============ Clé API M.E. Calendar (page Paramètres) ============
-
-    var MEC_KEY_STORAGE = 'atelierduweb_mec_api_key';
+    // ============ Clé API M.E. Calendar (page Paramètres — v1.5.12) ============
+    // La clé vit dans la base serveur (table settings, garde admin) : la sync
+    // M.E. Calendar l'utilise via le header « mec-token » (issue #52). Elle n'est
+    // JAMAIS retournée par l'API — seulement masquée (abcd…wxyz).
 
     function initMecKey() {
         var input = document.getElementById('mecApiKey');
@@ -92,29 +93,52 @@
 
         function setStatus(msg) { if (statusEl) statusEl.textContent = msg; }
 
-        var stored = '';
-        try { stored = localStorage.getItem(MEC_KEY_STORAGE) || ''; } catch (e) { /* stockage indisponible */ }
-        if (stored) {
-            input.value = stored;
-            setStatus('✓ Clé enregistrée dans ce navigateur (' + stored.slice(0, 4) + '…' + stored.slice(-4) + ')');
+        function rafraichir() {
+            fetch('/api/parametres/cle-mec', { credentials: 'same-origin' })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (etat) {
+                    if (!etat) { setStatus('⚠️ Session admin requise pour lire l’état de la clé.'); return; }
+                    input.value = '';
+                    if (etat.presente) setStatus('✓ Clé enregistrée côté serveur (' + etat.masquee + ', ' + (etat.source === 'env' ? 'via .env' : 'base') + ') — la sync des dates utilise l’API M.E. Calendar.');
+                    else setStatus('Aucune clé posée — la sync utilise le canal public wp-json.');
+                })
+                .catch(function () { setStatus('⚠️ Serveur injoignable.'); });
         }
 
         saveBtn.addEventListener('click', function () {
             var val = (input.value || '').trim();
-            if (!val) { input.focus(); setStatus('Colle d\u2019abord la clé dans le champ.'); return; }
-            try {
-                localStorage.setItem(MEC_KEY_STORAGE, val);
-                setStatus('✓ Clé enregistrée dans ce navigateur (' + val.slice(0, 4) + '…' + val.slice(-4) + ')');
-            } catch (e) {
-                setStatus('⚠️ Impossible d\u2019enregistrer (stockage indisponible).');
-            }
+            if (!val) { input.focus(); setStatus('Colle d’abord la clé dans le champ.'); return; }
+            saveBtn.disabled = true;
+            fetch('/api/parametres/cle-mec', {
+                method: 'PUT', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cle: val })
+            }).then(function (r) {
+                if (!r.ok) throw r;
+                return r.json();
+            }).then(function (etat) {
+                input.value = '';
+                setStatus('✓ Clé enregistrée côté serveur (' + etat.masquee + ') — la prochaine sync lira les dates via l’API officielle du site.');
+                if (window.ADWNotifications) window.ADWNotifications.refresh();
+            }).catch(function (r) {
+                setStatus(r && r.status === 401 ? '⚠️ Session admin requise.' : '⚠️ Enregistrement refusé.');
+            }).then(function () { saveBtn.disabled = false; });
         });
 
         clearBtn.addEventListener('click', function () {
-            input.value = '';
-            try { localStorage.removeItem(MEC_KEY_STORAGE); } catch (e) { /* ignore */ }
-            setStatus('Clé effacée de ce navigateur.');
+            fetch('/api/parametres/cle-mec', {
+                method: 'PUT', credentials: 'same-origin',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cle: '' })
+            }).then(function (r) { return r.ok ? r.json() : null; })
+              .then(function (etat) {
+                input.value = '';
+                setStatus('Clé effacée — la sync revient au canal public wp-json.');
+              })
+              .catch(function () { setStatus('⚠️ Serveur injoignable.'); });
         });
+
+        rafraichir();
     }
 
     if (document.readyState !== 'loading') initRoomsAdmin();
