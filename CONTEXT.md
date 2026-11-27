@@ -472,3 +472,12 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - **Une seule modale de pointage** : celle du dashboard (`#checkinModal`). Le bouton « Pointer une visite » de membres.html est un lien `index.html#visite` ; deep link géré dans dashboard.js à l'init (`openCheckin()` + nettoyage du hash). Bump `dashboard.js?v=49` (index.html), `app.js?v=43` (membres.html).
 - **Picker `#renewModal` de membres.html nettoyé** : plus de mode checkin — `pickMode`/`openPick(mode)`/hint dynamique supprimés ; au clic → `openRenewAbo(m.id)` uniquement. Le pointage depuis membres.html passe par le dashboard.
 - M7-dom : 174/174 (liens + deep link #visite testés). Régression **551/551 (15 suites)**. Version **1.5.19**.
+
+## 🚨 v1.5.20 — audit robustesse/sécurité (nov. 2026, rapport d'audit validé par le porteur)
+
+- **À LIRE PAR LES AUTRES SESSIONS** : touche `server/serveur.js`, `server/api-formations.js`, `server/sauvegarde.js`, `server/api-membres.js`, `public/app.js`, `public/dashboard.js`, `public/page-formation.js` (+ bumps cache `membres.html`/`index.html`/`formation.html`), `tests/m0.js`, `package.json`, `CHANGELOG.md`, ce fichier. Branche `vibe/audit-err-xss-1f14c4`.
+- **Gestionnaire d'erreurs global** en dernier dans `serveur.js` : JSON générique côté client, stack journalisée serveur. NE PAS retirer — c'était la fuite n°1 de l'audit (stack + chemins internes dans les 400/500).
+- **Règle** : toute route `async` doit attraper ses rejets (`try/catch` + `next(e)`) — Express 4 ne les transfère pas au gestionnaire global, et un rejet non géré tuait le process (démontré). Filet : `unhandledRejection` journalisé dans `serveur.js`.
+- **XSS** : `gender` = liste blanche serveur `F|M|X` ; côté client `app.js:220`, `dashboard.js` (carte fermeture : title/time_label échappés, url http(s) only) et `page-formation.js` (date_text) sont échappés — ne jamais réintroduire de champ brut dans un `innerHTML`.
+- Reste ouvert (prochaines PR, voir rapport d'audit) : index `prints(member_id, paid)` + réécriture flot/membres (338 ms / 157 ms mesurés), transactions sur sync/miroir/locations, rate-limit connexion, `manifest.json` manquant (404), lockfile encore en 1.4.2, code mort (`public/mec.js`, `applyMirror`), table d'audit RGPD.
+- Tests m0 : 4 vérifs de plus. Version **1.5.20**.

@@ -7,6 +7,7 @@ import { parserXmlMembres, importerXmlMembres } from './import-xml.js';
 
 const CHAMPS = ['first_name', 'last_name', 'age', 'phone', 'email', 'address', 'start_date', 'end_date', 'subscription', 'postal_code', 'gender', 'social_status'];
 const SOUSCRIPTIONS = new Set(['none', 'monthly', 'yearly']);
+const GENRES = new Set(['F', 'M', 'X']); // audit nov. 2026 : liste blanche (le select n'envoie que ça) — le champ était libre et rendu sans échappement côté client
 
 const nouvelId = (prefixe = 'mb') => `${prefixe}-${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`;
 
@@ -52,6 +53,9 @@ export const creerApiMembres = (db, { sessionValide = () => false, notifier = ()
         }
         if (donnees.subscription && !SOUSCRIPTIONS.has(donnees.subscription)) {
             return { erreur: "Formule d'abonnement invalide (none | monthly | yearly)." };
+        }
+        if (donnees.gender != null && !GENRES.has(String(donnees.gender))) {
+            return { erreur: 'Le genre doit être F | M | X.' };
         }
         if (donnees.age != null && !Number.isInteger(Number(donnees.age))) return { erreur: "L'âge doit être un nombre entier." };
         return { donnees };

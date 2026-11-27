@@ -134,13 +134,15 @@ export const creerApiFormations = (db, { apresSync = null, sessionValide = () =>
         res.json({ presente: true, masquee: cle.slice(0, 4) + '…' + cle.slice(-4), source: 'settings' });
     });
 
-    api.post('/formations/sync', async (req, res) => {
+    api.post('/formations/sync', async (req, res, next) => {
         try {
             const resultat = await synchroniser();
             derniereSync = Date.now();
             res.json(resultat);
         } catch (e) {
-            res.status(502).json({ erreur: `Sync impossible (site injoignable ?) : ${e.message}` });
+            // audit nov. 2026 : plus de détail interne (e.message) au client
+            console.error('[gimaweb] sync formations impossible :', e && e.stack ? e.stack : e);
+            res.status(502).json({ erreur: 'Sync impossible (site injoignable ?).' });
         }
     });
 
@@ -168,21 +170,27 @@ export const creerApiFormations = (db, { apresSync = null, sessionValide = () =>
         res.json(rows);
     });
 
-    api.get('/formations', async (req, res) => {
-        // Auto-sync si les données sont périmées (> 15 min) — transparent pour le lecteur
-        if (Date.now() - derniereSync > SYNC_TTL) {
-            try {
-                await synchroniser();
-                derniereSync = Date.now();
-            } catch { /* site injoignable : on sert les données en base */ }
-        }
-        const formations = db.prepare(
-            `SELECT f.*,
+    api.get('/formations', async (req, res, next) => {
+        // audit nov. 2026 : Express 4 ne transfère pas les rejets de promesses au gestionnaire
+        // d'erreurs global — tout le corps async est protégé par ce try/catch + next(e)
+        try {
+            // Auto-sync si les données sont périmées (> 15 min) — transparent pour le lecteur
+            if (Date.now() - derniereSync > SYNC_TTL) {
+                try {
+                    await synchroniser();
+                    derniereSync = Date.now();
+                } catch { /* site injoignable : on sert les données en base */ }
+            }
+            const formations = db.prepare(
+                `SELECT f.*,
              (SELECT COUNT(*) FROM formations_members fm WHERE fm.formation_id = f.id) AS attendee_count,
              (SELECT COUNT(*) FROM formations_members fm WHERE fm.formation_id = f.id AND fm.payment IS NOT NULL) AS paid_count
              FROM formations f ORDER BY f.start_date ASC`
-        ).all();
-        res.json(formations);
+            ).all();
+            res.json(formations);
+        } catch (e) {
+            next(e);
+        }
     });
 
     api.get('/formations/:id', (req, res) => {
