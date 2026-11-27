@@ -28,6 +28,8 @@
         <section class="filters-bar" aria-label="Filtres et tri">
             <div class="filters-row filters-head">
                 <button class="btn btn-primary" id="addMemberBtn">+ Ajouter un membre</button>
+                <button class="btn btn-secondary" id="quickCheckinBtn" title="Rechercher un membre et pointer sa visite du jour">✅ Pointer une visite</button>
+                <button class="btn btn-secondary" id="quickRenewBtn" title="Rechercher un membre et renouveler son abonnement">♻️ Renouveler un abo</button>
                 <button class="btn btn-secondary btn-small filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="filtersMore" hidden>🎚 Filtres &amp; tri</button>
                 <span class="members-count" id="membersCount" aria-live="polite"></span>
                 <span class="filters-actions">
@@ -211,6 +213,64 @@
         </div>
     </div>
 
+    <!-- Picker de membre (boutons de la barre de filtres : visite / abo) -->
+    <div class="modal-overlay" id="renewModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="renewTitle">
+            <h3 id="renewTitle">♻️ Renouveler un abo</h3>
+            <div class="form-group">
+                <label for="renewSearch">Nom ou n° de membre</label>
+                <input type="text" id="renewSearch" placeholder="Ex : Marie ou 1002..." autocomplete="off">
+                <p class="form-hint" id="renewHint">Sélectionnez le membre : la modale « Renouveler un abo » s'ouvre ici.</p>
+            </div>
+            <ul class="checkin-results" id="renewResults"></ul>
+            <div class="modal-actions">
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-secondary" id="renewCloseBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Renouveler un abo : assemblage de la partie « Abonnement » de la modale « Modifier le membre »
+         + du bouton « Renouveler l'abo » de la modale « Fiche de … » (double confirmation avec aperçu) -->
+    <div class="modal-overlay" id="renewAboModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="renewAboTitle">
+            <h3 id="renewAboTitle">♻️ Renouveler un abo</h3>
+            <p class="form-hint" id="renewAboWho" style="font-weight:600;"></p>
+            <div class="form-group">
+                <span style="display:block;font-size:0.8rem;font-weight:700;color:var(--primary);margin-bottom:0.32rem;text-transform:uppercase;letter-spacing:0.5px;">Abonnement</span>
+                <div class="subscription-options" id="renewAboSubOptions">
+                    <div class="sub-option">
+                        <input type="radio" id="renewSubNone" name="renewSubscription" value="none">
+                        <label for="renewSubNone">Aucun<span class="sub-price">—</span><span class="sub-per">pas d'abo</span></label>
+                    </div>
+                    <div class="sub-option">
+                        <input type="radio" id="renewSubMonthly" name="renewSubscription" value="monthly">
+                        <label for="renewSubMonthly">Mensuel<span class="sub-price">3 €</span><span class="sub-per">par mois</span></label>
+                    </div>
+                    <div class="sub-option">
+                        <input type="radio" id="renewSubYearly" name="renewSubscription" value="yearly">
+                        <label for="renewSubYearly">Annuel<span class="sub-price">30 €</span><span class="sub-per">par an</span></label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="renewAboStart">Date début inscription</label>
+                    <input type="date" id="renewAboStart">
+                </div>
+                <div class="form-group">
+                    <label for="renewAboEnd">Date fin inscription</label>
+                    <input type="date" id="renewAboEnd">
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-primary" id="renewAboBtn">♻️ Renouveler l'abo</button>
+                <span style="flex:1"></span>
+                <button type="button" class="btn btn-secondary" id="renewAboCloseBtn">Fermer</button>
+            </div>
+        </div>
+    </div>
+
     </div>
     </div>
     <footer class="site-footer">
@@ -255,7 +315,7 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="app.js?v=40"></script>
+    <script src="app.js?v=41"></script>
     <script src="shortcuts.js?v=1"></script>
 <script>
         // PWA : enregistrement du service worker (silencieux si non supporté)

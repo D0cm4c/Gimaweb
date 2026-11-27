@@ -481,6 +481,234 @@
         });
     });
 
+    /* ---------- Renouveler un abo (bouton du héro) ---------- */
+    // Même modèle que le dashboard (recherche membre), mais au clic on ouvre la fiche
+    // EN PLACE via openDetail — on est DÉJÀ sur membres.html, aucune navigation vers #member=.
+    var renewModal = document.getElementById('renewModal');
+    var renewTitle = document.getElementById('renewTitle');
+    var renewHint = document.getElementById('renewHint');
+    var quickCheckinBtn = document.getElementById('quickCheckinBtn');
+    var quickRenewBtn = document.getElementById('quickRenewBtn');
+    var renewCloseBtn = document.getElementById('renewCloseBtn');
+    var renewSearch = document.getElementById('renewSearch');
+    var renewResults = document.getElementById('renewResults');
+    var renewActive = -1;
+    var pickMode = 'renew'; // 'renew' | 'checkin' — la modale du héro sert les deux boutons
+
+    function searchMembersRenew(q, apres) {
+        q = (q || '').trim().toLowerCase();
+        ADWDatabase.listerMembres().then(function (tous) {
+            tous = tous || [];
+            var membres = tous.filter(function (m) {
+                if (!q) return true;
+                if (/^\d+$/.test(q)) return String(m.member_no || '').indexOf(q) !== -1;
+                return ((m.first_name || '') + ' ' + (m.last_name || '')).toLowerCase().indexOf(q) !== -1;
+            }).slice(0, 8);
+            apres(membres);
+        }).catch(function () { apres([]); });
+    }
+
+    function openPick(mode) {
+        pickMode = mode === 'checkin' ? 'checkin' : 'renew';
+        if (!renewModal) return;
+        renewModal.hidden = false;
+        if (renewTitle) renewTitle.textContent = pickMode === 'checkin' ? '✅ Pointer une visite' : '♻️ Renouveler un abo';
+        if (renewHint) renewHint.textContent = pickMode === 'checkin'
+            ? 'Sélectionnez le membre : sa fiche s\'ouvre ici et la visite du jour est pointée.'
+            : 'Sélectionnez le membre : la modale « Renouveler un abo » s\'ouvre ici.';
+        if (renewSearch) {
+            renewSearch.value = '';
+            renewSearch.focus();
+        }
+        searchMembersRenew('', afficherResultatsRenew);
+    }
+
+    function openRenew() { openPick('renew'); }
+
+    function closeRenew() {
+        if (renewModal) renewModal.hidden = true;
+    }
+
+    function setRenewActive(idx) {
+        var els = renewResults ? renewResults.querySelectorAll('li.checkin-item') : [];
+        if (!els.length) return;
+        renewActive = Math.max(0, Math.min(idx, els.length - 1));
+        els.forEach(function (el, i) { el.classList.toggle('bk-active', i === renewActive); });
+        // Garde : jsdom (tests) n'implémente pas scrollIntoView
+        if (els[renewActive] && typeof els[renewActive].scrollIntoView === 'function') {
+            els[renewActive].scrollIntoView({ block: 'nearest' });
+        }
+    }
+
+    function afficherResultatsRenew(members) {
+        if (!renewResults) return;
+        renewResults.innerHTML = '';
+        renewActive = -1;
+        if (!members.length) {
+            renewResults.innerHTML = '<li class="form-hint" style="list-style:none;padding:0.6rem 0;">Aucun membre trouvé.</li>';
+            return;
+        }
+        members.forEach(function (m) {
+            var li = document.createElement('li');
+            li.className = 'checkin-item' + (((m.subscription || 'none') === 'none') ? ' inactive' : (isExpired(m) ? ' expired' : ''));
+            li.setAttribute('data-member-id', m.id);
+            var fin = m.end_date
+                ? '<span class="badge ' + (isExpired(m) ? 'badge-sub-none' : 'badge-ok') + '">fin : ' + escapeHtml(formatDate(m.end_date)) + '</span>'
+                : '';
+            li.innerHTML =
+                '<span class="member-avatar small" aria-hidden="true">' + escapeHtml(initials(m)) + '</span>' +
+                '<span class="rv-name">#' + escapeHtml(m.member_no) + ' ' + escapeHtml(m.first_name) + ' ' + escapeHtml(m.last_name) + '</span>' +
+                subBadge(m) + fin;
+            li.addEventListener('click', function () {
+                closeRenew();
+                if (pickMode === 'renew') {
+                    openRenewAbo(m.id); // nouvelle modale « Renouveler un abo » ouverte EN PLACE
+                    return;
+                }
+                // Mode checkin : fiche ouverte en place, puis pointage via son bouton (même handler, 409 géré)
+                var promesse = openDetail(m.id);
+                if (promesse && typeof promesse.then === 'function') {
+                    promesse.then(function () {
+                        if (detailCheckinBtn) detailCheckinBtn.click();
+                    });
+                }
+            });
+            renewResults.appendChild(li);
+        });
+        setRenewActive(0);
+    }
+
+    if (quickRenewBtn) quickRenewBtn.addEventListener('click', openRenew);
+    if (quickCheckinBtn) quickCheckinBtn.addEventListener('click', function () { openPick('checkin'); });
+    if (renewCloseBtn) renewCloseBtn.addEventListener('click', closeRenew);
+    if (renewModal) renewModal.addEventListener('click', function (e) {
+        if (e.target === renewModal) closeRenew();
+    });
+    if (renewSearch) {
+        renewSearch.addEventListener('input', function () {
+            searchMembersRenew(renewSearch.value, afficherResultatsRenew);
+        });
+        renewSearch.addEventListener('keydown', function (e) {
+            var els = renewResults ? renewResults.querySelectorAll('li.checkin-item') : [];
+            if (!els.length) return;
+            if (e.key === 'ArrowDown') { e.preventDefault(); setRenewActive(renewActive < 0 ? 0 : Math.min(renewActive + 1, els.length - 1)); }
+            else if (e.key === 'ArrowUp') { e.preventDefault(); setRenewActive(renewActive <= 0 ? 0 : renewActive - 1); }
+            else if (e.key === 'Enter') { e.preventDefault(); if (renewActive >= 0 && els[renewActive]) els[renewActive].click(); }
+        });
+    }
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && renewModal && !renewModal.hidden) closeRenew();
+    });
+
+    /* ---------- Modale « Renouveler un abo » ---------- */
+    // Assemblage demandé : partie « Abonnement » de la modale « Modifier le membre » (radios + dates)
+    // + bouton « Renouveler l'abo » de la fiche (double confirmation avec aperçu des nouvelles dates).
+    var renewAboModal = document.getElementById('renewAboModal');
+    var renewAboWho = document.getElementById('renewAboWho');
+    var renewAboStart = document.getElementById('renewAboStart');
+    var renewAboEnd = document.getElementById('renewAboEnd');
+    var renewAboBtn = document.getElementById('renewAboBtn');
+    var renewAboCloseBtn = document.getElementById('renewAboCloseBtn');
+    var renewAboMember = null;
+    var renewAboArmed = null;
+    var RENEW_ABO_ARMED_MS = 6000;
+
+    function renewAboRadio() {
+        var r = renewAboModal ? renewAboModal.querySelector('input[name="renewSubscription"]:checked') : null;
+        return r ? r.value : 'none';
+    }
+
+    function resetRenewAboBtn() {
+        if (!renewAboBtn) return;
+        renewAboBtn.textContent = '♻️ Renouveler l\'abo';
+        renewAboBtn.classList.remove('btn-danger');
+    }
+
+    function openRenewAbo(id) {
+        return ADWDatabase.getMembre(id).then(function (m) {
+            if (!m || !renewAboModal) return;
+            renewAboMember = m;
+            renewAboArmed = null;
+            resetRenewAboBtn();
+            if (renewAboWho) renewAboWho.textContent = '👤 ' + m.first_name + ' ' + m.last_name + ' (n° ' + (m.member_no || '—') + ')';
+            // Pré-remplissage = partie « Abonnement » de la modale « Modifier le membre »
+            var sub = m.subscription || 'none';
+            var radio = renewAboModal.querySelector('input[name="renewSubscription"][value="' + sub + '"]');
+            if (radio) radio.checked = true;
+            if (renewAboStart) renewAboStart.value = m.start_date || '';
+            if (renewAboEnd) renewAboEnd.value = m.end_date || '';
+            renewAboModal.hidden = false;
+        });
+    }
+
+    function closeRenewAbo() {
+        if (renewAboModal) renewAboModal.hidden = true;
+        renewAboMember = null;
+        renewAboArmed = null;
+    }
+
+    // Live : comme dans la modale d'édition — « aucun » vide la fin, mensuel/annuel propose +1 mois/+1 an
+    if (renewAboModal) {
+        renewAboModal.querySelectorAll('input[name="renewSubscription"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+                if (radio.value === 'none') { if (renewAboEnd) renewAboEnd.value = ''; }
+                else if (renewAboEnd && !renewAboEnd.value) {
+                    var base = renewAboStart && renewAboStart.value ? new Date(renewAboStart.value) : new Date();
+                    var d = new Date(base);
+                    if (radio.value === 'yearly') d.setFullYear(d.getFullYear() + 1); else d.setMonth(d.getMonth() + 1);
+                    renewAboEnd.value = d.toISOString().slice(0, 10);
+                }
+            });
+        });
+    }
+
+    if (renewAboBtn) renewAboBtn.addEventListener('click', function () {
+        if (!renewAboMember) return;
+        var m = renewAboMember;
+        if (renewAboArmed) {
+            // 2e clic = confirmation : applique la formule choisie + les dates affichées (modifiables)
+            clearTimeout(renewAboArmed.timer);
+            var r = renewAboArmed;
+            renewAboArmed = null;
+            resetRenewAboBtn();
+            var sub = renewAboRadio();
+            var saveFormule = (sub !== (m.subscription || 'none'))
+                ? ADWDatabase.modifierMembre(m.id, { subscription: sub })
+                : Promise.resolve();
+            saveFormule.then(function () {
+                return ADWDatabase.renewSubscription(m.id, renewAboStart.value || r.newStart, renewAboEnd.value || r.newEnd);
+            }).then(function (res) {
+                if (!res) return;
+                if (window.ADWNotifications) window.ADWNotifications.push('renew', '♻️ Abonnement renouvelé : du ' + res.newStart + ' au ' + res.newEnd + ' (membre ' + m.member_no + ')', 'success', { member_id: m.id });
+                showToast('♻️ Renouvelé — inscription du ' + res.newStart + ' au ' + res.newEnd);
+                closeRenewAbo();
+                render();
+            }).catch(function (e) { showToast('Renouvellement impossible : ' + (e && e.message ? e.message : e), 'error'); });
+            return;
+        }
+        // 1er clic : aperçu (rien n'est écrit) + pré-remplissage des dates du nouveau cycle
+        ADWDatabase.previewRenewal(m.id).then(function (r) {
+            if (!r) return;
+            renewAboArmed = r;
+            if (renewAboStart) renewAboStart.value = r.newStart;
+            if (renewAboEnd) renewAboEnd.value = r.newEnd;
+            renewAboBtn.textContent = '✅ Confirmer : du ' + fmtDMY(r.newStart) + ' au ' + fmtDMY(r.newEnd) + ' ?';
+            renewAboBtn.classList.add('btn-danger');
+            renewAboArmed.timer = setTimeout(function () {
+                renewAboArmed = null;
+                resetRenewAboBtn();
+            }, RENEW_ABO_ARMED_MS);
+        }).catch(function (e) { showToast('Renouvellement impossible : ' + (e && e.message ? e.message : e), 'error'); });
+    });
+    if (renewAboCloseBtn) renewAboCloseBtn.addEventListener('click', closeRenewAbo);
+    if (renewAboModal) renewAboModal.addEventListener('click', function (e) {
+        if (e.target === renewAboModal) closeRenewAbo();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && renewAboModal && !renewAboModal.hidden) closeRenewAbo();
+    });
+
     /* ---------- Toast ---------- */
 
     function showToast(message, type) {
@@ -844,6 +1072,12 @@
         // Lien direct vers le formulaire vierge : membres.html#add — ouvre « Ajouter un membre »
         if (location.hash === '#add') {
             openModal(null);
+            history.replaceState(null, '', location.pathname + location.search);
+        }
+        // Lien direct vers la modale « Renouveler un abo » : membres.html#renew=<id>
+        var mr = location.hash.match(/^#renew=(.+)$/);
+        if (mr) {
+            openRenewAbo(decodeURIComponent(mr[1]));
             history.replaceState(null, '', location.pathname + location.search);
         }
     }).catch(function (err) {

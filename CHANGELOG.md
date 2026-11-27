@@ -199,3 +199,10 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 ### Coordination des versions (autre session IA sur ce dépôt)
 - 1.5.14 = PR #56 (API MEC, session serveur). 1.5.15 = PR #57 (héro dashboard, autre session, fusionnée avant coordination).
 - **1.5.16 = cette PR** (bouton Actualiser, session serveur).
+## v1.5.17 — membres.html : « Pointer une visite » + « Renouveler un abo » dans la barre de filtres, et NOUVELLE modale de renouvellement
+- **membres.html** : PAS de nouveau hero (décision porteur) — deux boutons dans `.filters-head` à côté de « + Ajouter un membre » : **✅ Pointer une visite** (`quickCheckinBtn`) et **♻️ Renouveler un abo** (`quickRenewBtn`). Un même picker de recherche de membre s'ouvre ; au clic sur un membre :
+  - mode **visite** → la fiche s'ouvre en place et la visite du jour est pointée (bouton de la fiche, 409 géré) ;
+  - mode **abo** → la **nouvelle modale `#renewAboModal`** s'ouvre en place.
+- **Nouvelle modale « Renouveler un abo »** (demande porteur) = assemblage de la partie « Abonnement » de la modale « Modifier le membre » (radios aucun/mensuel/annuel + dates début/fin, pré-remplies, live comme l'édition) **+** du bouton « ♻️ Renouveler l'abo » de la fiche (double confirmation : 1er clic = aperçu `previewRenewal` + pré-remplissage des nouvelles dates, 2e clic = application `renewSubscription` avec la formule choisie et les dates affichées). Deep link `membres.html#renew=<id>` (le bouton du **hero du dashboard** envoie dessus : `membres.html#renew=<id>` au lieu de `#member=`).
+- **app.js** : picker dual-mode + modale renewAbo + deep link `#renew=`. **dashboard.js / index.html** : le picker du hero renvoie vers `#renew=` (cache `dashboard.js?v=48`). Bump membres.html `app.js?v=41`. Aucun CSS modifié. Version 1.5.17 (v1.5.15 → PR #57, v1.5.16 → PR #58).
+- Tests m7-dom : +17 vérifications (pas de hero, boutons dans `.filters-head`, picker 2 modes, modale renewAbo en place pré-remplie, aperçu armé = preview API, 2e clic appliqué en base, deep link `#renew=`, visite enregistrée via API, aucune navigation, 0 erreur JS). Régression : **544/544 (15 suites)**.
