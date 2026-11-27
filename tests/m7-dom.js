@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.15 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.15', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.16 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.16', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -199,6 +199,22 @@ for (const p of PAGES) {
     bm.click(); // clic sur le fond (overlay)
     await new Promise((r) => setTimeout(r, 200));
     verifie('formations.html : fermeture par clic sur le fond', bm.hidden === true);
+}
+
+// ---- 1sexties) formations.html : bouton « 🔄 Actualiser » (v1.5.16 — listener perdu à la migration M5)
+{
+    const { errors: erreursR, window: wr } = await chargerPage('formations.html');
+    await new Promise((r) => setTimeout(r, 1200));
+    const btn = wr.document.getElementById('refreshBtn');
+    verifie('formations.html : bouton Actualiser présent', Boolean(btn));
+    btn.click();
+    await new Promise((r) => setTimeout(r, 2500));
+    verifie('formations.html : clic Actualiser ← sync serveur sans erreur JS', erreursR.length === 0, erreursR.join(' | '));
+    verifie('formations.html : bouton ré-activé avec son libellé après sync', !btn.disabled && /Actualiser/.test(btn.textContent), btn.textContent);
+    // la sync du serveur est matérialisée par une notification (celle de la sync OU celle du bouton)
+    const notifs = await (await fetch(`${origine}/api/notifications?limite=20`, { headers: { ...(etatCookies.value ? { Cookie: etatCookies.value } : {}) } })).json();
+    verifie('formations.html : clic Actualiser ← notification de synchro côté serveur',
+        (notifs || []).some((n) => /Actualisation|synchronis/i.test(n.message || '')), (notifs || []).slice(0, 3).map((n) => n.message));
 }
 
 // ---- 1quinquies) tickets.html : modale « Signaler un incident » ouvre/ferme ----
@@ -292,7 +308,7 @@ for (const p of PAGES) {
     verifie('dashboard : aucune erreur JS pendant la recherche', erreursD.length === 0, erreursD.join(' | '));
 }
 
-// ---- 1undecies) v1.5.15 — héro dashboard : « Renouveler un abo » (modale recherche membre → fiche) + « Ajouter un membre » (membres.html#add)
+// ---- 1undecies) v1.5.16 — héro dashboard : « Renouveler un abo » (modale recherche membre → fiche) + « Ajouter un membre » (membres.html#add)
 {
     const { errors: erreursH, window: whero, navigations: navH } = await chargerPage('index.html');
     await new Promise((r) => setTimeout(r, 900));

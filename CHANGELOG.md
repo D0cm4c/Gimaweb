@@ -190,3 +190,12 @@ La version vit dans `package.json` et est exposée par `GET /api/sante` (`versio
 - **Hero mieux mis en évidence** : classe `.hero-home` — padding augmenté (2.3rem), liseré bordeaux 4px (`var(--primary)`, micro-dose charte), texte d'accueil remplacé par un résumé des 4 boutons du héro. Charte respectée : pas d'ombre au repos, pas de dégradé, coins ≤ 6px.
 - Bumps cache : index.html `styles.css?v=94` + `dashboard.js?v=47` ; membres.html `app.js?v=40`. Version 1.5.15 (les v1.5.13 et v1.5.14 ont été prises par les PR #55 et #56).
 - Tests m7-dom : +13 vérifications (boutons du héro présents/retirés, `.hero-home` + texte d'accueil, modale renew : ouverture, liste, recherche, navigation au clic vers `membres.html#member=…`, deep links `#add` / `#member=<id>`, 0 erreur JS). Régression : **521/521 (15 suites)**.
+## v1.5.16 — correctif : bouton « 🔄 Actualiser » de formations.html ne marchait pas
+- **Bug signalé** : le bouton « Actualiser » de formations.html était inert — son listener a été perdu à la migration M5 (le bouton vivait dans la maquette avec un re-fetch navigateur, devenu obsolète côté serveur).
+- Le clic relance maintenant la **synchro serveur** (`POST /api/formations/sync` : API MEC → base unique), affiche le retour (formation(s) dans le flux, ajoutées, mises à jour, retirées) en notification, rafraîchit les pastilles et re-rend la grille. Même pattern que « Resynchroniser » de la fiche. Bouton désactivé + « ⏳ Synchronisation… » pendant l'opération, ré-activé à la fin (succès comme échec).
+- `page-formations.js?v=44` (cache busting).
+- Test DOM (m7-dom) : clic réel sur le bouton → sync serveur sans erreur JS, bouton ré-activé avec son libellé, notification de synchro constatée côté serveur — 135/135.
+
+### Coordination des versions (autre session IA sur ce dépôt)
+- 1.5.14 = PR #56 (API MEC, session serveur). 1.5.15 = PR #57 (héro dashboard, autre session, fusionnée avant coordination).
+- **1.5.16 = cette PR** (bouton Actualiser, session serveur).
