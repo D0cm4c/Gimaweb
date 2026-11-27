@@ -26,15 +26,18 @@
 
     <main id="main">
         <section class="filters-bar" aria-label="Navigation et filtres">
-            <button class="btn btn-secondary btn-small" id="prevMonthBtn" title="Mois précédent">◀</button>
+            <button class="btn btn-secondary btn-small" id="prevMonthBtn" title="Semaine précédente">◀</button>
             <strong id="monthLabel" style="min-width:170px;text-align:center;text-transform:capitalize;"></strong>
-            <button class="btn btn-secondary btn-small" id="nextMonthBtn" title="Mois suivant">▶</button>
+            <button class="btn btn-secondary btn-small" id="nextMonthBtn" title="Semaine suivante">▶</button>
             <button class="btn btn-primary btn-small" id="todayBtn">Aujourd'hui</button>
             <span class="members-count" id="monthCount" aria-live="polite"></span>
             <button class="btn btn-secondary btn-small" id="unassignedBtn" title="Formations sans salle attribuée">🏷 Sans salle <span class="badge badge-full" id="unassignedBadge">0</span></button>
         </section>
 
         <div id="planningWrap" style="overflow-x:auto;"></div>
+
+        <!-- M3 : agenda chronologique des 30 prochains jours (sous la grille semaine) -->
+        <div id="agendaWrap" aria-live="polite"></div>
 
         <!-- Modale : formations sans salle -->
         <div class="modal-overlay" id="unassignedModal" hidden>
@@ -65,7 +68,7 @@
     <script src="notifications.js?v=7"></script>
     <script src="suggestions.js?v=2"></script>
     <script src="globalsearch.js?v=3"></script>
-    <script src="page-salles.js?v=4"></script>
+    <script src="page-salles.js?v=5"></script>
     <script src="shortcuts.js?v=1"></script>
 <script>
         // PWA : enregistrement du service worker (silencieux si non supporté)

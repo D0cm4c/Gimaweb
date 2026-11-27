@@ -396,3 +396,10 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - tools/generer-certificat.sh (SAN : localhost, gimaweb.local, 127.0.0.1, IP LAN) ; certs dans data/certs/ (gitignor\u00e9). .env.exemple document\u00e9. ADMINISTRATION.md section d\u00e9di\u00e9e.
 - tests/m9-https.js (9/9) : NODE_TLS_REJECT_UNAUTHORIZED=0 (undici fetch ignore l'option agent sous Node 22 \u2014 LE\u00c7ON), sortie du spawn retourn\u00e9e en GETTER (les strings sont des copies fig\u00e9es \u2014 LE\u00c7ON), serveurs tu\u00e9s \u00e0 la fin.
 - R\u00e9gression 466/466 (14 suites). m9 dans package.json + ci.yml.
+
+## \u2728 v1.5.10 — salles.html : grille semaine (M1) + agenda (M3), decision porteur
+
+- Choix design parmi 4 mockups (PR #50) : M1 + colonnes Matin|A-midi par jour + M3 en dessous. Grille : LIGNES par salle (dynamiques via listRooms \u2014 admin ajoute/retire = ligne suit), 7 jours \u00d7 2 cr\u00e9neaux. Navigation \u00b17 jours, lundiDe() pour le lundi de semaine. Multi-mois : moisNecessaires() fusionne les getRoomPlanning des mois chevauch\u00e9s.
+- M3 : agendaWrap \u2014 cartes .ag-jour des 30 prochains jours occup\u00e9s (formations color\u00e9es + \U0001F511 locations hachur\u00e9es, salle \u00e0 droite, jour courant encadr\u00e9).
+- page-salles.js v5, mockup public retir\u00e9 (archive docs/mockups/). M7 : 131/131 (dont ligne dynamique test\u00e9e en ajout/rollback admin). R\u00e9gression 472/472.
+- Le\u00e7on : les \u00e9chappements \\uXXXX des fichiers HTML "mockups" s'affichent LITT\u00c9RALEMENT dans le navigateur \u2014 toujours \u00e9crire les vrais caract\u00e8res UTF-8 (et d\u00e9coder avec gestion des paires de surrogates si besoin).

@@ -2214,3 +2214,27 @@ select {
     padding: 0.1rem 0.25rem;
 }
 .loc-chip-x:hover { background: rgba(179, 51, 51, 0.12); border-radius: 999px; }
+
+/* ===== v1.5.10 : salles.html — grille SEMAINE (une ligne par salle, Matin|A-midi par jour) + agenda ===== */
+.room-planning th.room-lbl-h { text-align: left; font-size: 0.78rem; }
+.room-planning th.day-h { font-size: 0.8rem; text-align: center; }
+.room-planning th.day-h.today { color: var(--accent, #9f0c45); font-weight: 800; }
+.room-planning .today-dot { color: var(--accent, #9f0c45); }
+.room-planning td.room-lbl { font-weight: 700; white-space: nowrap; font-size: 0.85rem; }
+.room-planning tr.room-row td { border-bottom: 1px solid #efeade; }
+.room-planning tr.room-row:nth-child(odd) td.slot-cell { background: #faf8f2; }
+
+/* M3 : agenda chronologique (sous la grille) */
+.ag-title { font-size: 1.05rem; margin: 1.8rem 0 0.6rem; }
+.ag-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 0.7rem; }
+.ag-jour { background: var(--surface, #fff); border: 1px solid var(--border, #dcd8cd); border-radius: 10px; padding: 0.6rem 0.8rem; }
+.ag-jour.ag-today { border-color: var(--accent, #9f0c45); box-shadow: 0 0 0 1px var(--accent, #9f0c45); }
+.ag-head { display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap; }
+.ag-head strong { font-size: 0.92rem; }
+.ag-head span { color: var(--text-soft, #6b7a87); font-size: 0.78rem; }
+.ag-item { display: flex; gap: 0.5rem; align-items: center; margin: 0.35rem 0 0 0.15rem; text-decoration: none; }
+.ag-slot { font-size: 0.64rem; font-weight: 800; color: #fff; background: #22303c; border-radius: 5px; padding: 0.1rem 0.36rem; flex-shrink: 0; }
+.ag-slot.pm { background: var(--text-soft, #6b7a87); }
+.ag-evt { color: #fff; font-size: 0.78rem; font-weight: 700; border-radius: 6px; padding: 0.15rem 0.45rem; }
+.ag-evt.ag-loc { background: repeating-linear-gradient(45deg, #7A5230, #7A5230 6px, #8d6337 6px, #8d6337 12px); }
+.ag-room { margin-left: auto; font-size: 0.75rem; color: var(--text-soft, #6b7a87); font-weight: 700; white-space: nowrap; }
