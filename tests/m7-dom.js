@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.13 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.13', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.14 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.14', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur

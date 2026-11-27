@@ -82,6 +82,28 @@ const mock = http.createServer((req, res) => {
                 pagination: { next_date: '2027-03-20', next_offset: 1, has_more_events: true, found: 3 }
             }));
         }
+        if (u === '/wp-json/mec/v1.0/events/504') {
+            // HORS fenêtre de l'index : récupéré UN PAR UN (le wp-json public donne l'ID)
+            return res.end(JSON.stringify({
+                ID: 504, requested_id: 504,
+                data: {
+                    ID: 504, title: 'Je maîtrise mon smartphone', content: '<p>Atelier test hors fenêtre</p>',
+                    permalink: 'https://atelierduweb.be/formation/maitrise-smartphone-hors-fenetre/',
+                    meta: { mec_cost: '5', mec_location_id: '24', mec_organizer_id: '193', mec_allday: '0' },
+                    mec: { days: '2023-03-31:2023-03-31:09-30-AM:12-30-PM' },
+                    time: { start: '9h30', end: '12h30' },
+                    tickets: {}, categories: { '22': { id: 22, name: 'Ateliers' } },
+                    labels: { '73': { id: 73, name: 'Niveau débutant' } },
+                    locations: { '24': { id: 24, name: "L'Atelier du web" } },
+                    organizers: { '193': { id: 193, name: 'Quentin Garchi' } }
+                }
+            }));
+        }
+        if (u === '/wp-json/mec/v1.0/events/504/next-occurrences') {
+            return res.end(JSON.stringify({ success: 1, occurrences: [
+                { start: { date: '2027-12-16', hour: '09', minutes: '30', ampm: 'AM', timestamp: 42 }, end: {}, allday: '0', past: 0 }
+            ] }));
+        }
         if (u === '/wp-json/mec/v1.0/events/503/next-occurrences') {
             return res.end(JSON.stringify({ success: 1, occurrences: [
                 { start: { date: '2027-03-20', hour: '01', minutes: '30', ampm: 'PM', timestamp: 9 }, end: {}, allday: '0', past: 0 }
@@ -103,7 +125,8 @@ const mock = http.createServer((req, res) => {
     if (u.startsWith('/wp-json/wp/v2/mec-events')) {
         return res.end(JSON.stringify([
             { id: 501, date: '2027-02-01', link: 'https://atelierduweb.be/formation/initiation-api/', excerpt: { rendered: '<p>Durée : 2 Matinées Dates : Le 10 mars 2027 Horaires : De 9h30 à 12h30</p>' }, mec_category: [22, 11] },
-            { id: 502, date: '2027-03-01', link: 'https://atelierduweb.be/fermeture-test/', excerpt: { rendered: '<p>Durée : 1 Jour Dates : Le 12 mars 2027 Horaires : De 9h00 à 18h00</p>' }, mec_category: [10] }
+            { id: 502, date: '2027-03-01', link: 'https://atelierduweb.be/fermeture-test/', excerpt: { rendered: '<p>Durée : 1 Jour Dates : Le 12 mars 2027 Horaires : De 9h00 à 18h00</p>' }, mec_category: [10] },
+            { id: 504, date: '2027-11-01', link: 'https://atelierduweb.be/formation/maitrise-smartphone-wp/', excerpt: { rendered: '<p>Durée : 1 Matinée Dates : Le 16 décembre Horaires : De 9h30 à 12h30</p>' }, mec_category: [22] }
         ]));
     } else if (u.startsWith('/wp-json/wp/v2/mec_category')) {
         return res.end(JSON.stringify([{ id: 10, name: 'Fermeture' }, { id: 11, name: 'Tablettes' }, { id: 22, name: 'Ateliers' }]));
@@ -171,7 +194,7 @@ try {
     await fetchApi('/api/formations/sync', avecCookie(cookie, json('POST')));
     verifie('l\u2019API MEC est appel\u00e9e avec le header \u00ab mec-token \u00bb', teteRecue === CLE_VALIDEE, teteRecue);
     dates501 = await fetchApi(`/api/formations/501/dates`);
-    verifie('avec cl\u00e9 : s\u00e9ances COMPL\u00c8TES (next-occurrences \u222a mec.days, y compris pass\u00e9e)', dates501.body.length === 3 && dates501.body.map((d) => d.date).join(',') === '2026-06-01,2027-03-10,2027-03-11', dates501.body);
+    verifie('avec cl\u00e9 : s\u00e9ances exactes (next-occurrences PRIMAIRE, date pourrie 2026 exclue)', dates501.body.length === 2 && dates501.body.map((d) => d.date).join(',') === '2027-03-10,2027-03-11', dates501.body);
     verifie('avec cl\u00e9 : cr\u00e9neau d\u00e9duit du champ ampm (AM pour la 1\u02b3\u1d49 occurrence)', dates501.body.every((d) => d.slot === 'AM'), dates501.body);
     f501 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '501');
     verifie('titre : entit\u00e9s HTML d\u00e9cod\u00e9es (rsquo \u2192 apostrophe typographique)', f501 && f501.title.includes('l\u2019API') && !f501.title.includes('&rsquo;'), f501 && f501.title);
@@ -186,6 +209,11 @@ try {
     const f502 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '502');
     verifie('fermeture : d\u00e9tection par CAT\u00c9GORIE MEC (les labels = d\u00e9co site)', f502 && (f502.categories || '').includes('Fermeture'), f502 && f502.categories);
     verifie('fermeture : labels conserv\u00e9s pour la d\u00e9co, sans effet sur la d\u00e9tection', f502 && (f502.labels || '').includes('Fermeture'), f502 && f502.labels);
+    const f504 = (await fetchApi('/api/formations')).body.find((f) => String(f.event_id) === '504');
+    verifie('hors fen\u00eatre : r\u00e9cup\u00e9r\u00e9 via /events/:id (titre API, pas le parseur)', f504 && f504.title === 'Je ma\u00eetrise mon smartphone', f504 && f504.title);
+    const dates504 = await fetchApi('/api/formations/504/dates');
+    verifie('hors fen\u00eatre : occurrence exacte 2027-12-16 (mec.days 2023 pourri ignor\u00e9)', dates504.body.length === 1 && dates504.body[0].date === '2027-12-16', dates504.body);
+    verifie('hors fen\u00eatre : tarif/organisateur API (5 \u20ac, Quentin)', f504 && Number(f504.price) === 5 && /Quentin/i.test(f504.organizer || ''), f504 && f504.price + ' / ' + f504.organizer);
     const notifs = await fetchApi('/api/notifications?limite=50');
     verifie('notification de sync mentionne \u00ab via API M.E. Calendar \u00bb', notifs.body.some((n) => (n.message || '').includes('API M.E. Calendar')), notifs.body.slice(0, 3).map((n) => n.message));
 
