@@ -6,6 +6,10 @@ const WP_BASE_DEFAUT = 'https://atelierduweb.be/wp-json/wp/v2';
 const WP_BASE = process.env.WP_BASE || WP_BASE_DEFAUT;
 const LABELS_URL = (process.env.ADW_LABELS_URL || WP_BASE.replace(/\/wp\/v2\/?$/, '/adw-mec/v1/labels'));
 const RSS_URL = process.env.ADW_RSS_URL || 'https://atelierduweb.be/feed/';
+// v1.5.12 : API RESTful OFFICIELLE de M.E. Calendar (issue #52) — auth par header « mec-token »
+// (rien d'autre ne marche : ni ?key=, ni Bearer, ni X-API-KEY). La clé vient de la
+// table settings (posée via la page Paramètres) ou de MEC_API_KEY dans .env.
+const MEC_API_BASE = process.env.MEC_API_BASE || 'https://atelierduweb.be/wp-json/mec/v1.0';
 
 // Décodeur d'entités HTML (WP renvoie titres et extraits encodés : &amp; &rsquo; &#8211; «…).
 // Correctif v1.4.7 : l'ancien stripHtml écrasait les entités numériques par une ESPACE
@@ -229,13 +233,92 @@ async function enrichFromPlugin(events) {
     return events;
 }
 
+// ---- v1.5.12 : source M.E. Calendar (API officielle, si clé présente) ----
+// GET /events → racine « events » indexée par date de début, items {ID, data:{title, content}}
+// GET /events/:id/next-occurrences → occurrences {start:{date, hour, ampm}, allday, past}
+async function fetchViaApiMec(cle) {
+    if (!cle) return null;
+    const entetes = { 'mec-token': cle, Accept: 'application/json' };
+    const res = await fetch(`${MEC_API_BASE}/events`, { headers: entetes });
+    if (!res.ok) throw new Error(`mec_api_http_${res.status}`);
+    const data = await res.json();
+    const parId = {};
+    for (const [dateCle, items] of Object.entries(data.events || {})) {
+        for (const it of (items || [])) {
+            const id = String(it.ID ?? it.data?.ID ?? '');
+            if (!id) continue;
+            const ev = parId[id] = parId[id] || {
+                id,
+                title: stripHtml(it.data?.title || ''),
+                excerpt: stripHtml(it.data?.content || '').slice(0, 400),
+                dates: new Set(),
+                slot: '',
+                startDate: dateCle,
+                url: '',
+                categories: []
+            };
+            if (!/\d{4}-\d{2}-\d{2}/.test(ev.startDate) || dateCle < ev.startDate) ev.startDate = dateCle;
+            if (dateCle) ev.dates.add(dateCle);
+        }
+    }
+    // Occurrences exactes : préférer start.date (ISO déjà local, zéro piège de fuseau)
+    // et le champ ampm pour le créneau AM/PM (jamais l'heure en 12h seule).
+    for (const ev of Object.values(parId)) {
+        try {
+            const r = await fetch(`${MEC_API_BASE}/events/${ev.id}/next-occurrences`, { headers: entetes });
+            if (!r.ok) continue;
+            const occs = (await r.json()).occurrences || [];
+            const dates = new Set();
+            const creneaux = new Set();
+            for (const o of occs) {
+                if (o && Number(o.past) === 1) continue;
+                const d = o?.start?.date;
+                if (!d || !/^\d{4}-\d{2}-\d{2}$/.test(d)) continue;
+                dates.add(d);
+                if (String(o.allday) === '1') { creneaux.add('AM'); creneaux.add('PM'); }
+                else creneaux.add(String(o.start?.ampm).toUpperCase() === 'PM' ? 'PM' : 'AM');
+            }
+            if (dates.size) {
+                ev.dates = dates;
+                ev.slot = creneaux.has('AM') ? 'AM' : 'PM'; // convention existante : un créneau par formation
+            }
+        } catch { /* occurrence inaccessible : on garde les dates de l'index */ }
+    }
+    return Object.values(parId).map((ev) => ({ ...ev, dates: [...ev.dates].sort() }));
+}
+
 // Chargement complet : WP REST → fallback RSS → enrichissement plugin
-export async function chargerFormations() {
+// v1.5.12 : si une clé MEC est fournie, l'API officielle enrichit/corrige les DATES
+// (occurrences exactes) ; les métadonnées (catégories, lieu, organisateur) restent
+// issues du wp-json public — l'API MEC observée ne les expose pas (issue #52).
+export async function chargerFormations({ cleMec = '' } = {}) {
+    let sourceMec = false;
+    let apiEvents = null;
+    if (cleMec) {
+        try { apiEvents = await fetchViaApiMec(cleMec); sourceMec = apiEvents !== null; }
+        catch { /* clé refusée / site injoignable : repli silencieux sur le canal public */ }
+    }
     let events;
     try {
         events = await fetchViaWpRest();
     } catch {
         events = await fetchViaRss();
     }
-    return enrichFromPlugin(events);
+    if (apiEvents && apiEvents.length) {
+        const parId = new Map(apiEvents.map((e) => [String(e.id), e]));
+        events = events.map((ev) => {
+            const api = parId.get(String(ev.id));
+            if (!api) return ev;
+            return {
+                ...ev,
+                dates: api.dates.length ? api.dates : ev.dates,
+                startDate: api.dates.length ? api.dates[0] : ev.startDate,
+                slot: api.slot || ev.slot,
+                excerpt: ev.excerpt || api.excerpt
+            };
+        });
+    }
+    const resultat = await enrichFromPlugin(events);
+    resultat.sourceMec = sourceMec;
+    return resultat;
 }

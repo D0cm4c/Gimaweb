@@ -219,3 +219,9 @@ CREATE TABLE IF NOT EXISTS location_dates (
     UNIQUE (location_id, date, slot)
 );
 CREATE INDEX IF NOT EXISTS idx_location_dates_date ON location_dates(date);
+
+-- v1.5.12 : réglages applicatifs (clé API M.E. Calendar posée depuis la page Paramètres)
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT
+);

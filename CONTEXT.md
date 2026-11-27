@@ -410,3 +410,11 @@ Le code démarre : plan M0→M5 dans `docs/CONCEPTION.md` §6.
 - parametres.html : Sauvegarder maintenant = T\u00c9L\u00c9CHARGEMENT de la base sur le poste (GET /api/base/export, garde admin, snapshot via source.backup() \u2014 ASYNCHRONE, LE\u00c7ON : await obligatoire + on('error') sur le ReadStream sinon le serveur meurt sur ENOENT non g\u00e9r\u00e9). La nocturne chiffr\u00e9e AES-GCM/Nextcloud continue c\u00f4t\u00e9 serveur. settings.js v35.
 - Pastilles notifications (cloche + sidebar) : comptent UNIQUEMENT les alertes non lues (severity warning/danger + types ticket_urgent/error/room_needed/awaiting_validation \u2014 miroir de TYPE_CATEGORY de page-notifications). Journal d'activit\u00e9 visible sans badge.
 - R\u00e9gression 478/478 (14 suites). Rappel : chaque crash de suite laisse un serveur fant\u00f4me \u2192 pkill node server/serveur.js avant de re-rouler.
+
+## ✨ v1.5.12 — branchement API M.E. Calendar (issue #52 + 3 commentaires)
+
+- server/mec.js : `fetchViaApiMec(cle)` — GET /events (header `mec-token`, racine `events` indexée par date) + GET /events/:id/next-occurrences ; dates depuis `start.date` (ISO, pas les timestamps — pièges de fuseau), slot depuis `start.ampm`, allday → AM+PM. `chargerFormations({cleMec})` : MEC prioritaire puis **fusion** avec wp-json/RSS (les dates MEC remplacent le parseur FR ; les métadonnées wp-json — catégories, lieu, organisateur — sont conservées, l'API MEC ne les expose pas). `resultat.sourceMec` posé sur l'array. Échec MEC = silencieux → repli canal public.
+- Table `settings` (key/value) dans schema.sql. Clé posée via la carte Paramètres (plus de localStorage — la clé que le porteur avait posée en v1.5.11 vivait dans le NAVIGATEUR, il faut la re-saisir une fois) ou `MEC_API_KEY` en .env (prioritaire). Endpoints garde admin : GET/PUT /api/parametres/cle-mec — jamais la clé en clair, état masqué `cle-…7890`.
+- api-formations.js : `cleMecActive()`, `journaliser()`, notification sync « — dates via API M.E. Calendar » si sourceMec.
+- Tests m10-mec-api.js (18/18, mock loopback de l'API MEC + serveur port 32138) ; m0 passe à 19 tables ; m7-dom attend v1.5.12. Régression 496/496 (15 suites).
+- Surveillance future (issue #52) : champ « Numéro de membre (Optionnel) » côté WP → apparaîtra dans /config/custom-fields et les bookings → boucle matching n° > email > nom > création.
