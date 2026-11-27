@@ -124,7 +124,7 @@ for (const p of PAGES) {
     const lien = footer && footer.querySelector('a.side-external');
     const ordre = footer && [...footer.children].indexOf(v) < [...footer.children].indexOf(lien);
     verifie('sidebar : bloc version présent avant le lien atelierduweb.be', Boolean(v && lien && ordre), v && v.textContent);
-    verifie('sidebar : « Gimaweb v1.5.9 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.9', v && v.textContent);
+    verifie('sidebar : « Gimaweb v1.5.10 » affiché depuis /api/sante', v && v.textContent === 'Gimaweb v1.5.10', v && v.textContent);
 }
 
 // ---- 1ter) membre.html?id=… avec un VRAI membre : la fiche se rend sans erreur
@@ -297,10 +297,14 @@ for (const p of PAGES) {
 {
     const { errors: erreursS, window: ws } = await chargerPage('salles.html');
     await new Promise((r) => setTimeout(r, 1200));
-    const tete = [...ws.document.querySelectorAll('th.room-h')].map((t) => t.textContent);
-    verifie('salles.html : les 3 salles s\u2019affichent en colonnes', tete.length === 3, tete.join(' | '));
-    verifie('salles.html : colonne Grande salle pr\u00e9sente', tete.some((t) => t.indexOf('Grande') !== -1), tete.join(' | '));
-    verifie('salles.html : grille jours du mois rendue', ws.document.querySelectorAll('.room-planning tbody tr').length >= 28);
+    // v1.6.0 : grille SEMAINE \u2014 une LIGNE par salle (dynamique), 7 jours \u00d7 2 cr\u00e9neaux en colonnes
+    const lignesSalles = [...ws.document.querySelectorAll('.room-planning tbody tr.room-row td.room-lbl')].map((t) => t.textContent.trim());
+    verifie('salles.html : les 3 salles s\u2019affichent en LIGNES (une par salle)', lignesSalles.length === 3, lignesSalles.join(' | '));
+    verifie('salles.html : ligne Grande salle pr\u00e9sente', lignesSalles.some((t) => t.indexOf('Grande') !== -1), lignesSalles.join(' | '));
+    verifie('salles.html : 7 jours \u00d7 2 cr\u00e9neaux en colonnes (14 slot-h)', ws.document.querySelectorAll('.room-planning th.slot-h').length === 14);
+    verifie('salles.html : 14 cellules par ligne de salle', ws.document.querySelectorAll('.room-planning tbody tr.room-row')[0] && ws.document.querySelectorAll('.room-planning tbody tr.room-row')[0].querySelectorAll('td.slot-cell').length === 14);
+    verifie('salles.html : navigation semaine (label \u00ab \u2013 \u00bb)', ws.document.getElementById('monthLabel').textContent.includes('\u2013'), ws.document.getElementById('monthLabel').textContent);
+    verifie('salles.html : agenda \u00e0 venir rendu sous la grille', ws.document.getElementById('agendaWrap').textContent.length > 0 && ws.document.getElementById('agendaWrap').querySelectorAll('.ag-jour, .empty-state').length > 0, ws.document.getElementById('agendaWrap').textContent.slice(0, 80));
     verifie('salles.html : aucune erreur JS', erreursS.length === 0, erreursS.join(' | '));
 }
 
@@ -484,6 +488,21 @@ for (const p of PAGES) {
     verifie('salles.html : la location nouvelle occupe une cellule (class slot-location)', Boolean(cellule) && cellule.textContent.includes('\ud83d\udd11'), cellule && cellule.textContent);
     verifie('salles.html : la cellule pointe vers location.html?id', Boolean(cellule) && cellule.getAttribute('href').startsWith('location.html?id='), cellule && cellule.getAttribute('href'));
     verifie('salles.html : aucune erreur JS avec la location dans le planning', erreursS2.length === 0, erreursS2.join(' | '));
+    verifie('salles.html : la location appara\u00eet aussi dans l\u2019agenda \u00e0 venir', ws2.document.getElementById('agendaWrap').textContent.includes('Asso Test DOM') || ws2.document.getElementById('agendaWrap').textContent.includes('Loc du jour'), ws2.document.getElementById('agendaWrap').textContent.slice(0, 120));
+    // v1.5.10 : ligne de salle DYNAMIQUE — ajouter une salle en admin fait appara\u00eetre une ligne, la retirer la fait dispara\u00eetre
+    const coS = await fetch(`${origine}/api/auth/connexion`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: 'chantier' }) });
+    const ckS = (coS.headers.get('set-cookie') || '').split(';')[0];
+    await fetch(`${origine}/api/salles`, { method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: ckS }, body: JSON.stringify({ name: 'Salle test M7', capacity: 4 }) });
+    const { window: ws4 } = await chargerPage('salles.html');
+    await new Promise((r) => setTimeout(r, 1200));
+    const lignesApres = [...ws4.document.querySelectorAll('.room-planning tbody tr.room-row td.room-lbl')].map((t) => t.textContent.trim());
+    verifie('salles.html : salle ajout\u00e9e en admin \u2192 4 lignes (dont Salle test M7)', lignesApres.length === 4 && lignesApres.some((t) => t.includes('Salle test M7')), lignesApres.join(' | '));
+    const idNouvelle = (await (await fetch(`${origine}/api/salles`)).json()).find((r) => r.name === 'Salle test M7').id;
+    await fetch(`${origine}/api/salles/${idNouvelle}`, { method: 'DELETE', headers: { Cookie: ckS } });
+    const { window: ws5 } = await chargerPage('salles.html');
+    await new Promise((r) => setTimeout(r, 1200));
+    const lignesFinal = [...ws5.document.querySelectorAll('.room-planning tbody tr.room-row td.room-lbl')].map((t) => t.textContent.trim());
+    verifie('salles.html : salle retir\u00e9e en admin \u2192 retour \u00e0 3 lignes', lignesFinal.length === 3 && !lignesFinal.some((t) => t.includes('Salle test M7')), lignesFinal.join(' | '));
 
     // Sidebar : Locations sous Salles, Suggestions \u00e9pingl\u00e9e en bas (hors nav m\u00e9tier)
 }
